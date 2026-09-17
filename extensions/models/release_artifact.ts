@@ -13,7 +13,7 @@ const Sha = /^[0-9a-f]{40}$/;
 const Digest = /^sha256:[0-9a-f]{64}$/;
 
 const GlobalArgsSchema = z.object({
-  tools: z.string().default("_tools/bin").describe(
+  tools: z.string().default("_bin").describe(
     "Directory with pinned crane and cosign (make tools), relative to the repository root",
   ),
 });

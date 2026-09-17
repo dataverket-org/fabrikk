@@ -47,4 +47,4 @@ added to its allowlist (`builder-hugo`, `config/smadr-validator.yaml`).
 
 ## Index
 
-None yet.
+- [0001: A YAML library for the repository's local tools](0001-yaml-library-for-local-tools.md), proposed

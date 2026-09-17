@@ -50,5 +50,5 @@ jobs:
           git -C "$miljo" checkout -q --detach FETCH_HEAD
 
           make tools
-          _tools/bin/ko login "$REGISTRY" --username "$REGISTRY_USERNAME" --password-stdin <<< "$REGISTRY_PASSWORD"
+          _bin/ko login "$REGISTRY" --username "$REGISTRY_USERNAME" --password-stdin <<< "$REGISTRY_PASSWORD"
           make release PRODUCT="$PRODUCT" MILJO="$miljo" REGISTRY="$REGISTRY" COSIGN_KEY=env://COSIGN_PRIVATE_KEY

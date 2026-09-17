@@ -1,0 +1,50 @@
+# The page schema and bounding rules for docs/, as `make docs-check` (tools/cmd/docs-check) enforces them.
+# docs/README.md explains each rule; this file is what the check reads, so change the two together. Human-managed,
+# ported from the Dataverket docs site's validator policy (builder-hugo, config/smadr-validator.yaml).
+#
+# An unknown key here is an error, so a misspelt rule cannot silently stop applying. Every rule is an error; a
+# bounding rule either holds or fails the build.
+
+folders:                    # the closed list: folder -> the type every page in it declares (a README.md is always index)
+  explanation: explanation
+  guides: guide
+  reference: reference
+  tutorials: tutorial
+  decisions: adr
+
+files:                      # the only non-Markdown files allowed under docs/
+  - schema.yaml
+
+index: README.md            # every page is linked from this file (relative to docs/) or from its folder's README.md
+
+fields:
+  page:                     # every type except adr
+    required: [title, type, project]
+    optional: [audience, last-verified, context, weight, description, tags, related]
+  adr:                      # Structured MADR, as the docs site validates it
+    required: [title, description, type, project, category, status, created, updated, author, tags]
+    optional: [related]
+
+required_by_type:           # fields a type must carry, beyond fields.page.required
+  audience: [explanation, guide, reference]
+  last-verified: [explanation, reference]
+
+allowed:
+  project: [fabrikk, dataverket, sentral, maskin, plattform, identitet, tjeneste, objekt, nett]
+  audience: [operator, contributor, agent, everyone]
+  category: [api, architecture, data, infrastructure, integration, migration, security, testing]
+  status: [proposed, accepted, rejected]
+
+formats:                    # extended regular expressions a field's value must match
+  last-verified: '^[0-9]{4}-[0-9]{2}-[0-9]{2} @ [0-9a-f]{7,40}$'
+  created: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+  updated: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+
+overview:                   # an explanation page for a product without `context` is its overview: at most one each
+  exempt: [fabrikk, dataverket]
+
+adr_sections: [Status, Context, Decision, Consequences, Decision Outcome, Audit]
+adr_filename: '^[0-9]{4}-[a-z0-9][a-z0-9-]*\.md$'     # NNNN-short-title.md; `related` entries must exist
+
+code_map: reference/code-map.md   # relative to docs/
+mapped_paths: [models, workflows, extensions, skills, agent-constraints, tools, .forgejo]   # every tracked path appears there

@@ -40,7 +40,7 @@ flowchart LR
 
 `.forgejo/workflows/release.yaml` runs on push to `main` when a product, `go.work`, the `Makefile`, or the workflow
 itself changes, on a runner labelled `fabrikk-release`, with `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` as Actions
-secrets. The Makefile pins ko, cosign, kustomize, crane, and flux by version (`make tools`, into `_tools/bin`).
+secrets. The Makefile pins ko, cosign, kustomize, crane, and flux by version (`make tools`, into `_bin/`, alongside the repository's own tools from `tools/`).
 
 ## After the candidate
 

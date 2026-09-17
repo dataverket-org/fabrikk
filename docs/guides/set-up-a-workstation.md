@@ -29,7 +29,7 @@ git clone ssh://git@git.dataverket.org/dataverket/fabrikk.git ~/kode/fabrikk
 git clone ssh://git@git.dataverket.org/dataverket/miljo.git   ~/kode/miljo      # L2 overlays, next to the monorepo
 cd ~/kode/fabrikk
 swamp model search --json | jq '.results[].name'       # fabrikk, forgejo, omni, references, ...
-make tools                                              # pinned ko, cosign, kustomize, crane, flux into _tools/bin
+make tools                                              # pinned ko, cosign, kustomize, crane, flux, and tools/ into _bin
 swamp model method run references sync                  # read-only reference clones into _reference/
 ```
 

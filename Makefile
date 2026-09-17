@@ -6,10 +6,16 @@ SHELL := bash
 .ONESHELL:
 .DEFAULT_GOAL := help
 
-# --- Tools: pinned, installed into _tools/bin (gitignored, skipped by go ./...) -------------------------------------
+# --- Tools: every binary the repository runs, in _bin (gitignored, skipped by go ./...) ------------------------------
+#
+# Two kinds, one place, one target. External tools (ko, cosign, kustomize, crane, flux) are pinned by version below
+# and installed by `make tools`; they are never built from this repository. Local tools are this repository's own
+# programs: one Go module, tools/ (on go.work), one command per tools/cmd/<name>, built from HEAD by the same
+# `make tools`. Verification and release code runs from the branch under review, so tools/ is a protected path.
+# A target that needs a local tool depends on its binary, which rebuilds when the module changes.
 
-TOOLS ?= $(CURDIR)/_tools/bin
-export PATH := $(TOOLS):$(PATH)
+BIN ?= $(CURDIR)/_bin
+export PATH := $(BIN):$(PATH)
 
 KO_VERSION        := v0.19.1
 COSIGN_VERSION    := v3.1.3
@@ -22,26 +28,38 @@ FLUX_SHA256_linux_arm64 := f3e159af616ec0b9bd0a405c2185cf09d06b74652c1de3c7f377e
 
 PLATFORM := $(shell go env GOOS)_$(shell go env GOARCH)
 
-.PHONY: help tools release
+LOCAL_TOOLS        := docs-check
+LOCAL_TOOL_SOURCES := tools/go.mod tools/go.sum $(shell find tools -type f -name '*.go')
+
+.PHONY: help tools release docs-check
 
 help:
-	@grep -E '^[a-z.]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
+	@grep -E '^[a-z.-]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
 
-tools: ## Install pinned ko, cosign, kustomize, crane, flux into _tools/bin
-	@mkdir -p "$(TOOLS)"
-	GOBIN="$(TOOLS)" go install github.com/google/ko@$(KO_VERSION)
-	GOBIN="$(TOOLS)" go install github.com/sigstore/cosign/v3/cmd/cosign@$(COSIGN_VERSION)
-	GOBIN="$(TOOLS)" go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
-	GOBIN="$(TOOLS)" go install github.com/google/go-containerregistry/cmd/crane@$(CRANE_VERSION)
-	if [ "$$("$(TOOLS)/flux" version --client 2>/dev/null)" != "flux: v$(FLUX_VERSION)" ]; then
+tools: $(addprefix $(BIN)/,$(LOCAL_TOOLS)) ## Install pinned ko, cosign, kustomize, crane, flux and build tools/ into _bin
+	@mkdir -p "$(BIN)"
+	GOBIN="$(BIN)" go install github.com/google/ko@$(KO_VERSION)
+	GOBIN="$(BIN)" go install github.com/sigstore/cosign/v3/cmd/cosign@$(COSIGN_VERSION)
+	GOBIN="$(BIN)" go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
+	GOBIN="$(BIN)" go install github.com/google/go-containerregistry/cmd/crane@$(CRANE_VERSION)
+	if [ "$$("$(BIN)/flux" version --client 2>/dev/null)" != "flux: v$(FLUX_VERSION)" ]; then
 	  sha="$(FLUX_SHA256_$(PLATFORM))"
 	  [ -n "$$sha" ] || { echo "no pinned flux checksum for $(PLATFORM)" >&2; exit 1; }
 	  tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT
 	  curl -fsSL -o "$$tmp/flux.tar.gz" \
 	    "https://github.com/fluxcd/flux2/releases/download/v$(FLUX_VERSION)/flux_$(FLUX_VERSION)_$(PLATFORM).tar.gz"
 	  echo "$$sha  $$tmp/flux.tar.gz" | sha256sum --check --quiet
-	  tar -xzf "$$tmp/flux.tar.gz" -C "$(TOOLS)" flux
+	  tar -xzf "$$tmp/flux.tar.gz" -C "$(BIN)" flux
 	fi
+
+$(addprefix $(BIN)/,$(LOCAL_TOOLS)): $(BIN)/%: $(LOCAL_TOOL_SOURCES)
+	@mkdir -p "$(BIN)"
+	go build -C tools -o "$@" ./cmd/$*
+
+# --- Docs: docs/schema.yaml is the schema and the bounding rules; docs-check enforces it (tier 0) -------------------
+
+docs-check: $(BIN)/docs-check ## Check docs/ against docs/schema.yaml (tools/cmd/docs-check)
+	@"$(BIN)/docs-check" -config docs/schema.yaml
 
 # --- Release: run by CI on shared infrastructure after merge, never on a workbench (delivery skill) -----------------
 
