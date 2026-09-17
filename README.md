@@ -225,8 +225,14 @@ on disk: not in Actions secrets, not on a volume, gone on restart until a develo
 
 ### Release infrastructure
 
-- Self-hosted Forgejo hosting this monorepo and `miljo`, a runner labelled `fabrikk-release`, the Dataverket registry,
-  a cosign key pair (`cosign.pub` committed, private key and registry credentials as Actions secrets).
+- `git.dataverket.org` hosts this monorepo, `miljo`, and `flux-bootstrap`, and is the source of record; Codeberg is a
+  push mirror. Flux in `dataverket-prod` reads `flux-bootstrap` from the forge (since `ed79b27`, 2026-09-17). Lesson
+  from that switch: `flux bootstrap` owns fields on the live `GitRepository` through server-side apply, so removing a
+  field in git alone does nothing; rerun `bootstrap.sh` or patch the live object. Still needed: a runner labelled
+  `fabrikk-release` (see Release signing key), the Dataverket registry, a cosign key pair (`cosign.pub` committed).
+- The factory reaches `dataverket-prod` through an Omni-issued kubeconfig (`~/.kube/omni-production.yaml`): context
+  `fabrikk-readers` (default, `view` in `forgejo-runners` only) for observation, `dataverket-prod-admin`
+  (cluster-admin, 30-day token) for setup work through models named after the cluster, e.g. `dataverket-prod-rbac`.
 - `.forgejo/workflows/release.yaml` is tested only as an extracted script against a local registry; run it on the real
   runner.
 - Tag scheme for the environment line: a `miljo` change re-released for the same app commit reuses
