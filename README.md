@@ -50,6 +50,8 @@ artifacts. None of them has code yet.
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos`: shallow-clones or refreshes every listed repo into `_reference/` and records the commit. |
 | `models/@thomas/forgejo/forgejo.yaml` | `forgejo`: the forge at `git.dataverket.org` (repos, branch protection, PRs), token from the `fabrikk` vault. |
 | `models/@mccormick/omni/inventory/omni.yaml` | `omni`: the Talos fleet as Sidero Omni sees it (read-only `discover`), service-account key from the `fabrikk` vault. |
+| `models/@ginger_pappa/flux/helmrelease/dataverket-prod-helm.yaml` | `dataverket-prod-helm`: Flux HelmReleases in `dataverket-prod` (list, reconcile, suspend, resume), context `dataverket-prod-admin`; wraps the pinned `flux` CLI, so run with `_tools/bin` on PATH. |
+| `extensions/models/flux_reset.ts` | Adds `reset` to `@ginger_pappa/flux/helmrelease`: reconcile with `--reset`, for a release stuck at `RetriesExceeded` whose workloads are healthy. |
 | `models/@swamp/kubernetes/pod/runner-pods.yaml` | `runner-pods`: the `forgejo-runners` namespace in `dataverket-prod`, context `fabrikk-readers` from the developer's kubeconfig. |
 | `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault). |
 | `vaults/fabrikk.enc.json`, `.sops.yaml` | Secrets the factory reads unattended (`fabrikk` vault): SOPS, encrypted to the factory's age key and each attester's YubiKey. Nothing in the repo names a home directory: the factory identity lives in the host's default sops keys file, and kubeconfig contexts are named, not pathed. |
@@ -169,9 +171,11 @@ order:
    and `dataverket/miljo` exist, `main` is pull-request only, and only `beddari` may push `attestation/*` tags.
    The org runner `dataverket-runner` (labels `ubuntu-latest`, `kata`; a Kata VM pod in `dataverket-prod`, see `runner_list`)
    is not the release runner: that is a second deployment in flux-bootstrap with the label `fabrikk-release` and the
-   cosign key seeded into memory over FIDO SSH, never on disk (design in Follow-up work). Left: that deployment,
-   the cosign key pair and registry credentials as Actions secrets (`actions_secret_put` from the vault), and deciding
-   what `registry.dataverket.internal` is (the dev cluster already runs zot).
+   cosign key seeded into memory over FIDO SSH, never on disk (design in Follow-up work). The registry exists:
+   zot at `registry.dataverket.org` (flux-bootstrap `artifacts/zot`, delivered gitless; anonymous pull, push for
+   `fabrikk-ci`, whose credential the cluster repo owns and this vault copies as `registry/ci_username` and
+   `registry/ci_password`). Left: that deployment, and the cosign key pair and registry credentials as Actions
+   secrets (`actions_secret_put` from the vault).
 2. **Add PR validation to CI.** A `.forgejo/workflows/` job on pull request that runs the four checks under
    Attestation, plus a protected `.forgejo/attesters` file for `git tag -v`. Bash only: no LLM, no swamp on the runner.
    Make it a required status check on `main`. This is fabrikk's `validate-attestation`; the review-integrity check
