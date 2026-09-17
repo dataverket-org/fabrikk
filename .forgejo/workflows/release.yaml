@@ -6,14 +6,13 @@
 # The matching public key is cosign.pub at the repository root.
 name: release
 
+# Triggers on product paths only. A change to the Makefile, go.work, or this workflow does not release by itself:
+# the next product change exercises it, and a release is identified by the product commit it was built from.
 on:
   push:
     branches: [main]
     paths:
       - 'sentral/**'
-      - 'go.work'
-      - 'Makefile'
-      - '.forgejo/workflows/release.yaml'
 
 jobs:
   sentral:
