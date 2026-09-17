@@ -36,6 +36,7 @@ artifacts. None of them has code yet.
 | `skills/delivery/SKILL.md` | Artifacts, config join, gitless promotion, UAT. |
 | `agent-constraints/planning-conventions.md` | What a plan must contain. Input to the planning stage. |
 | `agent-constraints/adversarial-dimensions.md` | What reviewers attack, with severities. Input to both review stages. |
+| `agent-constraints/implementation-conventions.md` | Worktree, plan fidelity, tests, commits, what to record. Input to the implementing stage. |
 | `models/@swamp/software-factory/fabrikk.yaml` | The factory definition: stages, gates, review prompts. |
 | `workflows/workflow-fabrikk-verify.yaml` | Verifying stage: clean worktree at `headSha`, then `make check` (tier 0) and `make verify` (tier 2). |
 | `extensions/models/dev_environment.ts` | `@dataverket/dev-environment`: the dev-environment make targets as model methods, results pinned to HEAD. |
@@ -45,6 +46,8 @@ artifacts. None of them has code yet.
 | `models/@dataverket/reference-repos/references.yaml` | Reference repositories agents read: name, URL, pinned ref, and why each is there. |
 | `Makefile` | `make tools` (pinned ko, cosign, kustomize, crane, flux into `_tools/bin`) and `make release`. |
 | `.forgejo/workflows/release.yaml` | CI on merge to main: `make release` for each product on shared infrastructure. |
+| `.forgejo/workflows/validate-attestation.yaml` | CI on every push to a PR: the four checks under Attestation, bash only. |
+| `.forgejo/attesters` | Who may sign `attestation/*` tags (SSH allowed signers); CI reads it from the base branch. |
 | `workflows/workflow-fabrikk-release.yaml` | Releasing stage: waits for CI's candidate for the merge commit and verifies it. |
 | `extensions/models/release_artifact.ts` | `@dataverket/release-artifact`: signature, provenance, `release.json`, digest-pinned images, `:candidate`. |
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos`: shallow-clones or refreshes every listed repo into `_reference/` and records the commit. |
@@ -53,7 +56,7 @@ artifacts. None of them has code yet.
 | `models/@ginger_pappa/flux/helmrelease/dataverket-prod-helm.yaml` | `dataverket-prod-helm`: Flux HelmReleases in `dataverket-prod` (list, reconcile, suspend, resume), context `dataverket-prod-admin`; wraps the pinned `flux` CLI, so run with `_tools/bin` on PATH. |
 | `extensions/models/flux_reset.ts` | Adds `reset` to `@ginger_pappa/flux/helmrelease`: reconcile with `--reset`, for a release stuck at `RetriesExceeded` whose workloads are healthy. |
 | `models/@swamp/kubernetes/pod/runner-pods.yaml` | `runner-pods`: the `forgejo-runners` namespace in `dataverket-prod`, context `fabrikk-readers` from the developer's kubeconfig. |
-| `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault), `repo_rename` (verify-first). |
+| `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault), `repo_rename` (verify-first), `pr_merge_state` (merge commit and merger, for `merge` evidence). |
 | `vaults/fabrikk.enc.json`, `.sops.yaml` | Secrets the factory reads unattended (`fabrikk` vault): SOPS, encrypted to the factory's age key and each attester's YubiKey. Nothing in the repo names a home directory: the factory identity lives in the host's default sops keys file, and kubeconfig contexts are named, not pathed. |
 
 Every adversary is used twice: to refine the plan before approval, and to review the output before the PR.
@@ -83,10 +86,15 @@ Humans approve the plan and the merge. Nowhere else.
 
 - `skills/*` are symlinked into `.claude/skills/` so Claude Code loads them. Stage work specs reference them by name.
 - Drive a work item with `swamp model method run fabrikk status --input workItem=<ref>` (see the `software-factory` skill).
-- `agent-constraints/` is consumed by `@swamp/issue-lifecycle` as-is, and by fabrikk's planning, implementing, and review stages as `constraints`.
+- `agent-constraints/` is consumed by `@swamp/issue-lifecycle` as-is, and by fabrikk's planning
+  (`planning-conventions.md`), implementing (`implementation-conventions.md`), and review stages
+  (`adversarial-dimensions.md`) as `constraints`.
 - Reviews run in a separate agent with no shared context (`dispatch` mode: one reviewer per skill).
 - Deterministic stages call swamp workflows. `fabrikk-verify`, `fabrikk-attest`, and `fabrikk-release` exist; `fabrikk-uat` and `fabrikk-promote` wait for a UAT environment (see Follow-up work), so a run stops at `uat`.
 - The implementer records `change` evidence with `worktree`, `branch`, and `headSha`; `fabrikk-verify` runs in that worktree and leaves the session stack up.
+- The `pull-request` stage drives the forge through the `forgejo` model: `pr_ensure` opens the PR and `pr_merge_state`
+  reads the merge, so `pull-request` and `merge` evidence are copied from the API. The human merges in Forgejo and then
+  approves `merge-approval`; the agent never approves for them.
 - Protected paths in Forgejo (human review required): `skills/`, `agent-constraints/`, `CLAUDE.md`, the `fabrikk` definition, review prompts, `docs/adr/`, `Makefile`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`. The attestation checksums them.
 
 ## Release
@@ -135,16 +143,24 @@ and the PR head are one commit, as in swamp's own factory (`_reference/swamp`, `
 `.github/workflows/ci.yml`). The branch and the tag are pushed together; the `pull-request` stage records the PR head and
 sends the work item back to `implementing` if it is not the attested commit.
 
-CI validates it on every push to the PR, without re-running the loop:
+CI validates it on every push to the PR (`.forgejo/workflows/validate-attestation.yaml`, bash only, no swamp on the
+runner), without re-running the loop:
 
 1. The tag `attestation/<PR head>` exists, points at the PR head, and `git tag -v` verifies it against the allowed
-   attesters.
+   attesters in `.forgejo/attesters`, read from the base branch so a PR cannot add its own attester. Keep that file
+   and the Forgejo tag protection for `attestation/*` equal.
 2. The JSON in the tag (`git for-each-ref refs/tags/attestation/<sha> --format='%(contents:body)'`) has
    `headSha` equal to the PR head.
 3. `protectedPaths.sha256` equals `PATHS_DIGEST_RECIPE` (in `extensions/models/git_paths_digest.ts`) run at the PR head
    over `protectedPaths.paths`.
 4. `protectedPaths.changed` equals `git diff --name-only <base>...<PR head> -- <paths>`. Non-empty means the PR needs a
-   human on protected paths, whatever else is green.
+   human on protected paths, whatever else is green; CI passes and says so in a warning and the job summary.
+
+The check also requires the recorded `make check` and `make verify` exit codes to be 0 and no unresolved critical or
+high review findings, so a tag that honestly records a failed loop does not pass. Forgejo runs the PR head's copy of
+the workflow, so a PR editing `.forgejo/` can weaken it: `.forgejo/` is a protected path and check 4 reports the change.
+Once the check has reported on a real PR, make it required on `main`
+(`swamp model method run forgejo branch_protection_ensure` with `enableStatusCheck` and the context name Forgejo shows).
 
 The signature says who attested. Verification, review, and approval are summarized from swamp run data that CI cannot
 read; the attestation says what the factory recorded, not that a third party checked it.
@@ -161,10 +177,11 @@ currently gets through `releasing` and stops at `uat`.
 
 ### Next steps (2026-09-17)
 
-Everything after `code-review` assumes a Forgejo that is not on the network yet: the pull-request stage has no tool to
-open a PR or read a merge, no CI validates the attestation tag, and this checkout has no remote. Compared with swamp's
-own factory (`_reference/swamp`, `.github/workflows/ci.yml`), that is the whole gap; the pre-merge half matches. In
-order:
+Compared with swamp's own factory (`_reference/swamp`, `.github/workflows/ci.yml`), the pre-merge half matches, and
+after the changes of 2026-09-17 the forge is wired in: CI validates the attestation tag and the `pull-request` stage
+reads the forge's API. What swamp has that fabrikk still lacks is CI-side LLM review (an adversarial review of core
+source, a security review of `.forgejo/` changes, a review-integrity check on trust-root changes) and auto-merge;
+fabrikk keeps the human merge by design and the other three are listed below. In order:
 
 1. **Stand up the forge and put the repos on it.** Done on `git.dataverket.org` through the `forgejo` model
    (`@thomas/forgejo` plus `extensions/models/forgejo_actions.ts`, token in the `fabrikk` vault): `dataverket/fabrikk`
@@ -174,22 +191,27 @@ order:
    cosign key seeded into memory over FIDO SSH, never on disk (design in Follow-up work). The registry exists:
    zot at `registry.dataverket.org` (fabrikk-infra `artifacts/zot`, delivered gitless; anonymous pull, push for
    `fabrikk-ci`, whose credential the cluster repo owns and this vault copies as `registry/ci_username` and
-   `registry/ci_password`). Left: that deployment, and the cosign key pair and registry credentials as Actions
-   secrets (`actions_secret_put` from the vault).
-2. **Add PR validation to CI.** A `.forgejo/workflows/` job on pull request that runs the four checks under
-   Attestation, plus a protected `.forgejo/attesters` file for `git tag -v`. Bash only: no LLM, no swamp on the runner.
-   Make it a required status check on `main`. This is fabrikk's `validate-attestation`; the review-integrity check
-   comes later.
-3. **Wire Forgejo into the `pull-request` stage with an existing extension.** Pull `@thomas/forgejo` (opens PRs, reads
-   mergeability and head CI state, guarded merge) rather than build one, so `pull-request` and `merge` evidence come
-   from the API, not from memory. The human still merges in Forgejo. `@shrug/forgejo` covers issues if work items
-   become issue URLs.
+   `registry/ci_password`). `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` are Actions secrets on `dataverket/fabrikk`
+   (`actions_secret_put` from the vault, 2026-09-17). Left: the release runner deployment, and the cosign key:
+   `release.yaml` still reads `COSIGN_PRIVATE_KEY` from Actions secrets, which the signing-key design below forbids.
+   Decide (OpenBao transit or the memory volume), then change `release.yaml` and generate the key pair; `cosign.pub`
+   is committed with it.
+2. **Add PR validation to CI.** Done: `.forgejo/workflows/validate-attestation.yaml` runs the four checks under
+   Attestation on every push to a PR, with `.forgejo/attesters` for `git tag -v`. Tested locally against a
+   signed-tag fixture (happy path, missing tag, rogue signer, moved head, tampered protected file); not yet run on the
+   real runner. Left: after its first run on a real PR, make it a required status check on `main`
+   (`branch_protection_ensure`, `enableStatusCheck: true`, `statusCheckContexts` = the context Forgejo reports).
+   The review-integrity check comes later.
+3. **Wire Forgejo into the `pull-request` stage.** Done with `@thomas/forgejo`: the stage's prompt drives `pr_ensure`
+   (open, converge) and `pr_merge_state` (extension: merge commit, time, merger), and `pull-request` evidence now
+   carries the PR `index`. `@shrug/forgejo` covers issues if work items become issue URLs.
 4. **Run Sentral's first work item through the whole loop.** It brings `go.work`, the first module, `make check`,
    `make verify`, and `compose.yaml`, which makes `verifying` real, and is the first run of `release.yaml` on the real
-   runner. Write `agent-constraints/implementation-conventions.md` first (swamp needed one).
+   runner. `agent-constraints/implementation-conventions.md` exists and is the implementing stage's constraints; the
+   first work item will show what it is missing.
 
-Steps 1 and 2 are small and on the critical path. Step 4 can start in parallel up to `code-review`, but a work item
-that stalls at `pull-request` wastes the loop, so Forgejo first.
+Step 4 is next. It stalls at `releasing` until the release runner and the cosign key from step 1 exist, so start
+those in parallel; everything up to and including the merge works without them.
 
 ### UAT, promotion, and customer releases
 
@@ -254,9 +276,8 @@ on disk: not in Actions secrets, not on a volume, gone on restart until a develo
 - The `releasing` stage defaults to `sentral`/`uat`; the work item's product should come from the plan or `change`
   evidence.
 - Reference repositories: move the Zitadel ref to the pinned Zitadel image once one is chosen.
-- CI attestation validation: a `.forgejo/workflows/` job on PR open and every push that runs the four checks in
-  Attestation, plus an allowed-attesters file for `git tag -v` (`.forgejo/attesters`, protected) and a Forgejo tag
-  protection rule for `attestation/*`. None of this exists yet.
+- CI attestation validation exists (`validate-attestation.yaml`, `.forgejo/attesters`, tag protection for
+  `attestation/*`); it is not yet a required status check on `main`, and has not yet run on the real runner.
 - Shared swamp store: once Forgejo, the runner, and the registry exist, share fabrikk's swamp data through a remote
   datastore or `swamp serve` (swamp-club is swamp's own equivalent). Attestations are already swamp data, and CI could
   then check the verification, review, and approval records themselves instead of only the attestation's summary of

@@ -1,0 +1,93 @@
+# Protected path. fabrikk's validate-attestation: on every push to a pull request, check that the PR head carries a
+# signed attestation tag from an allowed attester and that the tag says what the tree says (README, Attestation).
+# Bash only: no LLM, no swamp on the runner. It validates the factory's record; it never re-runs the loop.
+#
+# The attesters list and this check's trust decisions come from the base branch; the PR head is only the subject.
+# What this cannot defend against: Forgejo runs the PR head's copy of this workflow, so a PR that edits .forgejo/
+# can weaken it. .forgejo/ is a protected path: check 4 reports the change and a human reviews it.
+name: validate-attestation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Validate the attestation tag for the PR head
+        env:
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          auth=(-c "http.extraHeader=Authorization: token $TOKEN")
+          tag="attestation/$HEAD_SHA"
+          summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          errors=0
+          fail() { echo "::error::$1"; echo "- FAIL: $1" >> "$summary"; errors=$((errors + 1)); }
+          ok()   { echo "ok: $1";       echo "- ok: $1"   >> "$summary"; }
+
+          git init -q .
+          git "${auth[@]}" fetch -q "$SERVER_URL/$REPOSITORY" "$HEAD_SHA" "refs/heads/$BASE_REF:refs/remotes/base/$BASE_REF"
+          # The tag is fetched on its own so a missing tag is a finding, not a fetch failure.
+          if ! git "${auth[@]}" fetch -q "$SERVER_URL/$REPOSITORY" "refs/tags/$tag:refs/tags/$tag" 2>/dev/null; then
+            fail "no tag $tag: run the factory's attesting stage at this commit and push the tag with the branch"
+            echo "attestation missing for ${HEAD_SHA:0:8}" >> "$summary"
+            exit 1
+          fi
+          git checkout -q --detach "$HEAD_SHA"
+          echo "## Attestation validation for \`${HEAD_SHA:0:8}\`" >> "$summary"
+
+          # 1. The tag is annotated, points at the PR head, and is signed by an allowed attester (list from the base branch).
+          [ "$(git cat-file -t "$tag")" = tag ] || fail "$tag is not an annotated tag"
+          target=$(git rev-parse "$tag^{commit}")
+          [ "$target" = "$HEAD_SHA" ] || fail "$tag points at ${target:0:8}, not the PR head"
+          git show "base/$BASE_REF:.forgejo/attesters" > "$RUNNER_TEMP/attesters"
+          if git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile="$RUNNER_TEMP/attesters" tag -v "$tag" > "$RUNNER_TEMP/tag-v.log" 2>&1; then
+            ok "$tag is signed by an allowed attester ($(grep -oE 'Good "git" signature for [^ ]+' "$RUNNER_TEMP/tag-v.log" | head -1 || echo 'see log'))"
+          else
+            cat "$RUNNER_TEMP/tag-v.log"
+            fail "$tag signature does not verify against .forgejo/attesters on $BASE_REF"
+          fi
+
+          # 2. The document in the tag is fabrikk/v1 and attests exactly the PR head.
+          git for-each-ref "refs/tags/$tag" --format='%(contents:body)' > "$RUNNER_TEMP/attestation.json"
+          jq -e . "$RUNNER_TEMP/attestation.json" > /dev/null || { fail "tag body is not JSON"; echo "errors: $errors"; exit 1; }
+          j() { jq -r "$1" "$RUNNER_TEMP/attestation.json"; }
+          [ "$(j .attestation)" = "fabrikk/v1" ] || fail "attestation version is $(j .attestation), expected fabrikk/v1"
+          if [ "$(j .headSha)" = "$HEAD_SHA" ]; then ok "document attests the PR head"; else fail "document attests $(j .headSha | cut -c1-8), not the PR head"; fi
+          [ "$(j .verification.check.exitCode)" = 0 ] && [ "$(j .verification.verify.exitCode)" = 0 ] \
+            && ok "make check and make verify exited 0" || fail "verification did not pass: check=$(j .verification.check.exitCode) verify=$(j .verification.verify.exitCode)"
+          [ "$(j '.codeReview.unresolved.critical + .codeReview.unresolved.high')" = 0 ] \
+            && ok "no unresolved critical or high review findings" || fail "unresolved review findings: $(j -c .codeReview.unresolved)"
+          echo "- work item: $(j .workItem); plan approved by $(j .planApproval.actor); attested $(j .attestedAt)" >> "$summary"
+
+          # 3. The protected-paths digest recomputes at the PR head (recipe: extensions/models/git_paths_digest.ts).
+          PATHS=$(j '.protectedPaths.paths[]' | tr '\n' ' ')
+          SHA="$HEAD_SHA"
+          actual=$(git -c core.quotepath=off ls-tree -r --full-tree \
+            --format='%(objecttype) %(objectname) %(path)' "$SHA" -- $PATHS |
+          while read -r type oid path; do
+            [ "$type" = blob ] || continue
+            printf '%s  %s\n' "$(git cat-file blob "$oid" | sha256sum | cut -d' ' -f1)" "$path"
+          done | LC_ALL=C sort | sha256sum | cut -d' ' -f1)
+          if [ "$actual" = "$(j .protectedPaths.sha256)" ]; then ok "protected-paths digest matches ($(j .protectedPaths.fileCount) files)"; else fail "protected-paths digest is ${actual:0:12}, attestation says $(j .protectedPaths.sha256 | cut -c1-12)"; fi
+
+          # 4. The protected files the branch changed are the ones the attestation lists. Non-empty needs a human.
+          expected=$(j '.protectedPaths.changed[]' | LC_ALL=C sort)
+          changed=$(git diff --name-only "base/$BASE_REF...$HEAD_SHA" -- $PATHS | LC_ALL=C sort)
+          if [ "$changed" = "$expected" ]; then ok "protected-path change list matches"; else
+            fail "protected-path changes differ from the attestation"; printf 'attested:\n%s\nactual:\n%s\n' "$expected" "$changed"; fi
+          if [ -n "$changed" ]; then
+            echo "::warning::this PR changes protected paths; a human must review it in Forgejo whatever else is green"
+            { echo ""; echo "**Protected paths changed, human review required:**"; echo '```'; echo "$changed"; echo '```'; } >> "$summary"
+          fi
+
+          echo "errors: $errors"
+          [ "$errors" -eq 0 ]
