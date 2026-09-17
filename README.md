@@ -170,9 +170,9 @@ order:
    (`@thomas/forgejo` plus `extensions/models/forgejo_actions.ts`, token in the `fabrikk` vault): `dataverket/fabrikk`
    and `dataverket/miljo` exist, `main` is pull-request only, and only `beddari` may push `attestation/*` tags.
    The org runner `dataverket-runner` (labels `ubuntu-latest`, `kata`; a Kata VM pod in `dataverket-prod`, see `runner_list`)
-   is not the release runner: that is a second deployment in flux-bootstrap with the label `fabrikk-release` and the
+   is not the release runner: that is a second deployment in fabrikk-infra with the label `fabrikk-release` and the
    cosign key seeded into memory over FIDO SSH, never on disk (design in Follow-up work). The registry exists:
-   zot at `registry.dataverket.org` (flux-bootstrap `artifacts/zot`, delivered gitless; anonymous pull, push for
+   zot at `registry.dataverket.org` (fabrikk-infra `artifacts/zot`, delivered gitless; anonymous pull, push for
    `fabrikk-ci`, whose credential the cluster repo owns and this vault copies as `registry/ci_username` and
    `registry/ci_password`). Left: that deployment, and the cosign key pair and registry credentials as Actions
    secrets (`actions_secret_put` from the vault).
@@ -207,7 +207,7 @@ that stalls at `pull-request` wastes the loop, so Forgejo first.
 The cosign private key is seeded from developer laptops over FIDO SSH into the release runner's memory and is never
 on disk: not in Actions secrets, not on a volume, gone on restart until a developer seeds it again.
 
-- **The runner.** `dataverket-runner` is a pod in `dataverket-prod` (flux-bootstrap, `apps/forgejo-runners`): the
+- **The runner.** `dataverket-runner` is a pod in `dataverket-prod` (fabrikk-infra, `apps/forgejo-runners`): the
   forgejo-runner chart under the `kata` RuntimeClass, so a VM, with docker-in-docker and a Cinder volume for images.
   Jobs run as containers inside that VM. The release runner is a second deployment of the same chart with the label
   `fabrikk-release`; the PR runner never carries the key.
@@ -229,8 +229,9 @@ on disk: not in Actions secrets, not on a volume, gone on restart until a develo
 
 ### Release infrastructure
 
-- `git.dataverket.org` hosts this monorepo, `miljo`, and `flux-bootstrap`, and is the source of record; Codeberg is a
-  push mirror. Flux in `dataverket-prod` reads `flux-bootstrap` from the forge (since `ed79b27`, 2026-09-17). Lesson
+- `git.dataverket.org` hosts this monorepo, `miljo`, and `fabrikk-infra` (the infrastructure that stands up a fabrikk;
+  `flux-bootstrap` until 2026-09-17), and is the source of record; Codeberg is a
+  push mirror. Flux in `dataverket-prod` reads `fabrikk-infra` from the forge (since `ed79b27`, 2026-09-17). Lesson
   from that switch: `flux bootstrap` owns fields on the live `GitRepository` through server-side apply, so removing a
   field in git alone does nothing; rerun `bootstrap.sh` or patch the live object. Still needed: a runner labelled
   `fabrikk-release` (see Release signing key), the Dataverket registry, a cosign key pair (`cosign.pub` committed).
