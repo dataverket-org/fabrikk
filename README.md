@@ -152,6 +152,32 @@ standard (lives in an ADR); domain content for products other than Sentral beyon
 Paused before UAT (2026-09-17): UAT must run end to end against a real environment, and none exists yet. A factory run
 currently gets through `releasing` and stops at `uat`.
 
+### Next steps (2026-09-17)
+
+Everything after `code-review` assumes a Forgejo that is not on the network yet: the pull-request stage has no tool to
+open a PR or read a merge, no CI validates the attestation tag, and this checkout has no remote. Compared with swamp's
+own factory (`_reference/swamp`, `.github/workflows/ci.yml`), that is the whole gap; the pre-merge half matches. In
+order:
+
+1. **Stand up the forge and put the repos on it.** Reach or bring up `kode.dataverket.org`, add `fabrikk` and `miljo`
+   to `org.yaml` in the dataverket `infra` repo, apply, and push this repository. Branch protection on `main`, a tag
+   protection rule for `attestation/*`, one runner labelled `fabrikk-release`, and the cosign key pair plus registry
+   credentials as Actions secrets. Decide what `registry.dataverket.internal` is (the dev cluster already runs zot).
+2. **Add PR validation to CI.** A `.forgejo/workflows/` job on pull request that runs the four checks under
+   Attestation, plus a protected `.forgejo/attesters` file for `git tag -v`. Bash only: no LLM, no swamp on the runner.
+   Make it a required status check on `main`. This is fabrikk's `validate-attestation`; the review-integrity check
+   comes later.
+3. **Wire Forgejo into the `pull-request` stage with an existing extension.** Pull `@thomas/forgejo` (opens PRs, reads
+   mergeability and head CI state, guarded merge) rather than build one, so `pull-request` and `merge` evidence come
+   from the API, not from memory. The human still merges in Forgejo. `@shrug/forgejo` covers issues if work items
+   become issue URLs.
+4. **Run Sentral's first work item through the whole loop.** It brings `go.work`, the first module, `make check`,
+   `make verify`, and `compose.yaml`, which makes `verifying` real, and is the first run of `release.yaml` on the real
+   runner. Write `agent-constraints/implementation-conventions.md` first (swamp needed one).
+
+Steps 1 and 2 are small and on the critical path. Step 4 can start in parallel up to `code-review`, but a work item
+that stalls at `pull-request` wastes the loop, so Forgejo first.
+
 ### UAT, promotion, and customer releases
 
 - **UAT environment.** A cluster whose Flux `OCIRepository` watches `<registry>/<product>/config-uat:candidate` with cosign
