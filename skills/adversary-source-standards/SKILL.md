@@ -25,7 +25,8 @@ description: Source, licensing, commit, and decision-record standards for Datave
 
 ## Architecture decision records
 
-An ADR (`docs/decisions/NNNN-title.md`, short: context, decision, consequences) is **required** for:
+An ADR (`docs/decisions/NNNN-title.md`, short: context, decision, consequences) is **required** in product code
+for:
 
 - a new subject namespace or change to the subject-naming standard
 - a new CloudEvents `type` family or a change to the envelope's required extensions
@@ -35,6 +36,12 @@ An ADR (`docs/decisions/NNNN-title.md`, short: context, decision, consequences) 
 - any change to a budget defined in an adversary skill
 
 No ADR, no approval.
+
+The factory's own machinery is exempt: `tools/`, `extensions/`, `workflows/`, and the `Makefile` never ship in a
+release artifact, are protected paths that a human reviews, and pin every dependency by version (`go.mod`, `npm:`
+specifiers). A dependency there needs a one-line reason where it is declared and an entry in the code map, not an
+ADR. The budget rule still applies: a second library for a job the machinery already has one for is a simplicity
+finding.
 
 ## Configuration and artifacts
 
