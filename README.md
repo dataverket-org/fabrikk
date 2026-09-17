@@ -1,8 +1,26 @@
 # fabrikk — bootstrap skill set
 
-Context inputs for **fabrikk**, Dataverket's Swamp-based software factory. It builds Sentral first, then Objekt and Maskin.
+Context inputs for **fabrikk**, Dataverket's Swamp-based software factory. It builds Dataverket's seven products,
+Sentral first, then Objekt and Maskin.
 Written to the model Adam Jacob presented: **the factory is a program; skills are its context.**
 Process lives in Swamp models and workflows. These files say what good looks like, not how to run the loop.
+
+## Products
+
+Dataverket is a sovereign open source datacenter automation system. Its products, as named in ADR 001 (service naming):
+
+| Product | Purpose | Directory |
+|---|---|---|
+| **Sentral** | Control plane, orchestration, billing | `sentral/` |
+| **Maskin** | Compute: VMs and bare metal | `maskin/` |
+| **Plattform** | Kubernetes platform | `plattform/` |
+| **Identitet** | Identity and access management (Zitadel) | `identitet/` |
+| **Tjeneste** | Application and service deployment (SaaS layer) | `tjeneste/` |
+| **Objekt** | Object storage (S3-compatible) | `objekt/` |
+| **Nett** | Datacenter network automation and tenant network products | `nett/` |
+
+Each product is its own Go module in its own directory, joined by the root `go.work`, and is released as its own
+artifacts. None of them has code yet.
 
 ## Layout
 
@@ -36,7 +54,7 @@ Every adversary is used twice: to refine the plan before approval, and to review
 ## Repositories
 
 - **This repository is the monorepo.** fabrikk (skills, constraints, definition, workflows, extensions) and the products it
-  builds (Sentral, then Objekt and Maskin) live here, so one commit pins both the code and the steering it was built under.
+  builds (the seven products above) live here, so one commit pins both the code and the steering it was built under.
 - **Environment overlays (L2) live in `miljo`**, outside the monorepo: different owner (the environment line), versioned
   independently, and never read by a cluster.
 
@@ -119,7 +137,7 @@ factory recorded, not that a third party checked it.
 ## Deliberately not in this set (not settled yet)
 
 Ring/wave promotion and the fleet ledger; the environment factory's full adversary set; the concrete subject-naming
-standard (lives in an ADR); Objekt/Maskin domain content beyond the downstream-port pattern.
+standard (lives in an ADR); domain content for products other than Sentral beyond the downstream-port pattern.
 
 ## Follow-up work
 
@@ -160,7 +178,5 @@ currently gets through `releasing` and stops at `uat`.
 - Reference repositories: tell agents in a skill (dev-environment or architecture) and add a `name@commit` citation to
   the plan's `portsAndDownstreams`. Move the Zitadel ref to the pinned Zitadel image once one is chosen.
 - Decide whether `deploy/dev/` (compose fragments with healthcheck, seed, and reset scripts) is a protected path.
-- List all seven products from ADR 001 (Sentral, Maskin, Plattform, Identitet, Tjeneste, Objekt, Nett) where this README
-  names only Sentral, Objekt, and Maskin.
 - Attestation provenance: the verification, review, and approval sections are the factory's own record; commit signing
   is the only independent signal today.
