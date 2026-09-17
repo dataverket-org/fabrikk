@@ -47,7 +47,7 @@ only, logic lives under `internal/`, tests sit next to the code.
 | Path | Role | Protected |
 |---|---|---|
 | `go.work` | Every Go module in the monorepo: `tools/` now, one module per product as they arrive. | no |
-| `tools/go.mod`, `tools/go.sum` | The `tools` module (`git.dataverket.org/dataverket/fabrikk/tools`), Go 1.25, one dependency: `gopkg.in/yaml.v3` (ADR 0001). | yes |
+| `tools/go.mod`, `tools/go.sum` | The `tools` module (`git.dataverket.org/dataverket/fabrikk/tools`), Go 1.25, one dependency: `gopkg.in/yaml.v3`, to read human-managed YAML such as `docs/schema.yaml` with unknown keys rejected. Factory machinery needs no ADR for a dependency (source-standards skill). | yes |
 | `tools/cmd/docs-check/main.go` | `docs-check`: flags, output, exit code. Run through `make docs-check`. | yes |
 | `tools/internal/docscheck/config.go` | `docs/schema.yaml` as a typed config; unknown keys and bad patterns are errors. | yes |
 | `tools/internal/docscheck/frontmatter.go` | Frontmatter parsing: dates become ISO strings, lists become `[]string`, `a, b` scalars split. | yes |

@@ -8,9 +8,11 @@ weight: 50
 # Architecture decision records
 
 ADRs for fabrikk and the products it builds. The source-standards skill (`skills/adversary-source-standards/SKILL.md`)
-says when one is required: a new subject namespace, a new CloudEvents type family, a new Go module dependency, a new
-downstream port or compose fragment, a new tunable field in an environment overlay, or a change to a budget in an
-adversary skill. No ADR, no approval. This folder is a protected path.
+says when one is required in product code: a new subject namespace, a new CloudEvents type family, a new Go module
+dependency, a new downstream port or compose fragment, a new tunable field in an environment overlay, or a change to
+a budget in an adversary skill. No ADR, no approval. The factory's own machinery (`tools/`, `extensions/`,
+`workflows/`, the `Makefile`) is exempt for dependencies: pinned, reviewed as protected paths, listed in the code
+map. This folder is a protected path.
 
 ## Format
 
@@ -47,4 +49,4 @@ added to its allowlist (`builder-hugo`, `config/smadr-validator.yaml`).
 
 ## Index
 
-- [0001: A YAML library for the repository's local tools](0001-yaml-library-for-local-tools.md), proposed
+None yet.
