@@ -85,7 +85,8 @@ gateway-level topology is ever needed.
 Upstream code and documentation, cloned in full (every branch and tag) into `_reference/<name>/` at the repository
 root. The list, with each repo's URL, pinned ref, and purpose, is `models/@dataverket/reference-repos/references.yaml`
 (protected). Today: `nats-architecture-and-design` (NATS ADRs: JetStream, accounts, auth callout), `cloudevents-spec`
-(the envelope), `zitadel` (tokens, claims, JWKS).
+(the envelope), `zitadel` (tokens, claims, JWKS), `swamp` (swamp's source and its own software factory: verification,
+attestation, CI validation, release).
 
 - Read them; never build, import, or copy from them. Go libraries are read from the module cache (`go env GOMODCACHE`)
   at the version `go.mod` pins, not from here.

@@ -30,4 +30,11 @@ globalArguments:
       purpose: >-
         Zitadel source and docs (Identitet). Token claims and JWKS behavior Sentral's auth callout validates, and what
         the fake JWKS issuer in tier 0 must match. Keep ref equal to the pinned Zitadel image once one is chosen.
+    - name: swamp
+      url: https://github.com/swamp-club/swamp
+      ref: main
+      purpose: >-
+        Swamp's source, itself built by a software factory with local verification, attestation, and CI that validates
+        rather than executes. Guides fabrikk's factory design (attestation, PR, merge, release) and shows how swamp
+        behaves when extending it. Every build is tagged; read the installed version (swamp --version) at its tag.
 methods: {}

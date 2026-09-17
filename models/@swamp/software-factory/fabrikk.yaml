@@ -327,9 +327,9 @@ globalArguments:
 
     - id: attesting
       description: >-
-        Commit .fabrikk/attestation.json on the branch as the only change on top of headSha: verification,
+        Sign the attestation as the annotated tag attestation/<headSha> on the verified commit: verification,
         code review, plan approval, a sha256 of the protected paths, and which of them the branch changed.
-        CI validates it; it does not re-run the loop.
+        Nothing is committed, so headSha stays the PR head. CI validates the tag; it does not re-run the loop.
       work:
         mode: workflow
         workflow:
@@ -352,10 +352,10 @@ globalArguments:
         - name: attestation
           schema:
             type: object
-            required: [headSha, attestationSha, protectedPathsSha256, protectedPathsChanged]
+            required: [headSha, tag, protectedPathsSha256, protectedPathsChanged]
             properties:
               headSha: { type: string, pattern: '^[0-9a-f]{40}$' }
-              attestationSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+              tag: { type: string, pattern: '^attestation/[0-9a-f]{40}$' }
               protectedPathsSha256: { type: string, pattern: '^[0-9a-f]{64}$' }
               protectedPathsChanged:
                 type: array
@@ -376,8 +376,9 @@ globalArguments:
 
     - id: pull-request
       description: >-
-        Open the PR in Forgejo (outcome, plan link, ADRs, attestation reference). A human reviews and merges;
-        protected-path changes always need that human.
+        Push the branch and its attestation tag, then open the PR in Forgejo (outcome, plan link, ADRs, attestation
+        tag). The PR head must be the attested headSha; anything pushed after attesting goes back through
+        implementing. A human reviews and merges; protected-path changes always need that human.
       work:
         mode: interactive
         skills: [adversary-source-standards]
@@ -385,10 +386,10 @@ globalArguments:
         - name: pull-request
           schema:
             type: object
-            required: [url, headSha]
+            required: [url, prHeadSha]
             properties:
               url: { type: string, minLength: 1 }
-              headSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+              prHeadSha: { type: string, pattern: '^[0-9a-f]{40}$' }
         - name: merge
           schema:
             type: object
@@ -402,10 +403,25 @@ globalArguments:
           gates:
             - type: evidence-recorded
               config: { name: pull-request }
+            - type: cel
+              config:
+                expr: evidence.pull_request.prHeadSha == evidence.attestation.headSha
+                message: >-
+                  the PR head must be the attested commit; anything pushed after attesting goes back through
+                  implementing (head-moved)
             - type: human-approval
               config: { id: merge-approval }
             - type: evidence-recorded
               config: { name: merge }
+        - name: head-moved
+          to: implementing
+          gates:
+            - type: evidence-recorded
+              config: { name: pull-request }
+            - type: cel
+              config:
+                expr: evidence.pull_request.prHeadSha != evidence.attestation.headSha
+                message: head-moved opens only when the PR head is not the attested commit
         - name: changes-requested
           to: implementing
           gates:

@@ -111,48 +111,175 @@ Deno.test("the document counts unresolved findings and records changed protected
   assertEquals(doc.attestedAt, "2026-09-17T08:05:00.000Z");
 });
 
-Deno.test("write refuses before touching the worktree", async () => {
-  const dir = await Deno.makeTempDir();
-  const a = args();
-  a.verify.headSha = OTHER;
-  const written: string[] = [];
+/**
+ * A repository with one commit and SSH tag signing configured locally, isolated
+ * from the user's global git config (no hardware key prompts).
+ */
+async function signingRepo(): Promise<{ dir: string; head: string }> {
+  const dir = await Deno.makeTempDir({ prefix: "attest-tag-" });
+  const run = async (cmd: string, args: string[]) => {
+    const out = await new Deno.Command(cmd, { args, cwd: dir }).output();
+    assertEquals(out.code, 0, new TextDecoder().decode(out.stderr));
+    return new TextDecoder().decode(out.stdout).trim();
+  };
+  await run("ssh-keygen", [
+    "-q",
+    "-t",
+    "ed25519",
+    "-N",
+    "",
+    "-C",
+    "attester",
+    "-f",
+    `${dir}/key`,
+  ]);
+  const pub = (await Deno.readTextFile(`${dir}/key.pub`)).trim();
+  await Deno.writeTextFile(
+    `${dir}/allowed_signers`,
+    `attester@example.com namespaces="git" ${pub}\n`,
+  );
+  await run("git", ["init", "-q", `${dir}/repo`]);
+  for (
+    const [k, v] of [
+      ["user.name", "attester"],
+      ["user.email", "attester@example.com"],
+      ["gpg.format", "ssh"],
+      ["gpg.ssh.program", "ssh-keygen"],
+      ["user.signingkey", `${dir}/key`],
+      ["gpg.ssh.allowedSignersFile", `${dir}/allowed_signers`],
+      ["commit.gpgsign", "false"],
+    ]
+  ) await run("git", ["-C", `${dir}/repo`, "config", k, v]);
+  await Deno.writeTextFile(`${dir}/repo/main.go`, "package main\n");
+  await run("git", ["-C", `${dir}/repo`, "add", "-A"]);
+  await run("git", ["-C", `${dir}/repo`, "commit", "-qm", "feat: x"]);
+  return {
+    dir,
+    head: await run("git", ["-C", `${dir}/repo`, "rev-parse", "HEAD"]),
+  };
+}
+
+async function withIsolatedGit(fn: () => Promise<void>) {
+  const previous = Deno.env.get("GIT_CONFIG_GLOBAL");
+  Deno.env.set("GIT_CONFIG_GLOBAL", "/dev/null");
   try {
-    await assertRejects(
-      () =>
-        model.methods.write.execute(a, {
-          globalArgs: { worktree: dir },
-          logger: { info: () => {} },
-          writeResource: (_s, name) => {
-            written.push(name);
-            return Promise.resolve({ name });
-          },
-        }),
-      Error,
-      "refusing to attest SEN-12",
-    );
-    assertEquals(written, []);
-    assertEquals([...Deno.readDirSync(dir)], []);
+    await fn();
   } finally {
-    await Deno.remove(dir, { recursive: true });
+    if (previous === undefined) Deno.env.delete("GIT_CONFIG_GLOBAL");
+    else Deno.env.set("GIT_CONFIG_GLOBAL", previous);
   }
+}
+
+const gitOut = async (cwd: string, ...args: string[]) => {
+  const out = await new Deno.Command("git", { args, cwd }).output();
+  return {
+    code: out.code,
+    stdout: new TextDecoder().decode(out.stdout),
+    stderr: new TextDecoder().decode(out.stderr),
+  };
+};
+
+Deno.test("tag refuses before creating anything", async () => {
+  await withIsolatedGit(async () => {
+    const { dir, head } = await signingRepo();
+    const a = args();
+    a.headSha = head;
+    a.check.headSha = head;
+    a.verify.headSha = OTHER;
+    a.protectedPaths.commitSha = head;
+    const written: string[] = [];
+    try {
+      await assertRejects(
+        () =>
+          model.methods.tag.execute(a, {
+            globalArgs: { worktree: `${dir}/repo` },
+            logger: { info: () => {} },
+            writeResource: (_s, name) => {
+              written.push(name);
+              return Promise.resolve({ name });
+            },
+          }),
+        Error,
+        "refusing to attest SEN-12",
+      );
+      assertEquals(written, []);
+      assertEquals((await gitOut(`${dir}/repo`, "tag", "--list")).stdout, "");
+    } finally {
+      await Deno.remove(dir, { recursive: true });
+    }
+  });
 });
 
-Deno.test("write puts the document at .fabrikk/attestation.json", async () => {
-  const dir = await Deno.makeTempDir();
-  try {
-    await model.methods.write.execute(args(), {
-      globalArgs: { worktree: dir },
-      logger: { info: () => {} },
-      writeResource: (_s, name) => Promise.resolve({ name }),
-    });
-    const doc = JSON.parse(
-      await Deno.readTextFile(`${dir}/.fabrikk/attestation.json`),
-    );
-    assertEquals(doc.attestation, "fabrikk/v1");
-    assertEquals(doc.headSha, HEAD);
-  } finally {
-    await Deno.remove(dir, { recursive: true });
-  }
+Deno.test("tag signs attestation/<headSha> on headSha; CI can verify it and read the JSON back", async () => {
+  await withIsolatedGit(async () => {
+    const { dir, head } = await signingRepo();
+    const repo = `${dir}/repo`;
+    const a = args();
+    a.headSha = head;
+    a.check.headSha = head;
+    a.verify.headSha = head;
+    a.protectedPaths.commitSha = head;
+    const written: Record<string, Record<string, unknown>> = {};
+    try {
+      await model.methods.tag.execute(a, {
+        globalArgs: { worktree: repo },
+        logger: { info: () => {} },
+        writeResource: (_s, name, data) => {
+          written[name] = data;
+          return Promise.resolve({ name });
+        },
+      });
+      const tag = `attestation/${head}`;
+      assertEquals(written.attestation.tag, tag);
+      assertEquals((await gitOut(repo, "tag", "-v", tag)).code, 0);
+      assertEquals(
+        (await gitOut(repo, "rev-parse", `${tag}^{commit}`)).stdout.trim(),
+        head,
+      );
+      const body = (await gitOut(
+        repo,
+        "for-each-ref",
+        `refs/tags/${tag}`,
+        "--format=%(contents:body)",
+      )).stdout;
+      const doc = JSON.parse(body);
+      assertEquals(doc.attestation, "fabrikk/v1");
+      assertEquals(doc.headSha, head);
+      assertEquals(doc, written.attestation.attestation);
+      assertEquals((await gitOut(repo, "status", "--porcelain")).stdout, "");
+    } finally {
+      await Deno.remove(dir, { recursive: true });
+    }
+  });
+});
+
+Deno.test("a tag signed by a key that is not an allowed attester fails verification", async () => {
+  await withIsolatedGit(async () => {
+    const { dir, head } = await signingRepo();
+    const repo = `${dir}/repo`;
+    const a = args();
+    a.headSha = head;
+    a.check.headSha = head;
+    a.verify.headSha = head;
+    a.protectedPaths.commitSha = head;
+    try {
+      await model.methods.tag.execute(a, {
+        globalArgs: { worktree: repo },
+        logger: { info: () => {} },
+        writeResource: (_s, name) => Promise.resolve({ name }),
+      });
+      await Deno.writeTextFile(
+        `${dir}/allowed_signers`,
+        'someone@example.com namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n',
+      );
+      assertEquals(
+        (await gitOut(repo, "tag", "-v", `attestation/${head}`)).code === 0,
+        false,
+      );
+    } finally {
+      await Deno.remove(dir, { recursive: true });
+    }
+  });
 });
 
 Deno.test("parseLsTree keeps blobs, including symlinks, and paths with spaces", () => {

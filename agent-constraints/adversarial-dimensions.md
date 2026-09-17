@@ -47,7 +47,7 @@ a log or span; missing graceful shutdown.
 
 ### 7. Source standards — `adversary-source-standards`
 Attack: missing SPDX header; ADR-required change without an ADR; mutable tags; upstream image references; protected path
-changed without a human; attestation missing from the branch.
+changed without a human; no signed `attestation/<commit>` tag for the PR head.
 
 ### 8. Development environment — `dev-environment`
 Attack: a dependency added to the default profile; fragment without healthcheck, seed, or reset; unpinned fragment image;

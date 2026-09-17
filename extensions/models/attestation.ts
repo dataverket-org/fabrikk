@@ -1,18 +1,20 @@
 /**
  * fabrikk's verification attestation: checks that the recorded verification,
- * review, and approval all concern the commit under review, then writes the
- * attestation document into the worktree for committing on the branch.
+ * review, and approval all concern the commit under review, then records the
+ * attestation document as a signed annotated tag on that commit. Nothing is
+ * committed, so the verified commit, the attested commit, and the PR head are
+ * the same commit.
  *
  * @module
  */
 import { z } from "npm:zod@4";
 
-/** Where the attestation lives in the repository. */
-export const ATTESTATION_PATH = ".fabrikk/attestation.json";
+/** The tag that carries the attestation for a verified commit. */
+export const tagName = (headSha: string): string => `attestation/${headSha}`;
 
 const GlobalArgsSchema = z.object({
   worktree: z.string().startsWith("/").describe(
-    "Absolute path to the worktree the attestation is written into",
+    "Absolute path to the worktree whose repository gets the attestation tag",
   ),
 });
 type GlobalArgs = z.infer<typeof GlobalArgsSchema>;
@@ -213,23 +215,91 @@ export function buildAttestation(
   };
 }
 
-/** Model definition for writing fabrikk attestations. */
+/** Runs git in cwd and returns stdout; throws with stderr on failure. */
+async function git(cwd: string, args: string[]): Promise<string> {
+  const out = await new Deno.Command("git", {
+    args,
+    cwd,
+    stdin: "null",
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  if (out.code !== 0) {
+    throw new Error(
+      `git ${args[0]} failed (exit ${out.code}): ${
+        new TextDecoder().decode(out.stderr).trim()
+      }`,
+    );
+  }
+  return new TextDecoder().decode(out.stdout);
+}
+
+/**
+ * Create (or replace, locally) the signed annotated tag `attestation/<headSha>`
+ * on headSha. The message is a subject line, a blank line, and the document as
+ * JSON, so `git for-each-ref --format='%(contents:body)'` returns the JSON.
+ * Refuses a tag that is unsigned or does not point at headSha.
+ */
+export async function tagAttestation(
+  worktree: string,
+  document: Attestation,
+): Promise<{ tag: string; tagSha: string }> {
+  const tag = tagName(document.headSha);
+  const dir = await Deno.makeTempDir({ prefix: "attestation-" });
+  try {
+    const message =
+      `fabrikk attestation for ${document.workItem} at ${document.headSha}\n\n${
+        JSON.stringify(document, null, 2)
+      }\n`;
+    await Deno.writeTextFile(`${dir}/message`, message);
+    await git(worktree, [
+      "tag",
+      "--sign",
+      "--force",
+      "--cleanup=verbatim",
+      "--file",
+      `${dir}/message`,
+      tag,
+      document.headSha,
+    ]);
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+  const raw = await git(worktree, ["cat-file", "tag", tag]);
+  if (!/-----BEGIN (SSH|PGP) SIGNATURE-----/.test(raw)) {
+    throw new Error(`${tag} was created without a signature`);
+  }
+  const target = (await git(worktree, ["rev-parse", `${tag}^{commit}`])).trim();
+  if (target !== document.headSha) {
+    throw new Error(`${tag} points at ${target}, not ${document.headSha}`);
+  }
+  return { tag, tagSha: (await git(worktree, ["rev-parse", tag])).trim() };
+}
+
+const RecordedSchema = z.object({
+  tag: z.string(),
+  tagSha: z.string(),
+  attestation: AttestationSchema,
+});
+
+/** Model definition for fabrikk attestations. */
 export const model = {
   type: "@dataverket/attestation",
   version: "2026.09.17.1",
   globalArguments: GlobalArgsSchema,
   resources: {
     attestation: {
-      description: `The attestation document written to ${ATTESTATION_PATH}`,
-      schema: AttestationSchema,
+      description:
+        "The attestation and the signed tag attestation/<headSha> that carries it",
+      schema: RecordedSchema,
       lifetime: "infinite" as const,
       garbageCollection: 20,
     },
   },
   methods: {
-    write: {
+    tag: {
       description:
-        `Refuse unless verification, review, approval, and digest all concern headSha; then write ${ATTESTATION_PATH}`,
+        "Refuse unless verification, review, approval, and digest all concern headSha; then sign the attestation as tag attestation/<headSha>",
       arguments: WriteArgsSchema,
       execute: async (
         args: WriteArgs,
@@ -252,25 +322,25 @@ export const model = {
             }`,
           );
         }
-        const document = buildAttestation(args, new Date());
-        const path = `${context.globalArgs.worktree}/${ATTESTATION_PATH}`;
-        await Deno.mkdir(path.slice(0, path.lastIndexOf("/")), {
-          recursive: true,
-        });
-        await Deno.writeTextFile(
-          path,
-          `${JSON.stringify(document, null, 2)}\n`,
+        const attestation = buildAttestation(args, new Date());
+        const { tag, tagSha } = await tagAttestation(
+          context.globalArgs.worktree,
+          attestation,
         );
         const handle = await context.writeResource(
           "attestation",
           "attestation",
-          document,
+          {
+            tag,
+            tagSha,
+            attestation,
+          },
         );
         context.logger.info(
-          "Wrote {path}; protected paths changed: {changed}",
+          "Signed {tag}; protected paths changed: {changed}",
           {
-            path,
-            changed: document.protectedPaths.changed.length,
+            tag,
+            changed: attestation.protectedPaths.changed.length,
           },
         );
         return { dataHandles: [handle] };

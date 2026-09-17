@@ -39,7 +39,7 @@ artifacts. None of them has code yet.
 | `models/@swamp/software-factory/fabrikk.yaml` | The factory definition: stages, gates, review prompts. |
 | `workflows/workflow-fabrikk-verify.yaml` | Verifying stage: clean worktree at `headSha`, then `make check` (tier 0) and `make verify` (tier 2). |
 | `extensions/models/dev_environment.ts` | `@dataverket/dev-environment`: the dev-environment make targets as model methods, results pinned to HEAD. |
-| `workflows/workflow-fabrikk-attest.yaml` | Attesting stage: commit `.fabrikk/attestation.json` on top of `headSha`. |
+| `workflows/workflow-fabrikk-attest.yaml` | Attesting stage: sign the attestation as tag `attestation/<headSha>` on the verified commit. |
 | `extensions/models/attestation.ts` | `@dataverket/attestation`: refuses unless verification, review, approval, and digest all concern `headSha`; writes the document. |
 | `extensions/models/git_paths_digest.ts` | Adds `paths_digest` to `@swamp/git`: sha256 over protected paths at a commit, with a shell recipe CI can rerun. |
 | `models/@dataverket/reference-repos/references.yaml` | Reference repositories agents read: name, URL, pinned ref, and why each is there. |
@@ -122,17 +122,25 @@ swamp data query 'modelName == "references"' --select '{"name": attributes.name,
 
 ## Attestation
 
-`fabrikk-attest` commits `.fabrikk/attestation.json` (`attestation: fabrikk/v1`) as the only change on top of the
-verified commit. CI validates it without re-running the loop:
+`fabrikk-attest` signs the attestation (`attestation: fabrikk/v1`) as the annotated tag `attestation/<headSha>` on the
+verified commit, with the attester's git signing key. Nothing is committed, so the verified commit, the attested commit,
+and the PR head are one commit, as in swamp's own factory (`_reference/swamp`, `validate-attestation` in
+`.github/workflows/ci.yml`). The branch and the tag are pushed together; the `pull-request` stage records the PR head and
+sends the work item back to `implementing` if it is not the attested commit.
 
-1. The attestation commit's parent is `headSha`, and it changes only `.fabrikk/attestation.json`.
-2. `protectedPaths.sha256` equals `PATHS_DIGEST_RECIPE` (in `extensions/models/git_paths_digest.ts`) run at `headSha`
+CI validates it on every push to the PR, without re-running the loop:
+
+1. The tag `attestation/<PR head>` exists, points at the PR head, and `git tag -v` verifies it against the allowed
+   attesters.
+2. The JSON in the tag (`git for-each-ref refs/tags/attestation/<sha> --format='%(contents:body)'`) has
+   `headSha` equal to the PR head.
+3. `protectedPaths.sha256` equals `PATHS_DIGEST_RECIPE` (in `extensions/models/git_paths_digest.ts`) run at the PR head
    over `protectedPaths.paths`.
-3. `protectedPaths.changed` equals `git diff --name-only <base>...<headSha> -- <paths>`. Non-empty means the PR needs a
+4. `protectedPaths.changed` equals `git diff --name-only <base>...<PR head> -- <paths>`. Non-empty means the PR needs a
    human on protected paths, whatever else is green.
 
-Verification, review, and approval are summarized from swamp run data that CI cannot read; the attestation says what the
-factory recorded, not that a third party checked it.
+The signature says who attested. Verification, review, and approval are summarized from swamp run data that CI cannot
+read; the attestation says what the factory recorded, not that a third party checked it.
 
 ## Deliberately not in this set (not settled yet)
 
@@ -172,9 +180,15 @@ currently gets through `releasing` and stops at `uat`.
 - `make dev.up`, `check`, `verify`, and `compose.yaml` arrive with Sentral's first work item, scoped per product
   (`PRODUCT=`) to keep the 60 s tier-0 budget. Open: host-port collisions between parallel worktrees, and a timed-out
   `make` leaving its child processes running.
-- The `pull-request` stage should record the attestation commit as the PR head, not `headSha`.
 - The `releasing` stage defaults to `sentral`/`uat`; the work item's product should come from the plan or `change`
   evidence.
 - Reference repositories: move the Zitadel ref to the pinned Zitadel image once one is chosen.
-- Attestation provenance: the verification, review, and approval sections are the factory's own record; commit signing
-  is the only independent signal today.
+- CI attestation validation: a `.forgejo/workflows/` job on PR open and every push that runs the four checks in
+  Attestation, plus an allowed-attesters file for `git tag -v` (`.forgejo/attesters`, protected) and a Forgejo tag
+  protection rule for `attestation/*`. None of this exists yet.
+- Shared swamp store: once Forgejo, the runner, and the registry exist, share fabrikk's swamp data through a remote
+  datastore or `swamp serve` (swamp-club is swamp's own equivalent). Attestations are already swamp data, and CI could
+  then check the verification, review, and approval records themselves instead of only the attestation's summary of
+  them. The signed tag stays as the anchor in git.
+- Review integrity: an LLM review, like swamp's, of changes to protected steering files (skills, constraints, review
+  prompts, verification workflows) looking for weakened criteria, hidden content, and bypasses.

@@ -18,7 +18,9 @@ description: Source, licensing, commit, and decision-record standards for Datave
 
 - Conventional commits: `feat(sentral): …`, `fix(callout): …`, `test: …`, `docs: …`, `chore: …`. Scope is the bounded context.
 - One work item per PR. The PR description states the outcome, links the plan, and lists the ADRs it adds or changes.
-- The verification attestation is committed on the branch and referenced from the PR. CI validates it; it does not re-run the loop.
+- The verification attestation is the signed annotated tag `attestation/<commit>` on the verified commit, pushed with the
+  branch and referenced from the PR. Nothing is committed for it, so the PR head must be that commit; anything pushed
+  after attesting is verified and attested again. CI validates the tag on every push; it does not re-run the loop.
 - Generated files are marked `// Code generated … DO NOT EDIT.` and never hand-edited.
 
 ## Architecture decision records

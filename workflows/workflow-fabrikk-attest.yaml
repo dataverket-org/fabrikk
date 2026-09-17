@@ -3,8 +3,9 @@ name: fabrikk-attest
 description: >-
   fabrikk's attesting stage: in the implementer's clean worktree at headSha, digest the protected paths,
   list those changed since the merge base, check that verification, code review, and plan approval all
-  concern headSha, then commit .fabrikk/attestation.json as the only change on top of headSha.
-  CI validates the attestation; it does not re-run the loop.
+  concern headSha, then sign the attestation as the annotated tag attestation/<headSha>. Nothing is committed:
+  the verified commit is the attested commit and must be the PR head. CI validates the tag on every push; it
+  does not re-run the loop.
 tags:
   factory: fabrikk
 version: 1
@@ -154,7 +155,7 @@ jobs:
             condition: { type: succeeded }
 
   - name: attest
-    description: Write the attestation from recorded data and commit it as the only change on top of headSha.
+    description: Sign the attestation, built from recorded data, as tag attestation/<headSha> on headSha.
     dependsOn:
       - job: protected-paths
         condition: { type: succeeded }
@@ -174,7 +175,7 @@ jobs:
             code review ${{ data.latest(inputs.factory, "artifact-" + inputs.workItem + "-code-review") != null }},
             plan approval ${{ data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval") != null }}
             (in ${{ inputs.factory }}).
-      - name: write
+      - name: tag
         dependsOn:
           - step: records-exist
             condition: { type: succeeded }
@@ -182,7 +183,7 @@ jobs:
           type: model_method
           modelType: '@dataverket/attestation'
           modelName: attest-${{ inputs.headSha }}
-          methodName: write
+          methodName: tag
           inputs:
             worktree: ${{ inputs.worktree }}
             workItem: ${{ inputs.workItem }}
@@ -195,54 +196,3 @@ jobs:
             planApproval: ${{ data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval").attributes }}
             protectedPaths: ${{ data.latest("git-" + inputs.headSha, "paths-digest").attributes }}
             protectedPathsChanged: ${{ data.latest("git-" + inputs.headSha, "diff").attributes.files }}
-      - name: commit
-        task:
-          type: model_method
-          modelType: '@swamp/git'
-          modelName: git-${{ inputs.headSha }}
-          methodName: commit
-          inputs:
-            repoPath: ${{ inputs.worktree }}
-            message: 'chore: attest ${{ inputs.workItem }} at ${{ inputs.headSha }}'
-            paths: [.fabrikk/attestation.json]
-        dependsOn:
-          - step: write
-            condition: { type: succeeded }
-      - name: after
-        task:
-          type: model_method
-          modelType: '@swamp/git'
-          modelName: git-${{ inputs.headSha }}
-          methodName: log
-          inputs:
-            repoPath: ${{ inputs.worktree }}
-            maxCount: 2
-        dependsOn:
-          - step: commit
-            condition: { type: succeeded }
-      - name: attestation-diff
-        task:
-          type: model_method
-          modelType: '@swamp/git'
-          modelName: git-${{ inputs.headSha }}
-          methodName: diff
-          inputs:
-            repoPath: ${{ inputs.worktree }}
-            base: ${{ inputs.headSha }}
-            head: HEAD
-            nameOnly: true
-        dependsOn:
-          - step: after
-            condition: { type: succeeded }
-      - name: on-top-of-head
-        task:
-          type: assert
-          expr: >-
-            data.latest("git-" + inputs.headSha, "log").attributes.commits[1].sha == inputs.headSha
-            && data.latest("git-" + inputs.headSha, "diff").attributes.files == [".fabrikk/attestation.json"]
-          message: >-
-            HEAD must be one commit on top of ${{ inputs.headSha }} changing only .fabrikk/attestation.json; it changes
-            ${{ data.latest("git-" + inputs.headSha, "diff").attributes.files }}
-        dependsOn:
-          - step: attestation-diff
-            condition: { type: succeeded }
