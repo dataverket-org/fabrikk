@@ -42,3 +42,11 @@ schema of the CLI (commands, options, arguments) intended for agent
 consumption, run `swamp help [<command>...]` — e.g. `swamp help` returns
 the full tree, and `swamp help model method run` scopes to a subtree.
 <!-- END swamp managed section -->
+
+## Documentation
+
+The factory is a program; skills are its context; docs explain it. To understand fabrikk, start at
+`docs/explanation/how-fabrikk-works.md`; to find where a part lives, `docs/reference/code-map.md`. The rule for what
+goes into the program, a skill, or a doc is in `docs/README.md`. A product's design is the explanation pages whose frontmatter names it
+(`project: <product>`, `context: <bounded context>`); none exist yet. The architecture skill gives the vocabulary
+those pages are written in.

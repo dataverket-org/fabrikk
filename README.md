@@ -1,9 +1,13 @@
-# fabrikk — bootstrap skill set
+# fabrikk
 
-Context inputs for **fabrikk**, Dataverket's Swamp-based software factory. It builds Dataverket's seven products,
-Sentral first, then Objekt and Maskin.
-Written to the model Adam Jacob presented: **the factory is a program; skills are its context.**
-Process lives in Swamp models and workflows. These files say what good looks like, not how to run the loop.
+**fabrikk** is Dataverket's software factory, built on [swamp](https://github.com/swamp-club/swamp). It builds
+Dataverket's seven products, Sentral first, then Objekt and Maskin. It follows the model Adam Jacob presented: **the
+factory is a program; skills are its context.** Process lives in swamp models and workflows; the skills and constraint
+files say what good looks like, not how to run the loop.
+
+The manual is in [`docs/`](docs/README.md): start with [how fabrikk works](docs/explanation/how-fabrikk-works.md),
+find code with the [code map](docs/reference/code-map.md), and drive a run with the
+[guides](docs/guides/drive-a-work-item.md). This README is the front door and the status board.
 
 ## Products
 
@@ -22,45 +26,6 @@ Dataverket is a sovereign open source datacenter automation system. Its products
 Each product is its own Go module in its own directory, joined by the root `go.work`, and is released as its own
 artifacts. None of them has code yet.
 
-## Layout
-
-| Path | Role |
-|---|---|
-| `skills/architecture/SKILL.md` | The one architecture skill: Go, tactical DDD, event-driven messaging. Vocabulary + small examples from an unrelated domain. |
-| `skills/adversary-testing/SKILL.md` | Adversary: testing strategy and tiers. |
-| `skills/adversary-security/SKILL.md` | Adversary: tenancy, auth, secrets, supply chain. |
-| `skills/adversary-simplicity/SKILL.md` | Adversary: LOC, dependencies, abstraction budget. |
-| `skills/adversary-observability/SKILL.md` | Adversary: logs, traces, health. |
-| `skills/adversary-source-standards/SKILL.md` | Adversary: licensing, commits, ADRs, protected paths. |
-| `skills/dev-environment/SKILL.md` | Session stack, compose profiles, downstream fragment contract. |
-| `skills/delivery/SKILL.md` | Artifacts, config join, gitless promotion, UAT. |
-| `agent-constraints/planning-conventions.md` | What a plan must contain. Input to the planning stage. |
-| `agent-constraints/adversarial-dimensions.md` | What reviewers attack, with severities. Input to both review stages. |
-| `agent-constraints/implementation-conventions.md` | Worktree, plan fidelity, tests, commits, what to record. Input to the implementing stage. |
-| `models/@swamp/software-factory/fabrikk.yaml` | The factory definition: stages, gates, review prompts. |
-| `workflows/workflow-fabrikk-verify.yaml` | Verifying stage: clean worktree at `headSha`, then `make check` (tier 0) and `make verify` (tier 2). |
-| `extensions/models/dev_environment.ts` | `@dataverket/dev-environment`: the dev-environment make targets as model methods, results pinned to HEAD. |
-| `workflows/workflow-fabrikk-attest.yaml` | Attesting stage: sign the attestation as tag `attestation/<headSha>` on the verified commit. |
-| `extensions/models/attestation.ts` | `@dataverket/attestation`: refuses unless verification, review, approval, and digest all concern `headSha`; writes the document. |
-| `extensions/models/git_paths_digest.ts` | Adds `paths_digest` to `@swamp/git`: sha256 over protected paths at a commit, with a shell recipe CI can rerun. |
-| `models/@dataverket/reference-repos/references.yaml` | Reference repositories agents read: name, URL, pinned ref, and why each is there. |
-| `Makefile` | `make tools` (pinned ko, cosign, kustomize, crane, flux into `_tools/bin`) and `make release`. |
-| `.forgejo/workflows/release.yaml` | CI on merge to main: `make release` for each product on shared infrastructure. |
-| `.forgejo/workflows/validate-attestation.yaml` | CI on every push to a PR: the four checks under Attestation, bash only. |
-| `.forgejo/attesters` | Who may sign `attestation/*` tags (SSH allowed signers); CI reads it from the base branch. |
-| `workflows/workflow-fabrikk-release.yaml` | Releasing stage: waits for CI's candidate for the merge commit and verifies it. |
-| `extensions/models/release_artifact.ts` | `@dataverket/release-artifact`: signature, provenance, `release.json`, digest-pinned images, `:candidate`. |
-| `extensions/models/reference_repos.ts` | `@dataverket/reference-repos`: shallow-clones or refreshes every listed repo into `_reference/` and records the commit. |
-| `models/@thomas/forgejo/forgejo.yaml` | `forgejo`: the forge at `git.dataverket.org` (repos, branch protection, PRs), token from the `fabrikk` vault. |
-| `models/@mccormick/omni/inventory/omni.yaml` | `omni`: the Talos fleet as Sidero Omni sees it (read-only `discover`), service-account key from the `fabrikk` vault. |
-| `models/@ginger_pappa/flux/helmrelease/dataverket-prod-helm.yaml` | `dataverket-prod-helm`: Flux HelmReleases in `dataverket-prod` (list, reconcile, suspend, resume), context `dataverket-prod-admin`; wraps the pinned `flux` CLI, so run with `_tools/bin` on PATH. |
-| `extensions/models/flux_reset.ts` | Adds `reset` to `@ginger_pappa/flux/helmrelease`: reconcile with `--reset`, for a release stuck at `RetriesExceeded` whose workloads are healthy. |
-| `models/@swamp/kubernetes/pod/runner-pods.yaml` | `runner-pods`: the `forgejo-runners` namespace in `dataverket-prod`, context `fabrikk-readers` from the developer's kubeconfig. |
-| `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault), `repo_rename` (verify-first), `pr_merge_state` (merge commit and merger, for `merge` evidence). |
-| `vaults/fabrikk.enc.json`, `.sops.yaml` | Secrets the factory reads unattended (`fabrikk` vault): SOPS, encrypted to the factory's age key and each attester's YubiKey. Nothing in the repo names a home directory: the factory identity lives in the host's default sops keys file, and kubeconfig contexts are named, not pathed. |
-
-Every adversary is used twice: to refine the plan before approval, and to review the output before the PR.
-
 ## Repositories
 
 - **This repository is the monorepo.** fabrikk (skills, constraints, definition, workflows, extensions) and the products it
@@ -68,102 +33,33 @@ Every adversary is used twice: to refine the plan before approval, and to review
 - **Environment overlays (L2) live in `miljo`**, outside the monorepo: different owner (the environment line), versioned
   independently, and never read by a cluster.
 
-## Factory shape these files assume
+## Factory shape
 
 ```
 outcome → plan → adversarial plan review (rework ≤5) → HUMAN APPROVES PLAN
 → implement + tests (rework until green, ≤5)
 → code review vs architecture + all adversaries (rework ≤5, prior findings fed forward)
-→ attestation → PR → HUMAN APPROVES MERGE
+→ attestation (signed tag) → PR → HUMAN APPROVES MERGE
 → artifact (ko, digest) → config join → signed OCI release
 → UAT against the release artifact (post-merge; the artifact is the only input)
 → promotion (channel tag)
 ```
 
-Humans approve the plan and the merge. Nowhere else.
+Humans approve the plan and the merge. Nowhere else. The loop runs on one machine; CI validates the attestation on
+every pull request and builds the release after merge, and never runs the loop. `fabrikk-verify`, `fabrikk-attest`,
+and `fabrikk-release` exist; `fabrikk-uat` and `fabrikk-promote` wait for a UAT environment, so a run stops at `uat`.
 
-## Wiring
+## Getting going
 
-- `skills/*` are symlinked into `.claude/skills/` so Claude Code loads them. Stage work specs reference them by name.
-- Drive a work item with `swamp model method run fabrikk status --input workItem=<ref>` (see the `software-factory` skill).
-- `agent-constraints/` is consumed by `@swamp/issue-lifecycle` as-is, and by fabrikk's planning
-  (`planning-conventions.md`), implementing (`implementation-conventions.md`), and review stages
-  (`adversarial-dimensions.md`) as `constraints`.
-- Reviews run in a separate agent with no shared context (`dispatch` mode: one reviewer per skill).
-- Deterministic stages call swamp workflows. `fabrikk-verify`, `fabrikk-attest`, and `fabrikk-release` exist; `fabrikk-uat` and `fabrikk-promote` wait for a UAT environment (see Follow-up work), so a run stops at `uat`.
-- The implementer records `change` evidence with `worktree`, `branch`, and `headSha`; `fabrikk-verify` runs in that worktree and leaves the session stack up.
-- The `pull-request` stage drives the forge through the `forgejo` model: `pr_ensure` opens the PR and `pr_merge_state`
-  reads the merge, so `pull-request` and `merge` evidence are copied from the API. The human merges in Forgejo and then
-  approves `merge-approval`; the agent never approves for them.
-- Protected paths in Forgejo (human review required): `skills/`, `agent-constraints/`, `CLAUDE.md`, the `fabrikk` definition, review prompts, `docs/adr/`, `Makefile`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`. The attestation checksums them.
-
-## Release
-
-The candidate is built once, by CI on shared infrastructure, after merge; UAT tests that digest and promotion retags
-it. Nothing after UAT rebuilds, and a workbench never builds what ships.
-
-- `make release PRODUCT=<p>` builds `<p>/cmd/*` with ko (digest-pinned, tagged with the commit), renders
-  `<p>/deploy/base` joined with every `miljo/environments/<env>/<p>` overlay (`resources: [../base]`), and pushes one Flux
-  artifact per environment to `<registry>/<p>/config-<env>:<commit>` with `release.json`
-  (`product`, `environment`, `app_commit`, `env_config_version`, `images`). It signs each with cosign (key-based, no
-  public transparency log) and tags it `candidate`. Pushes are reproducible: re-running a commit gives the same digest.
-- `.forgejo/workflows/release.yaml` runs that on merge, on a runner labelled `fabrikk-release` with Go, git, bash,
-  curl, tar, and registry access, and secrets `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, `COSIGN_PRIVATE_KEY`,
-  `COSIGN_PASSWORD`. The public key is `cosign.pub` at the repository root.
-- `fabrikk-release` verifies; `swamp data query 'modelName == "release-<sha>"'` holds what the factory records as
-  `release` evidence.
-
-## Reference repositories
-
-External code and documentation agents read. `_reference/<name>/` is a read-only cache (gitignored, never built or
-imported): full clones with every branch and tag, the listed `ref` checked out detached. The list in
-`models/@dataverket/reference-repos/references.yaml` is tracked and protected; the cache is not, and
-`rm -rf _reference && swamp model method run references sync` rebuilds it.
-
-```
-swamp model method run references sync                                  # all
-swamp model method run references sync --input 'names=["zitadel"]'      # one
-swamp data query 'modelName == "references"' --select '{"name": attributes.name, "commit": attributes.commit}'
+```sh
+swamp model search --json | jq '.results[].name'                       # the model instances
+swamp model method run fabrikk describe                                # the machine, as Mermaid and a table
+swamp model method run fabrikk status --input workItem=<ref>           # what a run needs next
 ```
 
-- Look up any version without checking it out: `git -C _reference/zitadel show v4.10.0:go.mod`,
-  `git -C _reference/zitadel grep jwks v4.10.0`, `git -C _reference/zitadel log v4.0.0..v4.17.3 -- <path>`.
-- Update with `sync`, not `git pull`: the checkout is detached at the listed ref, so pull refuses. A manual `git fetch` is
-  harmless; it adds history without moving the checkout.
-- Search the directory explicitly (`rg <pattern> _reference/zitadel`): a search from the repo root skips ignored files.
-- Work-item worktrees have no `_reference/`; read it from the main checkout (`git worktree list`, first entry).
-- Cite what you relied on as `<name>@<commit>`. Read, never copy: licensing is the source-standards skill's call.
-- Go libraries are read from the module cache at the version `go.mod` pins, not from here.
-
-## Attestation
-
-`fabrikk-attest` signs the attestation (`attestation: fabrikk/v1`) as the annotated tag `attestation/<headSha>` on the
-verified commit, with the attester's git signing key. Nothing is committed, so the verified commit, the attested commit,
-and the PR head are one commit, as in swamp's own factory (`_reference/swamp`, `validate-attestation` in
-`.github/workflows/ci.yml`). The branch and the tag are pushed together; the `pull-request` stage records the PR head and
-sends the work item back to `implementing` if it is not the attested commit.
-
-CI validates it on every push to the PR (`.forgejo/workflows/validate-attestation.yaml`, bash only, no swamp on the
-runner), without re-running the loop:
-
-1. The tag `attestation/<PR head>` exists, points at the PR head, and `git tag -v` verifies it against the allowed
-   attesters in `.forgejo/attesters`, read from the base branch so a PR cannot add its own attester. Keep that file
-   and the Forgejo tag protection for `attestation/*` equal.
-2. The JSON in the tag (`git for-each-ref refs/tags/attestation/<sha> --format='%(contents:body)'`) has
-   `headSha` equal to the PR head.
-3. `protectedPaths.sha256` equals `PATHS_DIGEST_RECIPE` (in `extensions/models/git_paths_digest.ts`) run at the PR head
-   over `protectedPaths.paths`.
-4. `protectedPaths.changed` equals `git diff --name-only <base>...<PR head> -- <paths>`. Non-empty means the PR needs a
-   human on protected paths, whatever else is green; CI passes and says so in a warning and the job summary.
-
-The check also requires the recorded `make check` and `make verify` exit codes to be 0 and no unresolved critical or
-high review findings, so a tag that honestly records a failed loop does not pass. Forgejo runs the PR head's copy of
-the workflow, so a PR editing `.forgejo/` can weaken it: `.forgejo/` is a protected path and check 4 reports the change.
-Once the check has reported on a real PR, make it required on `main`
-(`swamp model method run forgejo branch_protection_ensure` with `enableStatusCheck` and the context name Forgejo shows).
-
-The signature says who attested. Verification, review, and approval are summarized from swamp run data that CI cannot
-read; the attestation says what the factory recorded, not that a third party checked it.
+[Set up a workstation](docs/guides/set-up-a-workstation.md) first. Every protected path (skills, constraints, the
+definition, workflows, extensions, `.forgejo/`, `Makefile`, `docs/decisions/`) needs a human in Forgejo, and the
+attestation checksums them.
 
 ## Deliberately not in this set (not settled yet)
 
@@ -197,7 +93,7 @@ fabrikk keeps the human merge by design and the other three are listed below. In
    Decide (OpenBao transit or the memory volume), then change `release.yaml` and generate the key pair; `cosign.pub`
    is committed with it.
 2. **Add PR validation to CI.** Done: `.forgejo/workflows/validate-attestation.yaml` runs the four checks under
-   Attestation on every push to a PR, with `.forgejo/attesters` for `git tag -v`. Tested locally against a
+   `docs/explanation/attestation-and-trust.md` on every push to a PR, with `.forgejo/attesters` for `git tag -v`. Tested locally against a
    signed-tag fixture (happy path, missing tag, rogue signer, moved head, tampered protected file); not yet run on the
    real runner. Left: after its first run on a real PR, make it a required status check on `main`
    (`branch_protection_ensure`, `enableStatusCheck: true`, `statusCheckContexts` = the context Forgejo reports).
@@ -273,6 +169,8 @@ on disk: not in Actions secrets, not on a volume, gone on restart until a develo
 - `make dev.up`, `check`, `verify`, and `compose.yaml` arrive with Sentral's first work item, scoped per product
   (`PRODUCT=`) to keep the 60 s tier-0 budget. Open: host-port collisions between parallel worktrees, and a timed-out
   `make` leaving its child processes running.
+- A "fast lane" for simple tasks (the talk suggests one): a shorter path that skips plan review for a fix with a
+  reproduction and no protected-path change. Not designed; every work item takes the full loop today.
 - The `releasing` stage defaults to `sentral`/`uat`; the work item's product should come from the plan or `change`
   evidence.
 - Reference repositories: move the Zitadel ref to the pinned Zitadel image once one is chosen.

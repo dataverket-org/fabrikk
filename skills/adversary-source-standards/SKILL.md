@@ -25,7 +25,7 @@ description: Source, licensing, commit, and decision-record standards for Datave
 
 ## Architecture decision records
 
-An ADR (`docs/adr/NNNN-title.md`, short: context, decision, consequences) is **required** for:
+An ADR (`docs/decisions/NNNN-title.md`, short: context, decision, consequences) is **required** for:
 
 - a new subject namespace or change to the subject-naming standard
 - a new CloudEvents `type` family or a change to the envelope's required extensions
@@ -46,7 +46,7 @@ No ADR, no approval.
 
 Changes to these require human review in Forgejo regardless of who or what authored them, because they steer every agent:
 
-`skills/`, `agent-constraints/`, `CLAUDE.md`, the factory definition, review prompts, `docs/adr/`, `Makefile`,
+`skills/`, `agent-constraints/`, `CLAUDE.md`, the factory definition, review prompts, `docs/decisions/`, `Makefile`,
 `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`. `Makefile`, `compose.yaml`, and `deploy/dev/` are protected
 because verification runs them from the branch under review: a weakened `make check`, a healthcheck that always passes,
 or a fragment that gains host privileges on the workbench would still produce a green attestation. `.forgejo/` builds and signs
