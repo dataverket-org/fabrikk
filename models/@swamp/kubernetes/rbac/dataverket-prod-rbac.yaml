@@ -7,5 +7,4 @@ tags: {}
 globalArguments:
   namespace: forgejo-runners
   context: dataverket-prod-admin
-  kubeconfig: /home/beddari/.kube/omni-production.yaml
 methods: {}

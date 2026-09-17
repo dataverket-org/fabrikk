@@ -50,9 +50,9 @@ artifacts. None of them has code yet.
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos`: shallow-clones or refreshes every listed repo into `_reference/` and records the commit. |
 | `models/@thomas/forgejo/forgejo.yaml` | `forgejo`: the forge at `git.dataverket.org` (repos, branch protection, PRs), token from the `fabrikk` vault. |
 | `models/@mccormick/omni/inventory/omni.yaml` | `omni`: the Talos fleet as Sidero Omni sees it (read-only `discover`), service-account key from the `fabrikk` vault. |
-| `models/@swamp/kubernetes/pod/runner-pods.yaml` | `runner-pods`: the `forgejo-runners` namespace in `dataverket-prod`, over the Omni-issued kubeconfig at `~/.kube/omni-production.yaml`. |
+| `models/@swamp/kubernetes/pod/runner-pods.yaml` | `runner-pods`: the `forgejo-runners` namespace in `dataverket-prod`, context `fabrikk-readers` from the developer's kubeconfig. |
 | `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault). |
-| `vaults/fabrikk.enc.json`, `.sops.yaml` | Secrets the factory reads unattended (`fabrikk` vault): SOPS, encrypted to the factory's age key and each attester's YubiKey. |
+| `vaults/fabrikk.enc.json`, `.sops.yaml` | Secrets the factory reads unattended (`fabrikk` vault): SOPS, encrypted to the factory's age key and each attester's YubiKey. Nothing in the repo names a home directory: the factory identity lives in the host's default sops keys file, and kubeconfig contexts are named, not pathed. |
 
 Every adversary is used twice: to refine the plan before approval, and to review the output before the PR.
 
@@ -230,7 +230,7 @@ on disk: not in Actions secrets, not on a volume, gone on restart until a develo
   from that switch: `flux bootstrap` owns fields on the live `GitRepository` through server-side apply, so removing a
   field in git alone does nothing; rerun `bootstrap.sh` or patch the live object. Still needed: a runner labelled
   `fabrikk-release` (see Release signing key), the Dataverket registry, a cosign key pair (`cosign.pub` committed).
-- The factory reaches `dataverket-prod` through an Omni-issued kubeconfig (`~/.kube/omni-production.yaml`): context
+- The factory reaches `dataverket-prod` through Omni-issued kubeconfig contexts in the developer's default kubeconfig: context
   `fabrikk-readers` (default, `view` in `forgejo-runners` only) for observation, `dataverket-prod-admin`
   (cluster-admin, 30-day token) for setup work through models named after the cluster, e.g. `dataverket-prod-rbac`.
 - `.forgejo/workflows/release.yaml` is tested only as an extracted script against a local registry; run it on the real
