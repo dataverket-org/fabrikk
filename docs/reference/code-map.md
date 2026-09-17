@@ -67,6 +67,7 @@ TypeScript, one file per concern, each with a `_test.ts` next to it. Run the tes
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos` | `sync`: clones or refreshes each listed repository into `_reference/`, records the commit. | humans and agents |
 | `extensions/models/forgejo_actions.ts` | extends `@thomas/forgejo` | `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (to the vault), `repo_rename`, `pr_merge_state`. | forge setup, `pull-request` stage |
 | `extensions/models/flux_reset.ts` | extends `@ginger_pappa/flux/helmrelease` | `reset`: reconcile with `--reset` for a release stuck at `RetriesExceeded`. | cluster operations |
+| `extensions/models/registry_mirror.ts` | `@dataverket/registry-mirror` | `copy`: mirror an upstream image pinned by digest into `<registry>/mirror/<name>:<tag>` with the pinned `crane`; credential on stdin from the vault; unchanged if the digest is already there. | dev fragments, manifests |
 | `extensions/models/_lib/make.ts` | shared | Runs a make target with a timeout and captures the result. | `dev_environment.ts` |
 | `extensions/models/upstream_extensions.json` | manifest | The pulled extensions and their pinned versions (swamp-managed). | swamp |
 
@@ -83,6 +84,7 @@ Model definitions in `models/`, one YAML per instance. Credentials are vault ref
 | `dataverket-prod-rbac` | `models/@swamp/kubernetes/rbac/dataverket-prod-rbac.yaml` | `@swamp/kubernetes/rbac` | same namespace, context `dataverket-prod-admin` | kubeconfig |
 | `dataverket-prod-helm` | `models/@ginger_pappa/flux/helmrelease/dataverket-prod-helm.yaml` | `@ginger_pappa/flux/helmrelease` | Flux HelmReleases in `dataverket-prod`, context `dataverket-prod-admin`; needs `_bin` on `PATH` for `flux` | kubeconfig |
 | `references` | `models/@dataverket/reference-repos/references.yaml` | `@dataverket/reference-repos` | the reference-repository list | none |
+| `registry` | `models/@dataverket/registry-mirror/registry.yaml` | `@dataverket/registry-mirror` | `registry.dataverket.org`, namespace `mirror` | `registry/ci_username`, `registry/ci_password` |
 
 Workflows create their own per-commit instances on the fly (`git-<sha>`, `dev-env-<sha>`, `attest-<sha>`,
 `release-<sha>`); they are not in `models/`.
@@ -96,7 +98,7 @@ Workflows create their own per-commit instances on the fly (`git-<sha>`, `dev-en
 |---|---|
 | `forgejo/api_token` | the `forgejo` model |
 | `omni/service_account_key` | the `omni` model |
-| `registry/ci_username`, `registry/ci_password` | copied to Actions secrets `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` for `release.yaml`; owned by the cluster repository |
+| `registry/ci_username`, `registry/ci_password` | the `registry` model (mirroring), and copied to Actions secrets `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` for `release.yaml`; owned by the cluster repository |
 
 ## CI and release
 

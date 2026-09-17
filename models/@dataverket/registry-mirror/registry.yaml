@@ -1,0 +1,15 @@
+type: '@dataverket/registry-mirror'
+typeVersion: 2026.09.17.1
+id: e6df8f2f-ef63-47d1-8d83-e31662168bbd
+name: registry
+version: 1
+tags: {}
+# The Dataverket registry as a mirror target: upstream images are copied here by digest so nothing in a fragment or
+# a manifest references an upstream location. Push credential from the fabrikk vault (owned by the cluster repo).
+# Usage: swamp model method run registry copy --input source=docker.io/library/nats@sha256:<digest> --input name=nats --input tag=2.15.0-alpine
+globalArguments:
+  registry: registry.dataverket.org
+  namespace: mirror
+  username: '${{ vault.get(fabrikk, registry/ci_username) }}'
+  password: '${{ vault.get(fabrikk, registry/ci_password) }}'
+methods: {}
