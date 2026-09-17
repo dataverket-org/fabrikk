@@ -25,6 +25,10 @@ Process lives in Swamp models and workflows. These files say what good looks lik
 | `extensions/models/attestation.ts` | `@dataverket/attestation`: refuses unless verification, review, approval, and digest all concern `headSha`; writes the document. |
 | `extensions/models/git_paths_digest.ts` | Adds `paths_digest` to `@swamp/git`: sha256 over protected paths at a commit, with a shell recipe CI can rerun. |
 | `models/@dataverket/reference-repos/references.yaml` | Reference repositories agents read: name, URL, pinned ref, and why each is there. |
+| `Makefile` | `make tools` (pinned ko, cosign, kustomize, crane, flux into `_tools/bin`) and `make release`. |
+| `.forgejo/workflows/release.yaml` | CI on merge to main: `make release` for each product on shared infrastructure. |
+| `workflows/workflow-fabrikk-release.yaml` | Releasing stage: waits for CI's candidate for the merge commit and verifies it. |
+| `extensions/models/release_artifact.ts` | `@dataverket/release-artifact`: signature, provenance, `release.json`, digest-pinned images, `:candidate`. |
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos`: shallow-clones or refreshes every listed repo into `_reference/` and records the commit. |
 
 Every adversary is used twice: to refine the plan before approval, and to review the output before the PR.
@@ -56,9 +60,25 @@ Humans approve the plan and the merge. Nowhere else.
 - Drive a work item with `swamp model method run fabrikk status --input workItem=<ref>` (see the `software-factory` skill).
 - `agent-constraints/` is consumed by `@swamp/issue-lifecycle` as-is, and by fabrikk's planning, implementing, and review stages as `constraints`.
 - Reviews run in a separate agent with no shared context (`dispatch` mode: one reviewer per skill).
-- Deterministic stages call swamp workflows. `fabrikk-verify` and `fabrikk-attest` exist; `fabrikk-release`, `fabrikk-uat`, `fabrikk-promote` do not yet, so a run stops at `releasing`.
+- Deterministic stages call swamp workflows. `fabrikk-verify`, `fabrikk-attest`, and `fabrikk-release` exist; `fabrikk-uat` and `fabrikk-promote` wait for a UAT environment (see Follow-up work), so a run stops at `uat`.
 - The implementer records `change` evidence with `worktree`, `branch`, and `headSha`; `fabrikk-verify` runs in that worktree and leaves the session stack up.
-- Protected paths in Forgejo (human review required): `skills/`, `agent-constraints/`, `CLAUDE.md`, the `fabrikk` definition, review prompts, `docs/adr/`, `Makefile`, `compose.yaml`. The attestation checksums them.
+- Protected paths in Forgejo (human review required): `skills/`, `agent-constraints/`, `CLAUDE.md`, the `fabrikk` definition, review prompts, `docs/adr/`, `Makefile`, `compose.yaml`, `.forgejo/`, `cosign.pub`. The attestation checksums them.
+
+## Release
+
+The candidate is built once, by CI on shared infrastructure, after merge; UAT tests that digest and promotion retags
+it. Nothing after UAT rebuilds, and a workbench never builds what ships.
+
+- `make release PRODUCT=<p>` builds `<p>/cmd/*` with ko (digest-pinned, tagged with the commit), renders
+  `<p>/deploy/base` joined with every `miljo/environments/<env>/<p>` overlay (`resources: [../base]`), and pushes one Flux
+  artifact per environment to `<registry>/<p>/config-<env>:<commit>` with `release.json`
+  (`product`, `environment`, `app_commit`, `env_config_version`, `images`). It signs each with cosign (key-based, no
+  public transparency log) and tags it `candidate`. Pushes are reproducible: re-running a commit gives the same digest.
+- `.forgejo/workflows/release.yaml` runs that on merge, on a runner labelled `fabrikk-release` with Go, git, bash,
+  curl, tar, and registry access, and secrets `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, `COSIGN_PRIVATE_KEY`,
+  `COSIGN_PASSWORD`. The public key is `cosign.pub` at the repository root.
+- `fabrikk-release` verifies; `swamp data query 'modelName == "release-<sha>"'` holds what the factory records as
+  `release` evidence.
 
 ## Reference repositories
 
@@ -100,3 +120,47 @@ factory recorded, not that a third party checked it.
 
 Ring/wave promotion and the fleet ledger; the environment factory's full adversary set; the concrete subject-naming
 standard (lives in an ADR); Objekt/Maskin domain content beyond the downstream-port pattern.
+
+## Follow-up work
+
+Paused before UAT (2026-09-17): UAT must run end to end against a real environment, and none exists yet. A factory run
+currently gets through `releasing` and stops at `uat`.
+
+### UAT, promotion, and customer releases
+
+- **UAT environment.** A cluster whose Flux `OCIRepository` watches `<registry>/<product>/config-uat:candidate` with cosign
+  verification against `cosign.pub`.
+- **`fabrikk-uat`.** Takes the release artifact recorded in `release` evidence and nothing else. Gates on the applied
+  revision equalling the candidate digest, then runs the black-box suite from outside: functional tests always,
+  environmental tests where the overlay declares them.
+- **`fabrikk-promote`.** Retags the UAT-passed digest from `candidate` to `current`; rollback retags the previous digest.
+- **Customer release line** (separate from this factory). Publishes digests that passed UAT (tag, annotation, extra
+  signature, registry copy) and never rebuilds; anything customer-specific happens before UAT.
+
+### Release infrastructure
+
+- Self-hosted Forgejo hosting this monorepo and `miljo`, a runner labelled `fabrikk-release`, the Dataverket registry,
+  a cosign key pair (`cosign.pub` committed, private key and registry credentials as Actions secrets).
+- `.forgejo/workflows/release.yaml` is tested only as an extracted script against a local registry; run it on the real
+  runner.
+- Tag scheme for the environment line: a `miljo` change re-released for the same app commit reuses
+  `config-<env>:<commit>` with a new digest. Releases triggered by `miljo` changes are not wired yet.
+- Not yet in `make release`: the L2 tunable-field linter, SBOMs (`--sbom=none`), signatures on individual images, and a
+  mirrored, digest-pinned base image per product (`<product>/.ko.yaml`). Every environment, `prod` included, is tagged
+  `candidate` until the customer release line exists.
+
+### Factory and dev environment
+
+- `make dev.up`, `check`, `verify`, and `compose.yaml` arrive with Sentral's first work item, scoped per product
+  (`PRODUCT=`) to keep the 60 s tier-0 budget. Open: host-port collisions between parallel worktrees, and a timed-out
+  `make` leaving its child processes running.
+- The `pull-request` stage should record the attestation commit as the PR head, not `headSha`.
+- The `releasing` stage defaults to `sentral`/`uat`; the work item's product should come from the plan or `change`
+  evidence.
+- Reference repositories: tell agents in a skill (dev-environment or architecture) and add a `name@commit` citation to
+  the plan's `portsAndDownstreams`. Move the Zitadel ref to the pinned Zitadel image once one is chosen.
+- Decide whether `deploy/dev/` (compose fragments with healthcheck, seed, and reset scripts) is a protected path.
+- List all seven products from ADR 001 (Sentral, Maskin, Plattform, Identitet, Tjeneste, Objekt, Nett) where this README
+  names only Sentral, Objekt, and Maskin.
+- Attestation provenance: the verification, review, and approval sections are the factory's own record; commit signing
+  is the only independent signal today.

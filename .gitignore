@@ -15,3 +15,6 @@
 
 # Reference clones (list: models/@dataverket/reference-repos/references.yaml)
 _reference/
+
+# Pinned release tools (make tools)
+_tools/

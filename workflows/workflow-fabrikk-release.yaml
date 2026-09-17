@@ -1,0 +1,51 @@
+id: b87dfaff-4027-4482-a549-b8b8ce6a3bb6
+name: fabrikk-release
+description: >-
+  fabrikk's releasing stage. CI builds the release candidate on shared infrastructure after merge (make release in
+  .forgejo/workflows/release.yaml); this workflow never builds. It waits for that product's config artifact for the
+  merge commit and verifies it: cosign signature, Flux provenance, release.json, digest-pinned images, and that
+  :candidate is this digest.
+tags:
+  factory: fabrikk
+version: 1
+inputs:
+  properties:
+    mergeSha:
+      type: string
+      pattern: '^[0-9a-f]{40}$'
+      description: Merge commit on main the release must be built from
+    product:
+      type: string
+      default: sentral
+    environment:
+      type: string
+      default: uat
+      description: Environment whose config artifact UAT will run against
+    registry:
+      type: string
+      default: registry.dataverket.internal
+    publicKey:
+      type: string
+      default: cosign.pub
+      description: Release signing public key, relative to the repository root
+    timeoutSeconds:
+      type: integer
+      default: 3600
+      description: How long to wait for CI to publish the artifact
+  required: [mergeSha]
+jobs:
+  - name: verify
+    steps:
+      - name: candidate
+        task:
+          type: model_method
+          modelType: '@dataverket/release-artifact'
+          modelName: release-${{ inputs.mergeSha }}
+          methodName: verify
+          inputs:
+            registry: ${{ inputs.registry }}
+            product: ${{ inputs.product }}
+            environment: ${{ inputs.environment }}
+            commit: ${{ inputs.mergeSha }}
+            publicKey: ${{ inputs.publicKey }}
+            timeoutSeconds: ${{ inputs.timeoutSeconds }}

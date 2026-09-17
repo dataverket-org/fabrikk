@@ -1,0 +1,54 @@
+# Protected path. Builds each product's release candidate on shared infrastructure after merge; a workbench never
+# builds what ships (delivery skill). fabrikk-release verifies the result; it does not build.
+#
+# Runner (label fabrikk-release): Go >= 1.25, git, bash, curl, tar, sha256sum, network access to the registry.
+# Secrets: REGISTRY_USERNAME, REGISTRY_PASSWORD, COSIGN_PRIVATE_KEY, COSIGN_PASSWORD.
+# The matching public key is cosign.pub at the repository root.
+name: release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sentral/**'
+      - 'go.work'
+      - 'Makefile'
+      - '.forgejo/workflows/release.yaml'
+
+jobs:
+  sentral:
+    runs-on: fabrikk-release
+    steps:
+      - name: Build, join, push, sign, and tag candidate
+        env:
+          PRODUCT: sentral
+          REGISTRY: registry.dataverket.internal
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          COMMIT: ${{ github.sha }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          auth=(-c "http.extraHeader=Authorization: token $TOKEN")
+
+          # fabrikk at exactly the merge commit.
+          git init -q .
+          git "${auth[@]}" fetch -q "$SERVER_URL/$REPOSITORY" "$COMMIT"
+          git checkout -q --detach FETCH_HEAD
+          git remote add origin "$SERVER_URL/$REPOSITORY"
+
+          # miljo at its current main, outside the fabrikk tree; its commit becomes env_config_version.
+          miljo=$(mktemp -d)
+          git -C "$miljo" init -q
+          git -C "$miljo" "${auth[@]}" fetch -q "$SERVER_URL/$OWNER/miljo" main
+          git -C "$miljo" checkout -q --detach FETCH_HEAD
+
+          make tools
+          _tools/bin/ko login "$REGISTRY" --username "$REGISTRY_USERNAME" --password-stdin <<< "$REGISTRY_PASSWORD"
+          make release PRODUCT="$PRODUCT" MILJO="$miljo" REGISTRY="$REGISTRY" COSIGN_KEY=env://COSIGN_PRIVATE_KEY

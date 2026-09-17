@@ -415,8 +415,9 @@ globalArguments:
 
     - id: releasing
       description: >-
-        Post-merge, on shared infrastructure: ko images by digest, render(L1 @ merge, L2 @ version),
-        push and cosign-sign the config artifact. Its digest is the release identity. No LLM.
+        CI builds the candidate on shared infrastructure after merge (.forgejo/workflows/release.yaml: ko images by
+        digest, render(L1 @ merge, L2 @ miljo), push, cosign-sign, tag candidate). fabrikk-release waits for it and
+        verifies it; the config artifact's digest is the release identity. No LLM.
       work:
         mode: workflow
         workflow:
