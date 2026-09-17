@@ -47,7 +47,7 @@ tools: ## Install pinned ko, cosign, kustomize, crane, flux into _tools/bin
 
 PRODUCT    ?=
 MILJO      ?= ../miljo
-REGISTRY   ?= registry.dataverket.internal
+REGISTRY   ?= registry.dataverket.org
 COSIGN_KEY ?=
 SOURCE_URL ?= $(shell git remote get-url origin 2>/dev/null)
 

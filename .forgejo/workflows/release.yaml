@@ -22,7 +22,7 @@ jobs:
       - name: Build, join, push, sign, and tag candidate
         env:
           PRODUCT: sentral
-          REGISTRY: registry.dataverket.internal
+          REGISTRY: registry.dataverket.org
           SERVER_URL: ${{ github.server_url }}
           REPOSITORY: ${{ github.repository }}
           OWNER: ${{ github.repository_owner }}

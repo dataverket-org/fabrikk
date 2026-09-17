@@ -149,5 +149,38 @@
     "checksum": "74261b52900f510fd8ffeda6a70ded2c75161d159647ea109a8232cbe169b7dc",
     "filesChecksum": "d22f3e82e6111cd1dcc81bcf517bbfb48f995a9230af6838d56024151ce327c4",
     "serverUrl": "https://swamp-club.com"
+  },
+  "@thomas/zitadel": {
+    "version": "2026.06.24.1",
+    "pulledAt": "2026-09-17T13:34:00.142Z",
+    "files": [
+      ".swamp/bundles/9bd2d0c7/zitadel.js",
+      ".swamp/pulled-extensions/@thomas/zitadel/files/LICENSE.txt",
+      ".swamp/pulled-extensions/@thomas/zitadel/files/README.md",
+      ".swamp/pulled-extensions/@thomas/zitadel/manifest.yaml",
+      ".swamp/pulled-extensions/@thomas/zitadel/models/zitadel.ts"
+    ],
+    "checksum": "9b9f075b33170d3742d6228faea36e00330cc0914abb20b18c531d743ebc3c37",
+    "filesChecksum": "4f3b4739e792b5801794f25cea836976d23a09b3d4e3371258beefa428d4e3fe",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@ginger_pappa/flux": {
+    "version": "2026.06.09.1",
+    "pulledAt": "2026-09-17T15:44:50.204Z",
+    "files": [
+      ".swamp/bundles/29a65ffc/models/flux/helmrelease.js",
+      ".swamp/bundles/29a65ffc/models/flux/kustomization.js",
+      ".swamp/bundles/29a65ffc/models/flux/source.js",
+      ".swamp/pulled-extensions/@ginger_pappa/flux/files/LICENSE.txt",
+      ".swamp/pulled-extensions/@ginger_pappa/flux/files/README.md",
+      ".swamp/pulled-extensions/@ginger_pappa/flux/manifest.yaml",
+      ".swamp/pulled-extensions/@ginger_pappa/flux/models/models/flux/_helpers.ts",
+      ".swamp/pulled-extensions/@ginger_pappa/flux/models/models/flux/helmrelease.ts",
+      ".swamp/pulled-extensions/@ginger_pappa/flux/models/models/flux/kustomization.ts",
+      ".swamp/pulled-extensions/@ginger_pappa/flux/models/models/flux/source.ts"
+    ],
+    "checksum": "fd90f06ee16e2c0a12c4223737c73c73bf38585ce369c55f75907adae521ea32",
+    "filesChecksum": "4b5cbaf575641008dce32c1db7e3fba98f2195fc3dc11f8f12c5b4f192f73eac",
+    "serverUrl": "https://swamp-club.com"
   }
 }

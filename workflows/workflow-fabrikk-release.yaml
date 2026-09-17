@@ -23,7 +23,7 @@ inputs:
       description: Environment whose config artifact UAT will run against
     registry:
       type: string
-      default: registry.dataverket.internal
+      default: registry.dataverket.org
     publicKey:
       type: string
       default: cosign.pub

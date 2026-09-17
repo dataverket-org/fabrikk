@@ -45,9 +45,9 @@ merge, producing **one complete, immutable artifact per environment**. Never joi
 kustomize build sentral/deploy/base | ko resolve -f -      # images built once, pinned by digest -> base/
 kustomize build <miljo>/environments/uat/sentral            # resources: [../base] -> rendered/manifests.yaml
 # add rendered/release.json: {product, environment, app_commit, env_config_version, images: {name: digest}}
-flux push artifact oci://registry.dataverket.internal/sentral/config-uat:$GIT_SHA --reproducible \
+flux push artifact oci://registry.dataverket.org/sentral/config-uat:$GIT_SHA --reproducible \
   --path=rendered/ --source=$REPO_URL --revision=main@sha1:$GIT_SHA
-cosign sign --key … registry.dataverket.internal/sentral/config-uat@<digest>
+cosign sign --key … registry.dataverket.org/sentral/config-uat@<digest>
 ```
 
 The config artifact's digest is the **release identity**. It pins every image by digest. Its annotations carry the

@@ -1,0 +1,10 @@
+type: '@ginger_pappa/flux/helmrelease'
+typeVersion: 2026.06.09.1
+id: 89c99293-d74a-41a6-bac3-5963e85b74cb
+name: dataverket-prod-helm
+version: 1
+tags: {}
+globalArguments:
+  namespace: ''
+  context: dataverket-prod-admin
+methods: {}
