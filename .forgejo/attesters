@@ -1,0 +1,4 @@
+# Allowed attesters: who may sign attestation/<sha> tags. SSH allowed_signers format, namespace "git".
+# Protected path: CI reads this file from the base branch, never from the PR head, so a PR cannot add its own attester.
+# Forgejo's tag protection for attestation/* (whitelist: beddari) is the other half; keep the two lists equal.
+code@beddari.net namespaces="git" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIDJP6ksTuJzy5MqdDehPGkZmH/DNaIpxKn2I2/DNIXVYAAAABHNzaDo= yubikey-19668198

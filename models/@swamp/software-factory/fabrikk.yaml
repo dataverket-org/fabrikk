@@ -205,7 +205,7 @@ globalArguments:
           - adversary-observability
           - adversary-source-standards
           - dev-environment
-        constraints: agent-constraints/adversarial-dimensions.md
+        constraints: agent-constraints/implementation-conventions.md
       artifacts:
         - name: change-summary
           schema:
@@ -376,19 +376,43 @@ globalArguments:
 
     - id: pull-request
       description: >-
-        Push the branch and its attestation tag, then open the PR in Forgejo (outcome, plan link, ADRs, attestation
-        tag). The PR head must be the attested headSha; anything pushed after attesting goes back through
-        implementing. A human reviews and merges; protected-path changes always need that human.
+        Push the branch and its attestation tag, open the PR through the forgejo model, and wait for a human to
+        review and merge it in Forgejo. CI (validate-attestation) checks the tag on every push; the PR head must be
+        the attested headSha, and anything pushed after attesting goes back through implementing. Evidence comes
+        from the forge's API (pr_ensure, pr_merge_state), never from memory. Protected-path changes always need
+        that human.
       work:
         mode: interactive
         skills: [adversary-source-standards]
+        systemPrompt: |
+          Work item ${{ self.workItem }}: branch ${{ data.latest(self.name, "evidence-change").payload.branch }},
+          attested at ${{ data.latest(self.name, "evidence-attestation").payload.headSha }} by tag
+          ${{ data.latest(self.name, "evidence-attestation").payload.tag }}. Protected paths changed:
+          ${{ data.latest(self.name, "evidence-attestation").payload.protectedPathsChanged }}.
+
+          1. From the worktree, push the branch and the tag in one push (it needs the attester's YubiKey touch;
+             tell the human when): git push origin <branch> <tag>
+          2. Open or converge the PR: swamp model method run forgejo pr_ensure --input owner=dataverket
+             --input name=fabrikk --input head=<branch> --input base=main --input title='<conventional subject>'
+             --input body='<outcome, plan reference, ADRs, the attestation tag>'. Record pull-request evidence
+             from data.latest("forgejo", "dataverket:fabrikk#<index>"): url = htmlUrl, index, prHeadSha = headSha.
+             Copy the values from the record; never type a sha.
+          3. If prHeadSha is not the attested headSha, advance head-moved. Otherwise stop: the human reviews and
+             merges in Forgejo once validate-attestation is green. A non-empty protected-path list means their
+             review is required whatever else is green. Say so when you hand over.
+          4. When the human says it is merged: swamp model method run forgejo pr_merge_state
+             --input owner=dataverket --input name=fabrikk --input index=<index>. If merged is true, record merge
+             evidence {url, mergeSha, mergedAt, mergedBy} from data.latest("forgejo", "dataverket:fabrikk#<index>:merge"),
+             then ask the human to approve gateId merge-approval (their merge is the decision; never approve for
+             them). A rejection with their reason opens changes-requested.
       evidence:
         - name: pull-request
           schema:
             type: object
-            required: [url, prHeadSha]
+            required: [url, index, prHeadSha]
             properties:
               url: { type: string, minLength: 1 }
+              index: { type: integer, minimum: 1 }
               prHeadSha: { type: string, pattern: '^[0-9a-f]{40}$' }
         - name: merge
           schema:
@@ -397,6 +421,8 @@ globalArguments:
             properties:
               url: { type: string, minLength: 1 }
               mergeSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+              mergedAt: { type: string, minLength: 1 }
+              mergedBy: { type: string, minLength: 1 }
       transitions:
         - name: merged
           to: releasing
