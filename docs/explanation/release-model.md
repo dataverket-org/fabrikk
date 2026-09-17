@@ -38,8 +38,8 @@ flowchart LR
 - **The digest is the release identity.** `fabrikk-release` records it as `release` evidence. UAT and promotion take
   that evidence and nothing else.
 
-`.forgejo/workflows/release.yaml` runs on push to `main` when a product, `go.work`, the `Makefile`, or the workflow
-itself changes, on a runner labelled `fabrikk-release`, with `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` as Actions
+`.forgejo/workflows/release.yaml` runs on push to `main` when a product's files change (only product paths trigger
+it; a Makefile or workflow change is exercised by the next product change), on a runner labelled `fabrikk-release`, with `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` as Actions
 secrets. The Makefile pins ko, cosign, kustomize, crane, and flux by version (`make tools`, into `_bin/`, alongside the repository's own tools from `tools/`).
 
 ## After the candidate
