@@ -44,5 +44,33 @@
     "checksum": "fc70858501290251863e1a6da3485b251dbdde2f146d060fda9580dce31e81ff",
     "filesChecksum": "801f780fa332ddda61f55176e3b074a85e4e3813b8f72913d3986ab0d228ecd8",
     "serverUrl": "https://swamp-club.com"
+  },
+  "@thomas/forgejo": {
+    "version": "2026.09.04.2",
+    "pulledAt": "2026-09-17T10:49:19.726Z",
+    "files": [
+      ".swamp/bundles/e5cabb76/forgejo.js",
+      ".swamp/pulled-extensions/@thomas/forgejo/files/LICENSE.txt",
+      ".swamp/pulled-extensions/@thomas/forgejo/files/README.md",
+      ".swamp/pulled-extensions/@thomas/forgejo/manifest.yaml",
+      ".swamp/pulled-extensions/@thomas/forgejo/models/forgejo.ts"
+    ],
+    "checksum": "f06a28bc37ac1494415e03a8a2ea86d15db7ea6db9f25288dc97aaa9a1abd09c",
+    "filesChecksum": "833f5702017eae11d9aee0571f8a4d4fb8d5b7bd668365676fd71458d4f73ffe",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@zocc/sops-age": {
+    "version": "2026.05.22.1",
+    "pulledAt": "2026-09-17T11:04:36.831Z",
+    "files": [
+      ".swamp/pulled-extensions/@zocc/sops-age/files/LICENSE.txt",
+      ".swamp/pulled-extensions/@zocc/sops-age/files/README.md",
+      ".swamp/pulled-extensions/@zocc/sops-age/manifest.yaml",
+      ".swamp/pulled-extensions/@zocc/sops-age/vaults/sops_age/mod.ts",
+      ".swamp/vault-bundles/90ed82fd/sops_age/mod.js"
+    ],
+    "checksum": "36ea5fa1d4f424fcf5d3eec2cb8895764b0db36397b8caaf9d5bdfdc3c92b19c",
+    "filesChecksum": "7ef55be2884bef880294aecaccb6b07ddd9afb91f484428c8bf0f9a6a0881b9a",
+    "serverUrl": "https://swamp-club.com"
   }
 }

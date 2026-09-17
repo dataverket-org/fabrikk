@@ -18,3 +18,6 @@ _reference/
 
 # Pinned release tools (make tools)
 _tools/
+
+# SOPS vault: plaintext scratch file written during vault put (vaults/*.enc.json is safe to commit)
+vaults/*.plain.tmp
