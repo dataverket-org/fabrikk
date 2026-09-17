@@ -2,7 +2,7 @@ id: 1fcf8b9d-63b6-4f73-8f0b-ba7ff1eb43b9
 name: fabrikk
 type: '@zocc/sops-age'
 config:
-  secretsFile: /home/beddari/kode/fabrikk/vaults/fabrikk.enc.json
-  ageKeyFile: /home/beddari/.config/sops/age/fabrikk.txt
+  secretsFile: vaults/fabrikk.enc.json
+  ageKeyFile: ""
   agePublicKey: age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
 createdAt: '2026-09-17T11:06:58.798Z'

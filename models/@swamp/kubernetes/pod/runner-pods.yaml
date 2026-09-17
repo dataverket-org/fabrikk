@@ -6,5 +6,5 @@ version: 1
 tags: {}
 globalArguments:
   namespace: forgejo-runners
-  kubeconfig: /home/beddari/.kube/omni-production.yaml
+  context: fabrikk-readers
 methods: {}
