@@ -48,6 +48,9 @@ artifacts. None of them has code yet.
 | `workflows/workflow-fabrikk-release.yaml` | Releasing stage: waits for CI's candidate for the merge commit and verifies it. |
 | `extensions/models/release_artifact.ts` | `@dataverket/release-artifact`: signature, provenance, `release.json`, digest-pinned images, `:candidate`. |
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos`: shallow-clones or refreshes every listed repo into `_reference/` and records the commit. |
+| `models/@thomas/forgejo/forgejo.yaml` | `forgejo`: the forge at `git.dataverket.org` (repos, branch protection, PRs), token from the `forgejo` vault. |
+| `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault). |
+| `vaults/forgejo.enc.json`, `.sops.yaml` | Secrets the factory reads unattended: SOPS, encrypted to the factory's age key and each attester's YubiKey. |
 
 Every adversary is used twice: to refine the plan before approval, and to review the output before the PR.
 
@@ -159,10 +162,12 @@ open a PR or read a merge, no CI validates the attestation tag, and this checkou
 own factory (`_reference/swamp`, `.github/workflows/ci.yml`), that is the whole gap; the pre-merge half matches. In
 order:
 
-1. **Stand up the forge and put the repos on it.** Reach or bring up `kode.dataverket.org`, add `fabrikk` and `miljo`
-   to `org.yaml` in the dataverket `infra` repo, apply, and push this repository. Branch protection on `main`, a tag
-   protection rule for `attestation/*`, one runner labelled `fabrikk-release`, and the cosign key pair plus registry
-   credentials as Actions secrets. Decide what `registry.dataverket.internal` is (the dev cluster already runs zot).
+1. **Stand up the forge and put the repos on it.** Done on `git.dataverket.org` through the `forgejo` model
+   (`@thomas/forgejo` plus `extensions/models/forgejo_actions.ts`, token in the `forgejo` vault): `dataverket/fabrikk`
+   and `dataverket/miljo` exist, `main` is pull-request only, and only `beddari` may push `attestation/*` tags.
+   Left: a runner labelled `fabrikk-release` (`runner_registration_token`, then `forgejo-runner register` on the host),
+   the cosign key pair and registry credentials as Actions secrets (`actions_secret_put` from the vault), and deciding
+   what `registry.dataverket.internal` is (the dev cluster already runs zot).
 2. **Add PR validation to CI.** A `.forgejo/workflows/` job on pull request that runs the four checks under
    Attestation, plus a protected `.forgejo/attesters` file for `git tag -v`. Bash only: no LLM, no swamp on the runner.
    Make it a required status check on `main`. This is fabrikk's `validate-attestation`; the review-integrity check
