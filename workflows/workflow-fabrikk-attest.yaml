@@ -45,6 +45,7 @@ inputs:
         - docs/adr/
         - Makefile
         - compose.yaml
+        - deploy/dev/
         - .forgejo/
         - cosign.pub
       description: Protected paths (the source-standards list, with the factory definition as models/, workflows/, extensions/)

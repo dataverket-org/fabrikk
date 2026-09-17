@@ -80,7 +80,7 @@ Humans approve the plan and the merge. Nowhere else.
 - Reviews run in a separate agent with no shared context (`dispatch` mode: one reviewer per skill).
 - Deterministic stages call swamp workflows. `fabrikk-verify`, `fabrikk-attest`, and `fabrikk-release` exist; `fabrikk-uat` and `fabrikk-promote` wait for a UAT environment (see Follow-up work), so a run stops at `uat`.
 - The implementer records `change` evidence with `worktree`, `branch`, and `headSha`; `fabrikk-verify` runs in that worktree and leaves the session stack up.
-- Protected paths in Forgejo (human review required): `skills/`, `agent-constraints/`, `CLAUDE.md`, the `fabrikk` definition, review prompts, `docs/adr/`, `Makefile`, `compose.yaml`, `.forgejo/`, `cosign.pub`. The attestation checksums them.
+- Protected paths in Forgejo (human review required): `skills/`, `agent-constraints/`, `CLAUDE.md`, the `fabrikk` definition, review prompts, `docs/adr/`, `Makefile`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`. The attestation checksums them.
 
 ## Release
 
@@ -177,6 +177,5 @@ currently gets through `releasing` and stops at `uat`.
   evidence.
 - Reference repositories: tell agents in a skill (dev-environment or architecture) and add a `name@commit` citation to
   the plan's `portsAndDownstreams`. Move the Zitadel ref to the pinned Zitadel image once one is chosen.
-- Decide whether `deploy/dev/` (compose fragments with healthcheck, seed, and reset scripts) is a protected path.
 - Attestation provenance: the verification, review, and approval sections are the factory's own record; commit signing
   is the only independent signal today.
