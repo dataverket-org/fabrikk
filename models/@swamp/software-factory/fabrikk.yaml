@@ -80,7 +80,7 @@ globalArguments:
                 type: array
                 items:
                   type: object
-                  required: [system, port, fake, contractSuite, composeFragment, profile, firstRealTier]
+                  required: [system, port, fake, contractSuite, composeFragment, profile, firstRealTier, references]
                   properties:
                     system: { type: string, minLength: 1 }
                     port: { type: string, minLength: 1 }
@@ -89,6 +89,9 @@ globalArguments:
                     composeFragment: { type: string, minLength: 1 }
                     profile: { type: string, minLength: 1 }
                     firstRealTier: { type: string, enum: ["0", "1", "2", uat] }
+                    references:
+                      type: array
+                      items: { type: string, pattern: '^[a-z0-9][a-z0-9._-]*@[0-9a-f]{40}$' }
               persistence: { type: string, minLength: 1 }
               fileBreakdown:
                 type: array

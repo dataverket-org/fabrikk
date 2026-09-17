@@ -19,7 +19,8 @@ implementation. If it states an implementation, rewrite the outcome first and co
 4. **Tenancy impact.** How the change stays inside one account. What a wrong-tenant message does. What the black-box
    isolation tests will assert.
 5. **Ports and downstreams.** For each external system: the port interface, the in-memory fake, the contract suite, the
-   compose fragment and its profile, and **the tier at which the real system first appears**.
+   compose fragment and its profile, **the tier at which the real system first appears**, and the reference repos the
+   fake's behavior was checked against, as `<name>@<commit>` (dev-environment skill).
 6. **Persistence.** Streams, consumers, tables, projections. What lives in JetStream and what in PostgreSQL, and why.
 7. **File-level breakdown.** Every file created or changed, with an estimated LOC. Total against the simplicity budget.
 8. **Testing strategy by tier.** What is verified at tier 0, 1, 2, and UAT. Which tests embed a server and which share

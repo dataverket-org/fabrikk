@@ -11,6 +11,8 @@ description: Source, licensing, commit, and decision-record standards for Datave
   Dataverket. `LICENSE` at the repo root is AGPL-3.0.
 - Documentation is `CC-BY-SA-4.0`; docs directories carry their own `LICENSE`.
 - A dependency with a license incompatible with AGPL-3.0 network distribution is a critical finding.
+- Code in `_reference/` is read, never copied into Dataverket source. Reusing upstream code means a dependency (with its
+  ADR) or a reimplementation; copied upstream code is judged like a dependency with that code's license.
 
 ## Commits and pull requests
 

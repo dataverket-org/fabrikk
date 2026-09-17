@@ -181,7 +181,7 @@ The real implementation passes `RunContract` against the compose fragment; the f
 
 ## Messaging rules
 
-- Every message on NATS is a **CloudEvent** (structured JSON). No bare payloads.
+- Every message on NATS is a **CloudEvent** (structured JSON, CloudEvents 1.0: `_reference/cloudevents-spec`). No bare payloads.
 - `type` is reverse-DNS: `no.dataverket.<context>.<aggregate>.<event>`. Events are past tense (`…ended`); commands are imperative (`…end`).
 - `source` and `subject` carry the global resource ID of the aggregate. `id` is unique per message and used for replay protection.
 - Required extensions: `tenant`, `traceparent`. Commands additionally carry the authorization token in the envelope, never in `data`.

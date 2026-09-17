@@ -175,7 +175,6 @@ currently gets through `releasing` and stops at `uat`.
 - The `pull-request` stage should record the attestation commit as the PR head, not `headSha`.
 - The `releasing` stage defaults to `sentral`/`uat`; the work item's product should come from the plan or `change`
   evidence.
-- Reference repositories: tell agents in a skill (dev-environment or architecture) and add a `name@commit` citation to
-  the plan's `portsAndDownstreams`. Move the Zitadel ref to the pinned Zitadel image once one is chosen.
+- Reference repositories: move the Zitadel ref to the pinned Zitadel image once one is chosen.
 - Attestation provenance: the verification, review, and approval sections are the factory's own record; commit signing
   is the only independent signal today.

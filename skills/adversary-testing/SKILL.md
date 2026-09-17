@@ -39,6 +39,8 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 - One suite per port, parameterized over implementations. The fake must pass the identical suite as the real system.
 - Fault injection lives in the fake; the contract suite asserts the *service's* behavior under those faults.
 - A fake that passes a case the real implementation fails is a critical finding: the fake is lying.
+- Write a fake and its faults from the real system's behavior at the version in use, read in its source and docs under
+  `_reference/` (dev-environment skill), not from memory. The plan cites what was read as `<name>@<commit>`.
 
 ## Black-box acceptance suite
 
@@ -65,5 +67,6 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 - Does the plan name which tier each new behavior is verified in, and where the real downstream first appears?
 - Do server-configuring tests embed, and shared-stack tests isolate by name?
 - Is there a fault-path test for every external call?
+- Does each fake's behavior trace to the real system at a cited `<name>@<commit>`, or only to memory?
 - Did anything security-relevant change without a black-box test?
 - Does any test need Zitadel, a cluster, or the network to pass tier 0?
