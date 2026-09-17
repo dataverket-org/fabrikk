@@ -53,7 +53,7 @@ artifacts. None of them has code yet.
 | `models/@ginger_pappa/flux/helmrelease/dataverket-prod-helm.yaml` | `dataverket-prod-helm`: Flux HelmReleases in `dataverket-prod` (list, reconcile, suspend, resume), context `dataverket-prod-admin`; wraps the pinned `flux` CLI, so run with `_tools/bin` on PATH. |
 | `extensions/models/flux_reset.ts` | Adds `reset` to `@ginger_pappa/flux/helmrelease`: reconcile with `--reset`, for a release stuck at `RetriesExceeded` whose workloads are healthy. |
 | `models/@swamp/kubernetes/pod/runner-pods.yaml` | `runner-pods`: the `forgejo-runners` namespace in `dataverket-prod`, context `fabrikk-readers` from the developer's kubeconfig. |
-| `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault). |
+| `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault), `repo_rename` (verify-first). |
 | `vaults/fabrikk.enc.json`, `.sops.yaml` | Secrets the factory reads unattended (`fabrikk` vault): SOPS, encrypted to the factory's age key and each attester's YubiKey. Nothing in the repo names a home directory: the factory identity lives in the host's default sops keys file, and kubeconfig contexts are named, not pathed. |
 
 Every adversary is used twice: to refine the plan before approval, and to review the output before the PR.

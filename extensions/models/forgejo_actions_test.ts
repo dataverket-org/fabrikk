@@ -3,6 +3,7 @@ import {
   actionsSecretPut,
   type ApiCall,
   type Caller,
+  repoRename,
   runnerList,
   runnerRegistrationToken,
   tagProtectionEnsure,
@@ -179,4 +180,57 @@ Deno.test("HTTP errors carry method, path, status, and the server message", asyn
     Error,
     "GET /api/v1/repos/dataverket/fabrikk/tag_protections -> HTTP 403: token lacks write:repository",
   );
+});
+
+
+const REPO = (n: string) => `/api/v1/repos/dataverket/${n}`;
+const repo = (n: string) => ({ name: n, html_url: `https://forge/dataverket/${n}`, clone_url: `https://forge/dataverket/${n}.git`, ssh_url: `git@forge:dataverket/${n}.git` });
+
+Deno.test("repoRename verifies source and target, then patches the name", async () => {
+  const { api, calls } = fakeApi({
+    [`GET ${REPO("flux-bootstrap")}`]: { status: 200, body: repo("flux-bootstrap") },
+    [`PATCH ${REPO("flux-bootstrap")}`]: { status: 200, body: repo("fabrikk-infra") },
+  });
+  const info = await repoRename(api, { owner: "dataverket", name: "flux-bootstrap", newName: "fabrikk-infra" });
+  assertEquals(info.action, "renamed");
+  assertEquals(info.to, "fabrikk-infra");
+  assertEquals(info.cloneUrl, "https://forge/dataverket/fabrikk-infra.git");
+  assertEquals(calls.map((c) => `${c.method} ${c.path}`), [
+    `GET ${REPO("flux-bootstrap")}`,
+    `GET ${REPO("fabrikk-infra")}`,
+    `PATCH ${REPO("flux-bootstrap")}`,
+  ]);
+  assertEquals(calls[2].body, { name: "fabrikk-infra" });
+});
+
+Deno.test("repoRename refuses a missing source and an occupied target; a redirect does not count", async () => {
+  await assertRejects(
+    () => repoRename(fakeApi({}).api, { owner: "dataverket", name: "nope", newName: "x" }),
+    Error,
+    "does not exist",
+  );
+  const occupied = fakeApi({
+    [`GET ${REPO("a")}`]: { status: 200, body: repo("a") },
+    [`GET ${REPO("b")}`]: { status: 200, body: repo("b") },
+  });
+  await assertRejects(
+    () => repoRename(occupied.api, { owner: "dataverket", name: "a", newName: "b" }),
+    Error,
+    "already exists",
+  );
+  // A GET of the target that answers with the *source* repo is Forgejo following a stale redirect: not occupied.
+  const redirect = fakeApi({
+    [`GET ${REPO("a")}`]: { status: 200, body: repo("a") },
+    [`GET ${REPO("old")}`]: { status: 200, body: repo("a") },
+    [`PATCH ${REPO("a")}`]: { status: 200, body: repo("old") },
+  });
+  const info = await repoRename(redirect.api, { owner: "dataverket", name: "a", newName: "old" });
+  assertEquals(info.action, "renamed");
+});
+
+Deno.test("repoRename reports unchanged when the name is already the target", async () => {
+  const { api, calls } = fakeApi({ [`GET ${REPO("same")}`]: { status: 200, body: repo("same") } });
+  const info = await repoRename(api, { owner: "dataverket", name: "same", newName: "same" });
+  assertEquals(info.action, "unchanged");
+  assertEquals(calls.length, 1);
 });

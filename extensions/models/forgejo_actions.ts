@@ -300,6 +300,68 @@ export async function runnerList(
   }));
 }
 
+// ─────────────────────────── repo rename ───────────────────────────
+
+const RepoRenameArgs = z.object({
+  owner: z.string().min(1).describe("Owning org or user login."),
+  name: z.string().min(1).describe("Current repository name."),
+  newName: z.string().min(1).regex(/^[A-Za-z0-9_.-]+$/).describe(
+    "New repository name. Forgejo keeps a redirect from the old name until it is reused.",
+  ),
+});
+
+const RepoRenameInfo = z.object({
+  owner: z.string(),
+  from: z.string(),
+  to: z.string(),
+  htmlUrl: z.string(),
+  cloneUrl: z.string(),
+  sshUrl: z.string(),
+  action: z.enum(["renamed", "unchanged"]),
+  timestamp: z.string(),
+});
+
+/**
+ * Rename a repository. Verify-first: the source must exist and the target
+ * must not (a redirect left by an earlier rename is not a repository and
+ * does not block). Reports unchanged when the name is already the target.
+ */
+export async function repoRename(
+  api: Caller,
+  a: z.infer<typeof RepoRenameArgs>,
+): Promise<z.infer<typeof RepoRenameInfo>> {
+  const shape = (r: Record<string, unknown>, action: "renamed" | "unchanged") => ({
+    owner: a.owner,
+    from: a.name,
+    to: String(r.name),
+    htmlUrl: String(r.html_url ?? ""),
+    cloneUrl: String(r.clone_url ?? ""),
+    sshUrl: String(r.ssh_url ?? ""),
+    action,
+    timestamp: new Date().toISOString(),
+  });
+  if (a.name === a.newName) {
+    const same = (await call(api, { method: "GET", path: repoPath(a.owner, a.name) })).body;
+    return shape(same, "unchanged");
+  }
+  const source = await api({ method: "GET", path: repoPath(a.owner, a.name) });
+  if (source.status === 404) throw new Error(`${a.owner}/${a.name} does not exist; nothing to rename`);
+  if (source.status >= 400) await call(api, { method: "GET", path: repoPath(a.owner, a.name) });
+  const target = await api({ method: "GET", path: repoPath(a.owner, a.newName) });
+  if (target.status === 200 && target.body.name === a.newName) {
+    throw new Error(`${a.owner}/${a.newName} already exists; refusing to rename onto it`);
+  }
+  const renamed = (await call(api, {
+    method: "PATCH",
+    path: repoPath(a.owner, a.name),
+    body: { name: a.newName },
+  })).body;
+  if (renamed.name !== a.newName) {
+    throw new Error(`rename returned name ${String(renamed.name)}, expected ${a.newName}`);
+  }
+  return shape(renamed, "renamed");
+}
+
 // ─────────────────────────── extension ───────────────────────────
 
 interface Ctx {
@@ -339,6 +401,12 @@ export const extension = {
     runner: {
       description: "A registered Actions runner: name, online/offline status, labels, and scope.",
       schema: RunnerInfo,
+      lifetime: "infinite" as const,
+      garbageCollection: 20,
+    },
+    repoRename: {
+      description: "A repository rename: old and new name and the URLs that changed.",
+      schema: RepoRenameInfo,
       lifetime: "infinite" as const,
       garbageCollection: 20,
     },
@@ -404,6 +472,21 @@ export const extension = {
           safeName(`${info.target}:${info.name}`),
           info,
         );
+        return { dataHandles: [handle] };
+      },
+    },
+    repo_rename: {
+      description:
+        "Rename a repository. Verify-first: the source must exist and no repository may already hold the new " +
+        "name. Forgejo redirects the old name (web and git over HTTPS) until it is reused; fixed remotes such " +
+        "as push mirrors are not updated.",
+      arguments: RepoRenameArgs,
+      execute: async (args: z.infer<typeof RepoRenameArgs>, context: Ctx) => {
+        const a = RepoRenameArgs.parse(args);
+        context.logger.info("Renaming {from} to {to}", { from: `${a.owner}/${a.name}`, to: `${a.owner}/${a.newName}` });
+        const info = await repoRename(fetchCaller(context.globalArgs, context.signal), a);
+        context.logger.info("Rename {to}: {action}", { to: `${info.owner}/${info.to}`, action: info.action });
+        const handle = await context.writeResource("repoRename", safeName(`${info.owner}:${info.to}`), info);
         return { dataHandles: [handle] };
       },
     },
