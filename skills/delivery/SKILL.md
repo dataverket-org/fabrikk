@@ -9,7 +9,8 @@ The registry is where releases travel. Git is where they are authored. The UAT e
 
 ## Artifacts
 
-- Services are built with `ko`: static Go binaries on `scratch`, one image per `cmd/<service>`, addressed by digest.
+- Services are built with `ko`: static Go binaries on `scratch`, one image per `<product>/cmd/<service>`, addressed by
+  digest.
 - Release builds happen on shared infrastructure (Forgejo Actions runner), after merge. A developer's or agent's machine
   never produces the artifact that ships.
 - Everything upstream is mirrored into the Dataverket registry and pinned by digest there.
@@ -19,21 +20,33 @@ The registry is where releases travel. Git is where they are authored. The UAT e
 | Layer | Contents | Owner | Cadence |
 |---|---|---|---|
 | L0 — platform baseline | Storage classes, CSI, backup operator, Flux, monitoring | Environment line | Cluster lifecycle |
-| L1 — app base | Env-agnostic manifests with defaults, next to the code in `deploy/base/` | Code factory | Per code change |
-| L2 — environment overlay | Replicas, PVC sizes and classes, backup policy, resources, placement, in `environments/<env>/` | Environment line | Per environment change |
+| L1 — app base | Env-agnostic manifests with defaults, next to the code in `<product>/deploy/base/` | Code factory | Per code change |
+| L2 — environment overlay | Replicas, PVC sizes and classes, backup policy, resources, placement, in `miljo`: `environments/<env>/<product>/` | Environment line | Per environment change |
 
 L2 may only touch fields the L1 schema declares tunable; a linter enforces it. New tunable fields need an ADR.
 
+## Where it lives
+
+| Path | Contents |
+|---|---|
+| `<product>/deploy/base/` (monorepo) | L1 for that product: a kustomization whose images are `ko://<module>/cmd/<service>` references |
+| `deploy/dev/<system>/` (monorepo root) | Dev-environment fragments per downstream system, shared by every product (dev-environment skill). Not deployed. |
+| `environments/<env>/<product>/` (`miljo`) | L2: a kustomization with `resources: [../base]` and the environment's patches |
+
+Nothing else goes under `deploy/`. Rendered output exists only inside the signed artifact; L0 belongs to the
+environment line; secrets never enter git; the black-box acceptance suite is its own module.
+
 ## The join
 
-`release = render(L1 @ commit, L2 @ version)` — a pure function, run in the factory, producing **one complete, immutable
-artifact per environment**. Never join in the cluster.
+`release = render(L1 @ commit, L2 @ version)` — a pure function, run by `make release PRODUCT=<product>` in CI after
+merge, producing **one complete, immutable artifact per environment**. Never join in the cluster.
 
 ```
-ko resolve -f deploy/base/ | kustomize build environments/uat/ --load-restrictor … > rendered/
-# add release manifest: {app_commit, images: {name: digest}, env_config_version}
-flux push artifact oci://registry.dataverket.internal/sentral/config-uat:$GIT_SHA \
-  --path=rendered/ --source=$REPO_URL --revision=$GIT_SHA
+kustomize build sentral/deploy/base | ko resolve -f -      # images built once, pinned by digest -> base/
+kustomize build <miljo>/environments/uat/sentral            # resources: [../base] -> rendered/manifests.yaml
+# add rendered/release.json: {product, environment, app_commit, env_config_version, images: {name: digest}}
+flux push artifact oci://registry.dataverket.internal/sentral/config-uat:$GIT_SHA --reproducible \
+  --path=rendered/ --source=$REPO_URL --revision=main@sha1:$GIT_SHA
 cosign sign --key … registry.dataverket.internal/sentral/config-uat@<digest>
 ```
 

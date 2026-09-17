@@ -10,7 +10,8 @@ machine should be a server, move the whole workbench — agent, code, and depend
 
 ## Session stack
 
-One `compose.yaml`, profiles select what runs. Boot once per session; iterate with `go test` many times.
+One `compose.yaml` at the repository root, shared by every product; profiles select what runs. Boot once per session;
+iterate with `go test` many times.
 
 | Profile | Services | Purpose |
 |---|---|---|
@@ -35,7 +36,9 @@ make verify                    build images with ko, up `verify`, run contract +
 
 ## Downstream fragment contract
 
-Every downstream API used by a service ships a compose fragment under `deploy/dev/<system>/` declaring:
+Every downstream API used by a service ships a compose fragment under `deploy/dev/<system>/` at the repository root,
+per downstream system rather than per product, because one session stack serves every product. Product manifests live
+elsewhere, in `<product>/deploy/base/` (delivery skill). Each fragment declares:
 
 | Field | Meaning |
 |---|---|
