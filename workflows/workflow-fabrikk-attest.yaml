@@ -43,7 +43,7 @@ inputs:
         - models/
         - workflows/
         - extensions/
-        - docs/adr/
+        - docs/decisions/
         - Makefile
         - compose.yaml
         - deploy/dev/
