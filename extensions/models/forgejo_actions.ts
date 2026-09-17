@@ -242,6 +242,64 @@ export async function runnerRegistrationToken(
   };
 }
 
+// ─────────────────────────── runner list ───────────────────────────
+
+const RunnerListArgs = z.object({
+  owner: z.string().min(1).describe("Org login (org scope) or repo owner."),
+  repo: z.string().min(1).optional().describe(
+    "Repository name to list the runners visible to that repository; omit for the org's.",
+  ),
+});
+
+const RunnerInfo = z.object({
+  target: z.string(),
+  id: z.number().int(),
+  uuid: z.string(),
+  name: z.string(),
+  status: z.string(),
+  labels: z.array(z.string()),
+  ephemeral: z.boolean(),
+  version: z.string(),
+  level: z.enum(["instance", "org", "repo"]),
+  action: z.literal("observed"),
+  timestamp: z.string(),
+});
+
+/** Runners visible at a scope: name, status, and labels. Read-only. */
+export async function runnerList(
+  api: Caller,
+  a: z.infer<typeof RunnerListArgs>,
+): Promise<z.infer<typeof RunnerInfo>[]> {
+  const r = await call(api, {
+    method: "GET",
+    path: `${actionsPath(a.owner, a.repo)}/runners?visible=true&limit=100`,
+  });
+  const items = Array.isArray(r.body)
+    ? r.body
+    : Array.isArray(r.body.runners)
+    ? r.body.runners
+    : [];
+  const target = a.repo ? `${a.owner}/${a.repo}` : a.owner;
+  const timestamp = new Date().toISOString();
+  return (items as Record<string, unknown>[]).map((x) => ({
+    target,
+    id: Number(x.id),
+    uuid: String(x.uuid ?? ""),
+    name: String(x.name ?? ""),
+    status: String(x.status ?? ""),
+    labels: strings(x.labels).length
+      ? strings(x.labels)
+      : (Array.isArray(x.labels)
+        ? (x.labels as Record<string, unknown>[]).map((l) => String(l.name ?? l))
+        : []),
+    ephemeral: x.ephemeral === true,
+    version: String(x.version ?? ""),
+    level: Number(x.repo_id) > 0 ? "repo" : Number(x.owner_id) > 0 ? "org" : "instance",
+    action: "observed" as const,
+    timestamp,
+  }));
+}
+
 // ─────────────────────────── extension ───────────────────────────
 
 interface Ctx {
@@ -276,10 +334,37 @@ export const extension = {
       schema: RunnerRegistrationInfo,
       lifetime: "infinite" as const,
       garbageCollection: 5,
-      vaultName: "forgejo",
+      vaultName: "fabrikk",
+    },
+    runner: {
+      description: "A registered Actions runner: name, online/offline status, labels, and scope.",
+      schema: RunnerInfo,
+      lifetime: "infinite" as const,
+      garbageCollection: 20,
     },
   },
   methods: [{
+    runner_list: {
+      description:
+        "List the Actions runners visible to a repository or an organization, with status and labels (factory). " +
+        "Read-only.",
+      arguments: RunnerListArgs,
+      execute: async (args: z.infer<typeof RunnerListArgs>, context: Ctx) => {
+        const a = RunnerListArgs.parse(args);
+        const runners = await runnerList(fetchCaller(context.globalArgs, context.signal), a);
+        context.logger.info("{count} runner(s) visible to {target}", {
+          count: runners.length,
+          target: a.repo ? `${a.owner}/${a.repo}` : a.owner,
+        });
+        const dataHandles = [];
+        for (const r of runners) {
+          dataHandles.push(
+            await context.writeResource("runner", safeName(`${r.target}:runner:${r.name || r.id}`), r),
+          );
+        }
+        return { dataHandles };
+      },
+    },
     tag_protection_ensure: {
       description:
         "Find-or-create a tag protection rule for a tag glob and converge who may push matching tags. " +

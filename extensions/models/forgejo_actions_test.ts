@@ -3,6 +3,7 @@ import {
   actionsSecretPut,
   type ApiCall,
   type Caller,
+  runnerList,
   runnerRegistrationToken,
   tagProtectionEnsure,
 } from "./forgejo_actions.ts";
@@ -123,6 +124,43 @@ Deno.test("runnerRegistrationToken returns the token and refuses an empty one", 
     Error,
     "no registration token",
   );
+});
+
+Deno.test("runnerList reads both response shapes and classifies scope from ids", async () => {
+  const runner = (id: number, extra: Record<string, unknown>) => ({
+    id,
+    uuid: `u${id}`,
+    name: `r${id}`,
+    status: "online",
+    labels: ["fabrikk-release"],
+    ephemeral: false,
+    version: "6.3.0",
+    owner_id: 0,
+    repo_id: 0,
+    ...extra,
+  });
+  const wrapped = fakeApi({
+    ["GET /api/v1/orgs/dataverket/actions/runners?visible=true&limit=100"]: {
+      status: 200,
+      body: { runners: [runner(1, { owner_id: 5 }), runner(2, { repo_id: 9, labels: [{ name: "docker" }] })] },
+    },
+  });
+  const list = await runnerList(wrapped.api, { owner: "dataverket" });
+  assertEquals(list.map((r) => [r.name, r.level, r.labels]), [
+    ["r1", "org", ["fabrikk-release"]],
+    ["r2", "repo", ["docker"]],
+  ]);
+
+  const bare = fakeApi({
+    ["GET /api/v1/repos/dataverket/fabrikk/actions/runners?visible=true&limit=100"]: {
+      status: 200,
+      body: [runner(3, {})],
+    },
+  });
+  const one = await runnerList(bare.api, { owner: "dataverket", repo: "fabrikk" });
+  assertEquals(one.length, 1);
+  assertEquals(one[0].level, "instance");
+  assertEquals(one[0].target, "dataverket/fabrikk");
 });
 
 Deno.test("HTTP errors carry method, path, status, and the server message", async () => {

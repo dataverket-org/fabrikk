@@ -48,9 +48,11 @@ artifacts. None of them has code yet.
 | `workflows/workflow-fabrikk-release.yaml` | Releasing stage: waits for CI's candidate for the merge commit and verifies it. |
 | `extensions/models/release_artifact.ts` | `@dataverket/release-artifact`: signature, provenance, `release.json`, digest-pinned images, `:candidate`. |
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos`: shallow-clones or refreshes every listed repo into `_reference/` and records the commit. |
-| `models/@thomas/forgejo/forgejo.yaml` | `forgejo`: the forge at `git.dataverket.org` (repos, branch protection, PRs), token from the `forgejo` vault. |
-| `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault). |
-| `vaults/forgejo.enc.json`, `.sops.yaml` | Secrets the factory reads unattended: SOPS, encrypted to the factory's age key and each attester's YubiKey. |
+| `models/@thomas/forgejo/forgejo.yaml` | `forgejo`: the forge at `git.dataverket.org` (repos, branch protection, PRs), token from the `fabrikk` vault. |
+| `models/@mccormick/omni/inventory/omni.yaml` | `omni`: the Talos fleet as Sidero Omni sees it (read-only `discover`), service-account key from the `fabrikk` vault. |
+| `models/@swamp/kubernetes/pod/runner-pods.yaml` | `runner-pods`: the `forgejo-runners` namespace in `dataverket-prod`, over the Omni-issued kubeconfig at `~/.kube/omni-production.yaml`. |
+| `extensions/models/forgejo_actions.ts` | Adds to `@thomas/forgejo`: `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (token to the vault). |
+| `vaults/fabrikk.enc.json`, `.sops.yaml` | Secrets the factory reads unattended (`fabrikk` vault): SOPS, encrypted to the factory's age key and each attester's YubiKey. |
 
 Every adversary is used twice: to refine the plan before approval, and to review the output before the PR.
 
@@ -163,9 +165,11 @@ own factory (`_reference/swamp`, `.github/workflows/ci.yml`), that is the whole 
 order:
 
 1. **Stand up the forge and put the repos on it.** Done on `git.dataverket.org` through the `forgejo` model
-   (`@thomas/forgejo` plus `extensions/models/forgejo_actions.ts`, token in the `forgejo` vault): `dataverket/fabrikk`
+   (`@thomas/forgejo` plus `extensions/models/forgejo_actions.ts`, token in the `fabrikk` vault): `dataverket/fabrikk`
    and `dataverket/miljo` exist, `main` is pull-request only, and only `beddari` may push `attestation/*` tags.
-   Left: a runner labelled `fabrikk-release` (`runner_registration_token`, then `forgejo-runner register` on the host),
+   The org runner `dataverket-runner` (labels `ubuntu-latest`, `kata`; a Kata VM pod in `dataverket-prod`, see `runner_list`)
+   is not the release runner: that is a second deployment in flux-bootstrap with the label `fabrikk-release` and the
+   cosign key seeded into memory over FIDO SSH, never on disk (design in Follow-up work). Left: that deployment,
    the cosign key pair and registry credentials as Actions secrets (`actions_secret_put` from the vault), and deciding
    what `registry.dataverket.internal` is (the dev cluster already runs zot).
 2. **Add PR validation to CI.** A `.forgejo/workflows/` job on pull request that runs the four checks under
@@ -193,6 +197,31 @@ that stalls at `pull-request` wastes the loop, so Forgejo first.
 - **`fabrikk-promote`.** Retags the UAT-passed digest from `candidate` to `current`; rollback retags the previous digest.
 - **Customer release line** (separate from this factory). Publishes digests that passed UAT (tag, annotation, extra
   signature, registry copy) and never rebuilds; anything customer-specific happens before UAT.
+
+### Release signing key
+
+The cosign private key is seeded from developer laptops over FIDO SSH into the release runner's memory and is never
+on disk: not in Actions secrets, not on a volume, gone on restart until a developer seeds it again.
+
+- **The runner.** `dataverket-runner` is a pod in `dataverket-prod` (flux-bootstrap, `apps/forgejo-runners`): the
+  forgejo-runner chart under the `kata` RuntimeClass, so a VM, with docker-in-docker and a Cinder volume for images.
+  Jobs run as containers inside that VM. The release runner is a second deployment of the same chart with the label
+  `fabrikk-release`; the PR runner never carries the key.
+- **Seeding.** An sshd sidecar in the release runner pod, exposed on its own port through the Envoy gateway.
+  `authorized_keys` holds each attester's FIDO key with `restrict,verify-required,command="/seed"` (touch and PIN); the
+  forced command reads stdin into an `emptyDir` with `medium: Memory`, mode 0600, and does nothing else. From a laptop:
+  `age -d cosign.key.age | ssh -p <port> seed@runner.dataverket.org`.
+- **Use.** Recommended: the key never enters a job. An OpenBao transit engine with in-memory storage holds it, seeded
+  over the same path; `make release` signs with `COSIGN_KEY=hashivault://fabrikk-release` and a sign-only token from
+  Actions secrets. Every signature is audit-logged and a job cannot read the key. Fallback: mount the memory volume
+  read-only into the release job (`runner.config.container.valid_volumes`) with the passphrase in Actions secrets;
+  simpler, but a malicious workflow on that runner can then read the key.
+- **Fail fast.** `release.yaml` first checks the key is seeded and fails with the seed command in the message, so a
+  restart does not leave `fabrikk-release` waiting out its hour. The job runs in a container image with Go, since the
+  runner has no host toolchain.
+- **What this does not defend against.** Forgejo cannot restrict which workflows a runner label accepts, so any
+  same-repo PR can run a job on the release runner and use the key while it is seeded. `.forgejo/` is a protected
+  path and gets a CI security review (step 2); the OpenBao shape turns "steal the key" into "sign once, on the record".
 
 ### Release infrastructure
 

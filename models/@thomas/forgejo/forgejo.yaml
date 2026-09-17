@@ -6,5 +6,5 @@ version: 1
 tags: {}
 globalArguments:
   apiUrl: 'https://git.dataverket.org'
-  token: '${{ vault.get(forgejo, forgejo/api_token) }}'
+  token: '${{ vault.get(fabrikk, forgejo/api_token) }}'
 methods: {}
