@@ -1,0 +1,5 @@
+// Every Go module in the monorepo. Products join here as they arrive (one module per product); tools/ holds the
+// repository's own tools, built from HEAD by `make tools`.
+go 1.25
+
+use ./tools

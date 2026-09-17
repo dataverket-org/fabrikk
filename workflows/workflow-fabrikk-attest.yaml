@@ -43,7 +43,9 @@ inputs:
         - models/
         - workflows/
         - extensions/
+        - tools/
         - docs/decisions/
+        - docs/schema.yaml
         - Makefile
         - compose.yaml
         - deploy/dev/

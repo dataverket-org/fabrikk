@@ -72,10 +72,10 @@ regardless of who authored the change. The list lives in three places that must 
 branch protection (the enforcement, once `validate-attestation` is a required check).
 
 `skills/`, `agent-constraints/`, `CLAUDE.md`, `.claude/`, `models/` (the factory definition and model instances),
-`workflows/`, `extensions/`, `docs/decisions/`, `Makefile`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
+`workflows/`, `extensions/`, `tools/`, `docs/decisions/`, `docs/schema.yaml`, `Makefile`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
 
-`Makefile`, `compose.yaml`, and `deploy/dev/` are protected because verification runs them from the branch under
-review: a weakened `make check` would still yield a green attestation. `.forgejo/` builds and signs releases and
+`Makefile`, `tools/`, `compose.yaml`, and `deploy/dev/` are protected because verification runs them from the branch
+under review: a weakened `make check` or a weakened check binary would still yield a green attestation. `.forgejo/` builds and signs releases and
 validates attestations; `cosign.pub` decides which release signatures verify.
 
 ## What this does and does not prove

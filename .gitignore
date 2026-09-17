@@ -16,8 +16,8 @@
 # Reference clones (list: models/@dataverket/reference-repos/references.yaml)
 _reference/
 
-# Pinned release tools (make tools)
-_tools/
+# Tool binaries, external and local (make tools)
+_bin/
 
 # SOPS vault: plaintext scratch file written during vault put (vaults/*.enc.json is safe to commit)
 vaults/*.plain.tmp

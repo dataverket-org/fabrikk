@@ -5,7 +5,7 @@
  * release whose first install timed out stays failed forever, even when every
  * workload it created is healthy.
  *
- * Same shape as upstream: wraps the pinned `flux` CLI (run with `_tools/bin` on
+ * Same shape as upstream: wraps the pinned `flux` CLI (run with `_bin` on
  * PATH), reads the object back with kubectl, records the outcome.
  *
  * @module

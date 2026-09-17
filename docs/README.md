@@ -94,7 +94,12 @@ allowed for tidiness and changes nothing: the metadata is what the site and the 
 
 ## Page schema
 
-Every Markdown page under `docs/` starts with YAML frontmatter. Required fields depend on the page type.
+The schema is [`schema.yaml`](schema.yaml), a human-managed file in the shape of the Dataverket docs site's validator
+policy, and `make docs-check` (`tools/cmd/docs-check`, a port of that validator cut down to one repository) enforces
+exactly what it says: the closed folder list and the type each folder implies, the fields per page type, the allowed
+values, the formats, the ADR filename, sections and `related` targets, and the paths the code map must cover. An
+unknown key in the schema is an error. This section explains it; change the two together. Every Markdown page under `docs/` starts with YAML frontmatter,
+and required fields depend on the page type.
 
 | Field | Values | Required on | Meaning |
 |---|---|---|---|
@@ -136,18 +141,22 @@ fabrikk takes the habits as rules and, where "must always happen" applies, as ch
 
 | Rule | fabrikk form | Enforced by |
 |---|---|---|
-| A page earns its place | Every page names `type` and `project`; a product design page names its `context`; a product has at most one overview page. What does not earn a page gets one line in the [code map](reference/code-map.md), fabrikk's `operations.md`. | `docs-check` (proposed, below); the source-standards reviewer |
-| No archive, no proposals, no research | Nothing under `docs/` is kept because it once mattered, and nothing is parked there while it is being thought about: git history holds the first, a conversation or a plan artifact holds the second. The five folders above are the closed list. ADRs are the one exception and have their own status. | `docs-check`: folder list is closed |
+| A page earns its place | Every page names `type` and `project`; a product design page names its `context`; a product has at most one overview page. What does not earn a page gets one line in the [code map](reference/code-map.md), fabrikk's `operations.md`. | `make docs-check` from `schema.yaml`; the source-standards reviewer |
+| No archive, no proposals, no research | Nothing under `docs/` is kept because it once mattered, and nothing is parked there while it is being thought about: git history holds the first, a conversation or a plan artifact holds the second. The five folders in `schema.yaml` are the closed list, and `schema.yaml` itself is the only non-Markdown file. ADRs are the one exception and have their own status. | `docs-check`: `folders` and `files` in the schema |
 | Rationale lives in the page | A short *Why* section inside the explanation page, never a separate document. | reviewer |
 | Claims are dated | `last-verified` on explanation and reference; a PR that changes a path a page describes bumps it, and the code-review stage treats a stale page as a source-standards finding. | `docs-check` (field present); code review (bumped) |
-| Nothing is orphaned | Every page is linked from this index, and every tracked path under `models/`, `workflows/`, `extensions/`, `skills/`, `agent-constraints/`, `.forgejo/` appears in the code map. | `docs-check` |
+| Nothing is orphaned | Every page is linked from this index or its folder's README, and every tracked path under the schema's `mapped_paths` (`models/`, `workflows/`, `extensions/`, `skills/`, `agent-constraints/`, `tools/`, `.forgejo/`) appears in the code map. | `docs-check` |
 | The plan for the docs is visible | Consolidation notes ("fold into", "split") live in the Index above, not in issues. | this file |
 
-`docs-check` is a proposed `make` target: a small script that reads every page's frontmatter and fails on a missing or
-unknown field, a `type` that does not match its folder, a `project` outside the allowlist, a second overview for one
-product, an explanation or reference page without `last-verified`, a page not linked from this index, or a steering
-path missing from the code map. It belongs in `make check` (tier 0), so `fabrikk-verify` runs it on every work item
-and the attestation covers it; CI need not repeat it. The `Makefile` is a protected path, so it arrives by pull request.
+`make docs-check` is that check: `tools/cmd/docs-check`, the repository's first local tool, ported from the docs
+site's Structured MADR validator (see [reference/code-map.md](reference/code-map.md), Local tools). It reads
+`schema.yaml` and fails on a missing or unknown field, a `type` that does not match its folder, a value outside an
+allowlist, a value that does not match its format, an ADR with a bad filename, a missing section, or a `related`
+target that does not exist, a second overview for one product, a folder or file the schema does not list, a page not
+linked from this index or its folder's README, or a tracked path under the schema's `mapped_paths` missing from the
+code map. Loosening a rule means editing `schema.yaml` or `tools/`, so both are protected paths like the Makefile. The
+check belongs in `make check` (tier 0), so `fabrikk-verify` runs it on every work item and the attestation covers it; CI
+need not repeat it.
 
 Skills are bounded differently from swamp's, because fabrikk's program names which skills a stage loads: there is no
 trigger routing to eval. What sprawl looks like here is context cost. Each review stage loads up to eight skills and a

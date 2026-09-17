@@ -90,7 +90,7 @@ swamp model method run forgejo runner_list    --input owner=dataverket
 swamp model method run forgejo actions_secret_put --input owner=dataverket --input repo=fabrikk --input name=<NAME> --input 'value=${{ vault.get(fabrikk, <key>) }}'
 swamp model method run omni discover
 swamp model method run runner-pods list
-PATH=_tools/bin:$PATH swamp model method run dataverket-prod-helm list
+PATH=_bin:$PATH swamp model method run dataverket-prod-helm list
 ```
 
 Vault expressions in `--input` are resolved at run time and never recorded.

@@ -46,10 +46,11 @@ No ADR, no approval.
 
 Changes to these require human review in Forgejo regardless of who or what authored them, because they steer every agent:
 
-`skills/`, `agent-constraints/`, `CLAUDE.md`, the factory definition, review prompts, `docs/decisions/`, `Makefile`,
-`compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`. `Makefile`, `compose.yaml`, and `deploy/dev/` are protected
-because verification runs them from the branch under review: a weakened `make check`, a healthcheck that always passes,
-or a fragment that gains host privileges on the workbench would still produce a green attestation. `.forgejo/` builds and signs
+`skills/`, `agent-constraints/`, `CLAUDE.md`, the factory definition, review prompts, `docs/decisions/`, `docs/schema.yaml`, `tools/`, `Makefile`,
+`compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`. `Makefile`, `tools/`, `compose.yaml`, and `deploy/dev/` are
+protected because verification runs them from the branch under review: a weakened `make check`, a weakened local tool,
+a healthcheck that always passes, or a fragment that gains host privileges on the workbench would still produce a
+green attestation. `.forgejo/` builds and signs
 releases, and `cosign.pub` decides which signatures verify.
 
 ## Reviewer checklist
