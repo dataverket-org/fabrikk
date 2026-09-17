@@ -1,0 +1,519 @@
+type: '@swamp/software-factory'
+typeVersion: 2026.06.24.1
+id: fa40d73c-a50d-4a22-b95d-d7d66428e2df
+name: fabrikk
+version: 1
+tags: {}
+# fabrikk — Dataverket's software factory.
+#
+# outcome → plan → adversarial plan review (rework ≤5) → HUMAN APPROVES PLAN
+# → implement + verify (rework until green, ≤5)
+# → code review vs architecture + all adversaries (rework ≤5)
+# → attestation → PR → HUMAN APPROVES MERGE
+# → release (ko, config join, signed OCI artifact) → UAT on the artifact → promotion
+#
+# Humans approve the plan and the merge. Nowhere else (abort is a stop, not an approval).
+# This file is a protected path: the review prompts below steer every reviewer.
+reports:
+  require:
+    - { name: "@swamp/software-factory/work-item-summary", methods: [summary] }
+globalArguments:
+  stages:
+    - id: planning
+      initial: true
+      description: >-
+        Turn the work item's outcome into a plan per planning-conventions. Planning is a conversation
+        until the plan is recorded; after that, iteration is through findings.
+      work:
+        mode: interactive
+        skills:
+          - architecture
+          - adversary-testing
+          - adversary-security
+          - adversary-simplicity
+          - adversary-observability
+          - adversary-source-standards
+          - dev-environment
+          - delivery
+        constraints: agent-constraints/planning-conventions.md
+      artifacts:
+        - name: plan
+          schema:
+            type: object
+            required:
+              - outcome
+              - boundedContext
+              - eventsAndCommands
+              - tenancyImpact
+              - portsAndDownstreams
+              - persistence
+              - fileBreakdown
+              - totalEstimatedLoc
+              - testingStrategy
+              - deliveryImpact
+              - adrs
+              - risksAndRollback
+              - outOfScope
+              - deviations
+            properties:
+              outcome: { type: string, minLength: 1 }
+              boundedContext:
+                type: object
+                required: [context, model]
+                properties:
+                  context: { type: string, minLength: 1 }
+                  model: { type: string, minLength: 1 }
+              eventsAndCommands:
+                type: array
+                items:
+                  type: object
+                  required: [type, kind, direction, source, subject, needsAdr]
+                  properties:
+                    type: { type: string, pattern: '^no\.dataverket\.' }
+                    kind: { type: string, enum: [event, command] }
+                    direction: { type: string, enum: [produced, consumed] }
+                    source: { type: string, minLength: 1 }
+                    subject: { type: string, minLength: 1 }
+                    needsAdr: { type: boolean }
+              tenancyImpact: { type: string, minLength: 1 }
+              portsAndDownstreams:
+                type: array
+                items:
+                  type: object
+                  required: [system, port, fake, contractSuite, composeFragment, profile, firstRealTier]
+                  properties:
+                    system: { type: string, minLength: 1 }
+                    port: { type: string, minLength: 1 }
+                    fake: { type: string, minLength: 1 }
+                    contractSuite: { type: string, minLength: 1 }
+                    composeFragment: { type: string, minLength: 1 }
+                    profile: { type: string, minLength: 1 }
+                    firstRealTier: { type: string, enum: ["0", "1", "2", uat] }
+              persistence: { type: string, minLength: 1 }
+              fileBreakdown:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  required: [path, change, estimatedLoc]
+                  properties:
+                    path: { type: string, minLength: 1 }
+                    change: { type: string, enum: [create, modify, delete] }
+                    estimatedLoc: { type: integer, minimum: 0 }
+              totalEstimatedLoc: { type: integer, minimum: 0 }
+              testingStrategy:
+                type: object
+                required: [tier0, tier1, tier2, uat]
+                properties:
+                  tier0: { type: string, minLength: 1 }
+                  tier1: { type: string, minLength: 1 }
+                  tier2: { type: string, minLength: 1 }
+                  uat: { type: string, minLength: 1 }
+              deliveryImpact: { type: string, minLength: 1 }
+              adrs:
+                type: array
+                items: { type: string, minLength: 1 }
+              risksAndRollback: { type: string, minLength: 1 }
+              outOfScope:
+                type: array
+                items: { type: string, minLength: 1 }
+              deviations:
+                type: array
+                items:
+                  type: object
+                  required: [choice, justification]
+                  properties:
+                    choice: { type: string, minLength: 1 }
+                    justification: { type: string, minLength: 1 }
+      transitions:
+        - name: submit
+          to: plan-review
+          gates:
+            - type: artifact-exists
+              config: { artifact: plan }
+
+    - id: plan-review
+      description: >-
+        Adversarial review of the current plan, one reviewer per skill, no shared context.
+        maxCycles 5: a plan still carrying critical findings after five rounds parks for the human.
+      work:
+        mode: dispatch
+        skills:
+          - architecture
+          - adversary-security
+          - adversary-testing
+          - adversary-simplicity
+          - adversary-observability
+          - adversary-source-standards
+          - dev-environment
+          - delivery
+        constraints: agent-constraints/adversarial-dimensions.md
+        systemPrompt: |
+          You are an adversarial reviewer for fabrikk, working from exactly one skill. You share no context
+          with the planner. Your job is to break this plan, not to describe it.
+
+          Plan for: ${{ data.latest(self.name, "artifact-plan").payload.outcome }}
+
+          Fetch the full plan payload from the run data. Attack it along the dimensions in
+          agent-constraints/adversarial-dimensions.md that name your skill. For each finding give the dimension,
+          severity (critical/high/medium/low per that file), plan section, the attack that succeeds, and the
+          smallest change that defeats it. Cite the skill section. Never soften a severity.
+          On re-review, fetch your previous findings and verify each claimed resolution against the new plan.
+      artifacts:
+        - name: plan-review
+          kind: findings
+          reviews: plan
+      transitions:
+        - name: approve
+          to: implementing
+          gates:
+            - type: artifact-fresh
+              config: { artifact: plan-review, recordedThisCycle: true }
+            - type: findings-clear
+              config: { artifact: plan-review, blocking: [critical, high] }
+            - type: human-approval
+              config: { id: plan-approval }
+        - name: rework
+          to: planning
+          gates:
+            - type: artifact-fresh
+              config: { artifact: plan-review, recordedThisCycle: true }
+            - type: cel
+              config:
+                expr: >-
+                  artifacts.plan_review.findings.exists(f, !(has(f.resolved) && f.resolved)
+                  && (f.severity == "critical" || f.severity == "high"))
+                  || (has(approvals.plan_approval) && approvals.plan_approval.exists(a,
+                  a.stageId == state.stageId && a.cycle == state.cycles[state.stageId] && a.decision == "rejected"))
+                message: >-
+                  rework opens only on unresolved critical/high findings or a human rejection of plan-approval
+
+    - id: implementing
+      description: >-
+        Implement the approved plan with tests; tier 0 green locally. Entered from verify, code review,
+        attestation and PR feedback, so the cycle cap is 10 to leave each loop its own ≤5 bound.
+      maxCycles: 10
+      work:
+        mode: interactive
+        skills:
+          - architecture
+          - adversary-testing
+          - adversary-simplicity
+          - adversary-observability
+          - adversary-source-standards
+          - dev-environment
+        constraints: agent-constraints/adversarial-dimensions.md
+      artifacts:
+        - name: change-summary
+          schema:
+            type: object
+            required: [summary, files, totalLoc, adrs]
+            properties:
+              summary: { type: string, minLength: 1 }
+              files:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  required: [path, loc]
+                  properties:
+                    path: { type: string, minLength: 1 }
+                    loc: { type: integer, minimum: 0 }
+              totalLoc: { type: integer, minimum: 0 }
+              adrs:
+                type: array
+                items: { type: string, minLength: 1 }
+      evidence:
+        - name: change
+          schema:
+            type: object
+            required: [worktree, branch, headSha]
+            properties:
+              worktree: { type: string, pattern: '^/' }
+              branch: { type: string, minLength: 1 }
+              headSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+      transitions:
+        - name: submit
+          to: verifying
+          gates:
+            - type: artifact-exists
+              config: { artifact: change-summary }
+            - type: evidence-recorded
+              config: { name: change }
+
+    - id: verifying
+      description: >-
+        Tier 0 and tier 2 (verify profile, black-box suite) in the implementer's clean worktree at headSha.
+        No LLM.
+      work:
+        mode: workflow
+        workflow:
+          name: fabrikk-verify
+          inputs:
+            worktree: '${{ data.latest(self.name, "evidence-change").payload.worktree }}'
+            headSha: '${{ data.latest(self.name, "evidence-change").payload.headSha }}'
+        inputsSchema:
+          type: object
+          required: [worktree, headSha]
+          properties:
+            worktree: { type: string, pattern: '^/' }
+            headSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+        resultEvidence: verify-run
+      transitions:
+        - name: pass
+          to: code-review
+          gates:
+            - type: workflow-succeeded
+              config: { workflow: fabrikk-verify }
+        - name: fail
+          to: implementing
+          gates:
+            - type: evidence-recorded
+              config: { name: verify-run, requireField: { status: failed } }
+
+    - id: code-review
+      description: Adversarial review of the change against the approved plan, architecture, and every adversary.
+      work:
+        mode: dispatch
+        skills:
+          - architecture
+          - adversary-security
+          - adversary-testing
+          - adversary-simplicity
+          - adversary-observability
+          - adversary-source-standards
+          - dev-environment
+          - delivery
+        constraints: agent-constraints/adversarial-dimensions.md
+        systemPrompt: |
+          You are an adversarial code reviewer for fabrikk, working from exactly one skill. You share no context
+          with the implementer. Your job is to break this change, not to describe it.
+
+          Branch ${{ data.latest(self.name, "evidence-change").payload.branch }} at
+          ${{ data.latest(self.name, "evidence-change").payload.headSha }}.
+
+          Fetch the approved plan, the plan-review findings, and the change-summary from the run data. Review the
+          diff at that commit against the plan and along the dimensions in agent-constraints/adversarial-dimensions.md
+          that name your skill. Compare actual LOC with the plan's estimates. For each finding give the dimension,
+          severity, file, the attack that succeeds, and the smallest change that defeats it. Cite the skill section.
+          Fetch the previous round's code-review findings and state for each whether it is resolved.
+          Never soften a severity.
+      artifacts:
+        - name: code-review
+          kind: findings
+          reviews: change-summary
+      transitions:
+        - name: accept
+          to: attesting
+          gates:
+            - type: artifact-fresh
+              config: { artifact: code-review, recordedThisCycle: true }
+            - type: findings-clear
+              config: { artifact: code-review, blocking: [critical, high] }
+        - name: rework
+          to: implementing
+          gates:
+            - type: artifact-fresh
+              config: { artifact: code-review, recordedThisCycle: true }
+            - type: cel
+              config:
+                expr: >-
+                  artifacts.code_review.findings.exists(f, !(has(f.resolved) && f.resolved)
+                  && (f.severity == "critical" || f.severity == "high"))
+                message: rework opens only on unresolved critical/high code-review findings
+
+    - id: attesting
+      description: >-
+        Commit .fabrikk/attestation.json on the branch as the only change on top of headSha: verification,
+        code review, plan approval, a sha256 of the protected paths, and which of them the branch changed.
+        CI validates it; it does not re-run the loop.
+      work:
+        mode: workflow
+        workflow:
+          name: fabrikk-attest
+          inputs:
+            workItem: '${{ self.workItem }}'
+            worktree: '${{ data.latest(self.name, "evidence-change").payload.worktree }}'
+            branch: '${{ data.latest(self.name, "evidence-change").payload.branch }}'
+            headSha: '${{ data.latest(self.name, "evidence-change").payload.headSha }}'
+        inputsSchema:
+          type: object
+          required: [workItem, worktree, branch, headSha]
+          properties:
+            workItem: { type: string, minLength: 1 }
+            worktree: { type: string, pattern: '^/' }
+            branch: { type: string, minLength: 1 }
+            headSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+        resultEvidence: attest-run
+      evidence:
+        - name: attestation
+          schema:
+            type: object
+            required: [headSha, attestationSha, protectedPathsSha256, protectedPathsChanged]
+            properties:
+              headSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+              attestationSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+              protectedPathsSha256: { type: string, pattern: '^[0-9a-f]{64}$' }
+              protectedPathsChanged:
+                type: array
+                items: { type: string, minLength: 1 }
+      transitions:
+        - name: attested
+          to: pull-request
+          gates:
+            - type: workflow-succeeded
+              config: { workflow: fabrikk-attest }
+            - type: evidence-recorded
+              config: { name: attestation }
+        - name: fail
+          to: implementing
+          gates:
+            - type: evidence-recorded
+              config: { name: attest-run, requireField: { status: failed } }
+
+    - id: pull-request
+      description: >-
+        Open the PR in Forgejo (outcome, plan link, ADRs, attestation reference). A human reviews and merges;
+        protected-path changes always need that human.
+      work:
+        mode: interactive
+        skills: [adversary-source-standards]
+      evidence:
+        - name: pull-request
+          schema:
+            type: object
+            required: [url, headSha]
+            properties:
+              url: { type: string, minLength: 1 }
+              headSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+        - name: merge
+          schema:
+            type: object
+            required: [url, mergeSha]
+            properties:
+              url: { type: string, minLength: 1 }
+              mergeSha: { type: string, pattern: '^[0-9a-f]{40}$' }
+      transitions:
+        - name: merged
+          to: releasing
+          gates:
+            - type: evidence-recorded
+              config: { name: pull-request }
+            - type: human-approval
+              config: { id: merge-approval }
+            - type: evidence-recorded
+              config: { name: merge }
+        - name: changes-requested
+          to: implementing
+          gates:
+            - type: cel
+              config:
+                expr: >-
+                  has(approvals.merge_approval) && approvals.merge_approval.exists(a,
+                  a.stageId == state.stageId && a.cycle == state.cycles[state.stageId] && a.decision == "rejected")
+                message: changes-requested opens only on a human rejection of merge-approval
+
+    - id: releasing
+      description: >-
+        Post-merge, on shared infrastructure: ko images by digest, render(L1 @ merge, L2 @ version),
+        push and cosign-sign the config artifact. Its digest is the release identity. No LLM.
+      work:
+        mode: workflow
+        workflow:
+          name: fabrikk-release
+          inputs:
+            mergeSha: '${{ data.latest(self.name, "evidence-merge").payload.mergeSha }}'
+        resultEvidence: release-run
+      evidence:
+        - name: release
+          schema:
+            type: object
+            required: [artifact, digest, appCommit, envConfigVersion]
+            properties:
+              artifact: { type: string, minLength: 1 }
+              digest: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+              appCommit: { type: string, pattern: '^[0-9a-f]{40}$' }
+              envConfigVersion: { type: string, minLength: 1 }
+      transitions:
+        - name: released
+          to: uat
+          gates:
+            - type: workflow-succeeded
+              config: { workflow: fabrikk-release }
+            - type: evidence-recorded
+              config: { name: release }
+        - name: fail
+          to: failed
+          gates:
+            - type: evidence-recorded
+              config: { name: release-run, requireField: { status: failed } }
+
+    - id: uat
+      description: >-
+        Black-box suite on the UAT cluster once the applied revision equals the release digest.
+        The release artifact is the only input. A failure is a wrong test or a regression: a new work item.
+      work:
+        mode: workflow
+        workflow:
+          name: fabrikk-uat
+          inputs:
+            artifact: '${{ data.latest(self.name, "evidence-release").payload.artifact }}'
+            digest: '${{ data.latest(self.name, "evidence-release").payload.digest }}'
+        inputsSchema:
+          type: object
+          required: [artifact, digest]
+          properties:
+            artifact: { type: string, minLength: 1 }
+            digest: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        resultEvidence: uat-run
+      transitions:
+        - name: pass
+          to: promoting
+          gates:
+            - type: workflow-succeeded
+              config: { workflow: fabrikk-uat }
+        - name: fail
+          to: failed
+          gates:
+            - type: evidence-recorded
+              config: { name: uat-run, requireField: { status: failed } }
+
+    - id: promoting
+      description: Retag the digest that passed UAT from candidate to current. Passing UAT is the only way in. No LLM.
+      work:
+        mode: workflow
+        workflow:
+          name: fabrikk-promote
+          inputs:
+            artifact: '${{ data.latest(self.name, "evidence-release").payload.artifact }}'
+            digest: '${{ data.latest(self.name, "evidence-release").payload.digest }}'
+        resultEvidence: promote-run
+      transitions:
+        - name: promoted
+          to: done
+          gates:
+            - type: workflow-succeeded
+              config: { workflow: fabrikk-promote }
+        - name: fail
+          to: failed
+          gates:
+            - type: evidence-recorded
+              config: { name: promote-run, requireField: { status: failed } }
+
+    - id: done
+      terminal: true
+
+    - id: failed
+      description: Post-merge failure (release, UAT, or promotion). File a new work item; the factory runs the whole loop.
+      terminal: true
+
+    - id: aborted
+      terminal: true
+
+  globalTransitions:
+    - name: abort
+      to: aborted
+      gates:
+        - type: human-approval
+          config: { id: abort-confirmation }
+methods: {}

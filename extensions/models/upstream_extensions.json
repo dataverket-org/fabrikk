@@ -1,0 +1,48 @@
+{
+  "@swamp/software-factory": {
+    "version": "2026.06.24.1",
+    "pulledAt": "2026-09-16T20:15:44.906Z",
+    "files": [
+      ".claude/skills/software-factory",
+      ".swamp/bundles/a324fda6/software_factory.js",
+      ".swamp/pulled-extensions/@swamp/software-factory/files/LICENSE.txt",
+      ".swamp/pulled-extensions/@swamp/software-factory/files/README.md",
+      ".swamp/pulled-extensions/@swamp/software-factory/manifest.yaml",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/_lib/artifact_schema.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/_lib/bindings.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/_lib/definition_schema.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/_lib/gates.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/_lib/graph.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/_lib/mermaid.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/_lib/run_data.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/_lib/run_names.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/_lib/summary.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/models/software_factory.ts",
+      ".swamp/pulled-extensions/@swamp/software-factory/reports/work_item_summary_report.ts",
+      ".swamp/report-bundles/637144ef/work_item_summary_report.js"
+    ],
+    "checksum": "29622d1cb0a3bffabf82f68b3d6cbe7e18efcac2c38458b7231e436eb91ab55f",
+    "filesChecksum": "b67885110295b63236743cdc42522703b2c5b18fae873892420b72e662c6c9d7",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@swamp/git": {
+    "version": "2026.09.15.1",
+    "pulledAt": "2026-09-17T06:23:39.482Z",
+    "files": [
+      ".swamp/bundles/2b63a75e/git.js",
+      ".swamp/pulled-extensions/@swamp/git/files/LICENSE.txt",
+      ".swamp/pulled-extensions/@swamp/git/files/README.md",
+      ".swamp/pulled-extensions/@swamp/git/manifest.yaml",
+      ".swamp/pulled-extensions/@swamp/git/models/_lib/checks.ts",
+      ".swamp/pulled-extensions/@swamp/git/models/_lib/operations.ts",
+      ".swamp/pulled-extensions/@swamp/git/models/_lib/runner.ts",
+      ".swamp/pulled-extensions/@swamp/git/models/_lib/schemas.ts",
+      ".swamp/pulled-extensions/@swamp/git/models/_lib/tracing.ts",
+      ".swamp/pulled-extensions/@swamp/git/models/_lib/types.ts",
+      ".swamp/pulled-extensions/@swamp/git/models/git.ts"
+    ],
+    "checksum": "fc70858501290251863e1a6da3485b251dbdde2f146d060fda9580dce31e81ff",
+    "filesChecksum": "801f780fa332ddda61f55176e3b074a85e4e3813b8f72913d3986ab0d228ecd8",
+    "serverUrl": "https://swamp-club.com"
+  }
+}

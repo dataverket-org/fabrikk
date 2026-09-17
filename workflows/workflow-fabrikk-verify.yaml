@@ -1,0 +1,125 @@
+id: c848f6fc-46e7-4fd1-b122-7dd62009685b
+name: fabrikk-verify
+description: >-
+  fabrikk's verifying stage: tier 0 (make check) and tier 2 (make verify) in the implementer's worktree,
+  refusing to run unless the worktree is clean and HEAD is the commit under review. The session stack is
+  brought up if needed and left running; it belongs to the implementer's session.
+tags:
+  factory: fabrikk
+version: 1
+inputs:
+  properties:
+    worktree:
+      type: string
+      description: Absolute path to the implementer's worktree
+    headSha:
+      type: string
+      pattern: '^[0-9a-f]{40}$'
+      description: Commit under review; the worktree HEAD must equal it
+  required: [worktree, headSha]
+jobs:
+  - name: preflight
+    description: The worktree is clean and at headSha, so a green result is about exactly that commit.
+    steps:
+      - name: status
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: status
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+      - name: head
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: log
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            maxCount: 1
+        dependsOn:
+          - step: status
+            condition: { type: succeeded }
+      - name: worktree-clean
+        task:
+          type: assert
+          expr: >-
+            data.latest("git-" + inputs.headSha, "status").attributes.clean
+          message: >-
+            ${{ inputs.worktree }} has uncommitted changes; commit them and record a new headSha:
+            ${{ data.latest("git-" + inputs.headSha, "status").attributes.raw }}
+        dependsOn:
+          - step: status
+            condition: { type: succeeded }
+      - name: at-head
+        task:
+          type: assert
+          expr: >-
+            data.latest("git-" + inputs.headSha, "log").attributes.commits[0].sha == inputs.headSha
+          message: >-
+            ${{ inputs.worktree }} is at ${{ data.latest("git-" + inputs.headSha, "log").attributes.commits[0].sha }},
+            not ${{ inputs.headSha }}
+        dependsOn:
+          - step: head
+            condition: { type: succeeded }
+
+  - name: tier0
+    description: Session stack (default profile) up, then gofmt, vet, lint, go test.
+    dependsOn:
+      - job: preflight
+        condition: { type: succeeded }
+    steps:
+      - name: up
+        task:
+          type: model_method
+          modelType: '@dataverket/dev-environment'
+          modelName: dev-env-${{ inputs.headSha }}
+          methodName: up
+          inputs:
+            worktree: ${{ inputs.worktree }}
+            profile: default
+      - name: check
+        task:
+          type: model_method
+          modelType: '@dataverket/dev-environment'
+          modelName: dev-env-${{ inputs.headSha }}
+          methodName: check
+          inputs:
+            worktree: ${{ inputs.worktree }}
+        dependsOn:
+          - step: up
+            condition: { type: succeeded }
+      - name: check-pinned
+        task:
+          type: assert
+          expr: >-
+            data.latest("dev-env-" + inputs.headSha, "check").attributes.headSha == inputs.headSha
+          message: HEAD moved while make check ran; the result is not about ${{ inputs.headSha }}
+        dependsOn:
+          - step: check
+            condition: { type: succeeded }
+
+  - name: tier2
+    description: ko images under the verify profile, contract and black-box suites from outside.
+    dependsOn:
+      - job: tier0
+        condition: { type: succeeded }
+    steps:
+      - name: verify
+        task:
+          type: model_method
+          modelType: '@dataverket/dev-environment'
+          modelName: dev-env-${{ inputs.headSha }}
+          methodName: verify
+          inputs:
+            worktree: ${{ inputs.worktree }}
+      - name: verify-pinned
+        task:
+          type: assert
+          expr: >-
+            data.latest("dev-env-" + inputs.headSha, "verify").attributes.headSha == inputs.headSha
+          message: HEAD moved while make verify ran; the result is not about ${{ inputs.headSha }}
+        dependsOn:
+          - step: verify
+            condition: { type: succeeded }

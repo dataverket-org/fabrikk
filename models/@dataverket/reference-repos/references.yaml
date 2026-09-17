@@ -1,0 +1,33 @@
+type: '@dataverket/reference-repos'
+typeVersion: 2026.09.17.1
+id: 7e811213-d3d8-4d75-ad94-136282811997
+name: references
+version: 1
+tags: {}
+# Read-only reference code and documentation: a cache of full clones (all branches and tags) in _reference/<name>
+# (gitignored), each checked out detached at ref. Look up other versions with git show/log/grep <tag>.
+# Refresh: swamp model method run references sync [--input 'names=["zitadel"]']
+# Read, never build, import, or copy from. Go libraries come from the module cache (go env GOMODCACHE)
+# at the version go.mod pins, not from here.
+# This file is a protected path: adding a reference changes what agents read.
+globalArguments:
+  dir: _reference
+  repos:
+    - name: nats-architecture-and-design
+      url: https://github.com/nats-io/nats-architecture-and-design
+      ref: main
+      purpose: >-
+        NATS ADRs: JetStream semantics, auth callout, subject and account design. Sentral's messaging and tenancy are
+        built on these; planners and the security reviewer check claims about NATS behavior here.
+    - name: cloudevents-spec
+      url: https://github.com/cloudevents/spec
+      ref: v1.0.2
+      purpose: >-
+        CloudEvents 1.0 specification and extensions. The event envelope every Sentral event and command uses.
+    - name: zitadel
+      url: https://github.com/zitadel/zitadel
+      ref: v4.17.3
+      purpose: >-
+        Zitadel source and docs (Identitet). Token claims and JWKS behavior Sentral's auth callout validates, and what
+        the fake JWKS issuer in tier 0 must match. Keep ref equal to the pinned Zitadel image once one is chosen.
+methods: {}

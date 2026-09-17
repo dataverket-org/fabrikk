@@ -1,0 +1,245 @@
+id: 7c1f522e-f54e-4a9f-ad09-090546416471
+name: fabrikk-attest
+description: >-
+  fabrikk's attesting stage: in the implementer's clean worktree at headSha, digest the protected paths,
+  list those changed since the merge base, check that verification, code review, and plan approval all
+  concern headSha, then commit .fabrikk/attestation.json as the only change on top of headSha.
+  CI validates the attestation; it does not re-run the loop.
+tags:
+  factory: fabrikk
+version: 1
+inputs:
+  properties:
+    workItem:
+      type: string
+      description: Work item the attestation is for
+    worktree:
+      type: string
+      description: Absolute path to the implementer's worktree
+    branch:
+      type: string
+      description: Branch the worktree must be on
+    headSha:
+      type: string
+      pattern: '^[0-9a-f]{40}$'
+      description: Commit under review; the worktree HEAD must equal it
+    base:
+      type: string
+      default: main
+      description: Ref the branch merges into; protected-path changes are listed against its merge base
+    factory:
+      type: string
+      default: fabrikk
+      description: Factory model whose run data holds the code review and plan approval
+    paths:
+      type: array
+      items: { type: string }
+      default:
+        - CLAUDE.md
+        - .claude/
+        - skills/
+        - agent-constraints/
+        - models/
+        - workflows/
+        - extensions/
+        - docs/adr/
+        - Makefile
+        - compose.yaml
+      description: Protected paths (the source-standards list, with the factory definition as models/, workflows/, extensions/)
+  required: [workItem, worktree, branch, headSha]
+jobs:
+  - name: preflight
+    description: The worktree is clean, on the branch, and at headSha.
+    steps:
+      - name: status
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: status
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+      - name: head
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: log
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            maxCount: 1
+        dependsOn:
+          - step: status
+            condition: { type: succeeded }
+      - name: current-branch
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: branch
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            list: true
+        dependsOn:
+          - step: head
+            condition: { type: succeeded }
+      - name: worktree-clean
+        task:
+          type: assert
+          expr: >-
+            data.latest("git-" + inputs.headSha, "status").attributes.clean
+          message: >-
+            ${{ inputs.worktree }} has uncommitted changes:
+            ${{ data.latest("git-" + inputs.headSha, "status").attributes.raw }}
+        dependsOn:
+          - step: status
+            condition: { type: succeeded }
+      - name: at-head
+        task:
+          type: assert
+          expr: >-
+            data.latest("git-" + inputs.headSha, "log").attributes.commits[0].sha == inputs.headSha
+          message: >-
+            ${{ inputs.worktree }} is at ${{ data.latest("git-" + inputs.headSha, "log").attributes.commits[0].sha }},
+            not ${{ inputs.headSha }}
+        dependsOn:
+          - step: head
+            condition: { type: succeeded }
+      - name: on-branch
+        task:
+          type: assert
+          expr: >-
+            data.latest("git-" + inputs.headSha, "branch-list").attributes.current == inputs.branch
+          message: >-
+            ${{ inputs.worktree }} is on ${{ data.latest("git-" + inputs.headSha, "branch-list").attributes.current }},
+            not ${{ inputs.branch }}
+        dependsOn:
+          - step: current-branch
+            condition: { type: succeeded }
+
+  - name: protected-paths
+    description: Content digest at headSha, and which protected files the branch changed.
+    dependsOn:
+      - job: preflight
+        condition: { type: succeeded }
+    steps:
+      - name: digest
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: paths_digest
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            ref: ${{ inputs.headSha }}
+            paths: ${{ inputs.paths }}
+      - name: changed
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: diff
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            base: ${{ inputs.base }}
+            head: ${{ inputs.headSha }}
+            threeWay: true
+            nameOnly: true
+            paths: ${{ inputs.paths }}
+        dependsOn:
+          - step: digest
+            condition: { type: succeeded }
+
+  - name: attest
+    description: Write the attestation from recorded data and commit it as the only change on top of headSha.
+    dependsOn:
+      - job: protected-paths
+        condition: { type: succeeded }
+    steps:
+      - name: records-exist
+        task:
+          type: assert
+          expr: >-
+            data.latest("dev-env-" + inputs.headSha, "check") != null
+            && data.latest("dev-env-" + inputs.headSha, "verify") != null
+            && data.latest(inputs.factory, "artifact-" + inputs.workItem + "-code-review") != null
+            && data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval") != null
+          message: >-
+            Nothing to attest for ${{ inputs.workItem }} at ${{ inputs.headSha }}. Recorded:
+            make check ${{ data.latest("dev-env-" + inputs.headSha, "check") != null }},
+            make verify ${{ data.latest("dev-env-" + inputs.headSha, "verify") != null }} (run fabrikk-verify at this commit);
+            code review ${{ data.latest(inputs.factory, "artifact-" + inputs.workItem + "-code-review") != null }},
+            plan approval ${{ data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval") != null }}
+            (in ${{ inputs.factory }}).
+      - name: write
+        dependsOn:
+          - step: records-exist
+            condition: { type: succeeded }
+        task:
+          type: model_method
+          modelType: '@dataverket/attestation'
+          modelName: attest-${{ inputs.headSha }}
+          methodName: write
+          inputs:
+            worktree: ${{ inputs.worktree }}
+            workItem: ${{ inputs.workItem }}
+            branch: ${{ inputs.branch }}
+            headSha: ${{ inputs.headSha }}
+            base: ${{ inputs.base }}
+            check: ${{ data.latest("dev-env-" + inputs.headSha, "check").attributes }}
+            verify: ${{ data.latest("dev-env-" + inputs.headSha, "verify").attributes }}
+            codeReview: ${{ data.latest(inputs.factory, "artifact-" + inputs.workItem + "-code-review").attributes }}
+            planApproval: ${{ data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval").attributes }}
+            protectedPaths: ${{ data.latest("git-" + inputs.headSha, "paths-digest").attributes }}
+            protectedPathsChanged: ${{ data.latest("git-" + inputs.headSha, "diff").attributes.files }}
+      - name: commit
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: commit
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            message: 'chore: attest ${{ inputs.workItem }} at ${{ inputs.headSha }}'
+            paths: [.fabrikk/attestation.json]
+        dependsOn:
+          - step: write
+            condition: { type: succeeded }
+      - name: after
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: log
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            maxCount: 2
+        dependsOn:
+          - step: commit
+            condition: { type: succeeded }
+      - name: attestation-diff
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: diff
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            base: ${{ inputs.headSha }}
+            head: HEAD
+            nameOnly: true
+        dependsOn:
+          - step: after
+            condition: { type: succeeded }
+      - name: on-top-of-head
+        task:
+          type: assert
+          expr: >-
+            data.latest("git-" + inputs.headSha, "log").attributes.commits[1].sha == inputs.headSha
+            && data.latest("git-" + inputs.headSha, "diff").attributes.files == [".fabrikk/attestation.json"]
+          message: >-
+            HEAD must be one commit on top of ${{ inputs.headSha }} changing only .fabrikk/attestation.json; it changes
+            ${{ data.latest("git-" + inputs.headSha, "diff").attributes.files }}
+        dependsOn:
+          - step: attestation-diff
+            condition: { type: succeeded }
