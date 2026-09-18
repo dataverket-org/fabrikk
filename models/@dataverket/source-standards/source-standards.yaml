@@ -1,0 +1,11 @@
+type: '@dataverket/source-standards'
+typeVersion: 2026.09.18.1
+id: 7fe23865-35a6-4e0f-ab54-7aae81be19b6
+name: source-standards
+# The source-standards skill as checks over data: fabrikk-attest runs `commits` over the branch's commit messages
+# before signing; the pull-request stage runs `text` over the PR title and body before pr_ensure sends them.
+# No external system, no credentials. This file is a protected path (models/).
+version: 1
+tags: {}
+globalArguments: {}
+methods: {}

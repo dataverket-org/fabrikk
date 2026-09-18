@@ -95,7 +95,7 @@ and `.agents/skills/` and `.claude/skills/` point at the same skills. In order:
    `release.yaml` still reads `COSIGN_PRIVATE_KEY` from Actions secrets, which the signing-key design below forbids.
    Decide (OpenBao transit or the memory volume), then change `release.yaml` and generate the key pair; `cosign.pub`
    is committed with it.
-2. **Add PR validation to CI.** Done: `.forgejo/workflows/validate-attestation.yaml` runs the four checks under
+2. **Add PR validation to CI.** Done: `.forgejo/workflows/validate-attestation.yaml` runs the four checks (six since 2026-09-18: commits and PR text carry no AI attribution) under
    `docs/explanation/attestation-and-trust.md` on every push to a PR, with `.forgejo/attesters` for `git tag -v`. Tested locally against a
    signed-tag fixture (happy path, missing tag, rogue signer, moved head, tampered protected file); not yet run on the
    real runner. Left: after its first run on a real PR, make it a required status check on `main`

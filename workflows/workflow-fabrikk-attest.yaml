@@ -2,8 +2,8 @@ id: 7c1f522e-f54e-4a9f-ad09-090546416471
 name: fabrikk-attest
 description: >-
   fabrikk's attesting stage: in the implementer's clean worktree at headSha, digest the protected paths,
-  list those changed since the merge base, check that verification, code review, and plan approval all
-  concern headSha, then sign the attestation as the annotated tag attestation/<headSha>. Nothing is committed:
+  list those changed since the merge base, refuse commits that carry AI attribution, check that verification,
+  code review, and plan approval all concern headSha, then sign the attestation as the annotated tag attestation/<headSha>. Nothing is committed:
   the verified commit is the attested commit and must be the PR head. CI validates the tag on every push; it
   does not re-run the loop.
 tags:
@@ -157,10 +157,38 @@ jobs:
           - step: digest
             condition: { type: succeeded }
 
+  - name: source-standards
+    description: The branch's commit messages, then the rules over them (no AI attribution); CI reruns the same check.
+    dependsOn:
+      - job: protected-paths
+        condition: { type: succeeded }
+    steps:
+      - name: messages
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: commit_messages
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            base: ${{ inputs.base }}
+            head: ${{ inputs.headSha }}
+      - name: commits
+        task:
+          type: model_method
+          modelType: '@dataverket/source-standards'
+          modelName: source-standards
+          methodName: commits
+          inputs:
+            commits: ${{ data.latest("git-" + inputs.headSha, "commit-messages").attributes.commits }}
+        dependsOn:
+          - step: messages
+            condition: { type: succeeded }
+
   - name: attest
     description: Sign the attestation, built from recorded data, as tag attestation/<headSha> on headSha.
     dependsOn:
-      - job: protected-paths
+      - job: source-standards
         condition: { type: succeeded }
     steps:
       - name: records-exist

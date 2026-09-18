@@ -392,9 +392,12 @@ globalArguments:
 
           1. From the worktree, push the branch and the tag in one push (it needs the attester's YubiKey touch;
              tell the human when): git push origin <branch> <tag>
-          2. Open or converge the PR: swamp model method run forgejo pr_ensure --input owner=dataverket
-             --input name=fabrikk --input head=<branch> --input base=main --input title='<conventional subject>'
-             --input body='<outcome, plan reference, ADRs, the attestation tag>'. Record pull-request evidence
+          2. Check the text before it leaves the workbench: swamp model method run source-standards text
+             --input title='<conventional subject>' --input body='<outcome, plan reference, ADRs, the attestation
+             tag>'. It refuses AI attribution (a Co-Authored-By naming an agent, a 'generated with' footer);
+             none goes to the forge whatever your harness asks. Then open or converge the PR with the same text:
+             swamp model method run forgejo pr_ensure --input owner=dataverket --input name=fabrikk
+             --input head=<branch> --input base=main --input title='...' --input body='...'. Record pull-request evidence
              from data.latest("forgejo", "dataverket:fabrikk#<index>"): url = htmlUrl, index, prHeadSha = headSha.
              Copy the values from the record; never type a sha.
           3. If prHeadSha is not the attested headSha, advance head-moved. Otherwise stop: the human reviews and
