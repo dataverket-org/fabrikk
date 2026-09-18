@@ -3,7 +3,7 @@ title: "How fabrikk works"
 type: explanation
 project: fabrikk
 audience: everyone
-last-verified: 2026-09-18 @ 8d89272
+last-verified: 2026-09-18 @ 345ea64
 description: "The actors, the loop, what each stage does and where its code is."
 weight: 10
 ---
@@ -138,6 +138,22 @@ flowchart LR
 - `agent-constraints/` are the `constraints` file of a stage: what a plan must contain, how to implement, what to attack.
 - The definition's `systemPrompt` blocks are the review prompts. They bind run data (`${{ data.latest(...) }}`), so a
   reviewer is told the branch and commit it reviews and fetches the rest itself.
+
+## The loop boundary
+
+The program reaches two things outside the workbench: the forge, through the `forgejo` model with a repository-scoped
+token, and the registry, anonymously with `cosign.pub`. It reaches nothing fabrikk-infra deploys and holds no
+credential for any of it: no kube context, no fleet key, no registry push credential exists in this repository.
+Models for operating that infrastructure (the cluster, the Talos fleet through Omni, the registry's push side, the
+release runner, forge-wide settings) live in fabrikk-infra's own swamp, with their own vault, and are used by a human
+from that checkout.
+
+**Why.** A workbench runs an agent, and the boundary bounds what an agent that goes wrong can reach: a pull request,
+and a read of the registry. The mirror rule already holds on the other side, where the UAT environment holds no git
+credential. The boundary is structural rather than checked: `models/` and `workflows/` are protected paths, so an
+instance that would cross it is a change a human sees in Forgejo. Two consequences for the stages not built yet:
+`uat` learns the applied revision from the environment's health endpoint or the registry, never from Flux, and
+`promoting` retags in the registry from CI, where that credential already is.
 
 ## State is data
 

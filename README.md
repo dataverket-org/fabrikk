@@ -85,15 +85,14 @@ and `.agents/skills/` and `.claude/skills/` point at the same skills. In order:
 1. **Stand up the forge and put the repos on it.** Done on `git.dataverket.org` through the `forgejo` model
    (`@thomas/forgejo` plus `extensions/models/forgejo_actions.ts`, token in the `fabrikk` vault): `dataverket/fabrikk`
    and `dataverket/miljo` exist, `main` is pull-request only, and only `beddari` may push `attestation/*` tags.
-   The org runner `dataverket-runner` (labels `ubuntu-latest`, `kata`; a Kata VM pod in `dataverket-prod`, see `runner_list`)
-   is not the release runner: that is `fabrikk-release`, defined in this repository only (`workflows/workflow-fabrikk-runner.yaml`,
-   a Kata VM pod in the same namespace that Flux does not know) with the
+   The org runner `dataverket-runner` (labels `ubuntu-latest`, `kata`; a Kata VM pod in `dataverket-prod`)
+   is not the release runner: that is `fabrikk-release`, a Kata VM pod in the same namespace that Flux does not know,
+   defined by the `fabrikk-runner` workflow in fabrikk-infra's swamp (moved there 2026-09-18 with every other model
+   that reaches the cluster; see the loop boundary in `docs/explanation/how-fabrikk-works.md`) with the
    cosign key seeded into memory over FIDO SSH, never on disk (design in Follow-up work). The registry exists:
    zot at `registry.dataverket.org` (fabrikk-infra `artifacts/zot`, delivered gitless; anonymous pull, push for
-   `fabrikk-ci`, whose credential the cluster repo owns and this vault copies as `registry/ci_username` and
-   `registry/ci_password`). `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` are Actions secrets on `dataverket/fabrikk`
-   (`actions_secret_put` from the vault, 2026-09-17). The release runner is created by `swamp workflow run fabrikk-runner`
-   (2026-09-18; jobs run in `golang:1.25-bookworm`). Left: the cosign key:
+   `fabrikk-ci`, whose credential the cluster repo owns). `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` are Actions
+   secrets on `dataverket/fabrikk` (put from fabrikk-infra's swamp, 2026-09-17). Left: the cosign key:
    `release.yaml` still reads `COSIGN_PRIVATE_KEY` from Actions secrets, which the signing-key design below forbids.
    Decide (OpenBao transit or the memory volume), then change `release.yaml` and generate the key pair; `cosign.pub`
    is committed with it.
@@ -132,8 +131,8 @@ on disk: not in Actions secrets, not on a volume, gone on restart until a develo
 
 - **The runner.** `dataverket-runner` is a pod in `dataverket-prod` (fabrikk-infra, `apps/forgejo-runners`): the
   forgejo-runner chart under the `kata` RuntimeClass, so a VM, with docker-in-docker and a Cinder volume for images.
-  Jobs run as containers inside that VM. The release runner is the same shape without the chart, defined in this
-  repository by `workflows/workflow-fabrikk-runner.yaml` with the label `fabrikk-release`; the PR runner never carries
+  Jobs run as containers inside that VM. The release runner is the same shape without the chart, defined by the
+  `fabrikk-runner` workflow in fabrikk-infra's swamp with the label `fabrikk-release`; the PR runner never carries
   the key. Both need the pod annotation that gives virtiofsd `--xattr`: without it docker cannot pull images whose
   files carry capabilities, which is why every job failed until 2026-09-18 (the fix for the org runner is a
   fabrikk-infra change).
@@ -161,9 +160,8 @@ on disk: not in Actions secrets, not on a volume, gone on restart until a develo
   from that switch: `flux bootstrap` owns fields on the live `GitRepository` through server-side apply, so removing a
   field in git alone does nothing; rerun `bootstrap.sh` or patch the live object. Still needed: a cosign key pair
   (`cosign.pub` committed) and the seeding sidecar on the `fabrikk-release` runner (see Release signing key).
-- The factory reaches `dataverket-prod` through Omni-issued kubeconfig contexts in the developer's default kubeconfig: context
-  `fabrikk-readers` (default, `view` in `forgejo-runners` only) for observation, `dataverket-prod-admin`
-  (cluster-admin, 30-day token) for setup work through models named after the cluster, e.g. `dataverket-prod-rbac`.
+- The factory holds no kube context and no credential for what fabrikk-infra deploys. Cluster models (Omni-issued
+  contexts `fabrikk-readers` and `dataverket-prod-admin`) live in fabrikk-infra's swamp since 2026-09-18.
 - `.forgejo/workflows/release.yaml` is tested only as an extracted script against a local registry; run it on the real
   runner.
 - Tag scheme for the environment line: a `miljo` change re-released for the same app commit reuses

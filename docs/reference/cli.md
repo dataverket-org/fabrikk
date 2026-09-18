@@ -78,7 +78,7 @@ swamp report get @swamp/method-summary --model forgejo --json
 
 The factory's `workflow` stages run these for you, with inputs bound from run data; run them by hand only to debug.
 
-## The forge and the cluster
+## The forge
 
 ```sh
 swamp model method run forgejo health
@@ -86,12 +86,6 @@ swamp model method run forgejo pr_list        --input owner=dataverket --input r
 swamp model method run forgejo pr_ensure      --input owner=dataverket --input name=fabrikk --input head=<branch> --input base=main --input title='<subject>' --input body='<text>'
 swamp model method run forgejo pr_merge_state --input owner=dataverket --input name=fabrikk --input index=<n>
 swamp model method run forgejo branch_protection_list --input owner=dataverket --input name=fabrikk
-swamp model method run forgejo runner_list    --input owner=dataverket
-swamp model method run forgejo actions_secret_put --input owner=dataverket --input repo=fabrikk --input name=<NAME> --input 'value=${{ vault.get(fabrikk, <key>) }}'
-swamp model method run registry copy --input source=docker.io/library/<image>@sha256:<digest> --input name=<image> --input tag=<tag>
-swamp model method run omni discover
-swamp model method run runner-pods list
-PATH=_bin:$PATH swamp model method run dataverket-prod-helm list
 ```
 
 Vault expressions in `--input` are resolved at run time and never recorded.
