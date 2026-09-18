@@ -169,8 +169,10 @@ on disk: not in Actions secrets, not on a volume, gone on restart until a develo
 - `make dev.up`, `check`, `verify`, and `compose.yaml` arrive with Sentral's first work item, scoped per product
   (`PRODUCT=`) to keep the 60 s tier-0 budget. `make check` must depend on `docs-check`, which exists as the first
   local tool (`tools/`, Go, on `go.work`). `release.yaml` triggers on product paths only, so nothing runs on the
-  release runner until Sentral has code. Open: host-port collisions between parallel worktrees, and a timed-out
-  `make` leaving its child processes running.
+  release runner until Sentral has code. The dev targets exist (2026-09-18) and refuse to run until `compose.yaml`
+  does; they fix the compose project names so parallel worktrees share one tier 0/1 stack and each commit gets its
+  own tier 2 stack (dev-environment skill, "Session stack"). Open: a timed-out `make` leaving its child processes
+  running.
 - A "fast lane" for simple tasks (the talk suggests one): a shorter path that skips plan review for a fix with a
   reproduction and no protected-path change. Not designed; every work item takes the full loop today.
 - The `releasing` stage defaults to `sentral`/`uat`; the work item's product should come from the plan or `change`
