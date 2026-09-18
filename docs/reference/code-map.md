@@ -122,7 +122,7 @@ Workflows create their own per-commit instances on the fly (`git-<sha>`, `dev-en
 | `.forgejo/workflows/validate-attestation.yaml` | On every PR push: the four attestation checks plus AI attribution in commits and PR text, bash only. | yes |
 | `.forgejo/attesters` | SSH allowed signers who may sign `attestation/*`; read from the base branch by CI. | yes |
 | `.forgejo/workflows/release.yaml` | On merge to `main`: `make release` per product on the `fabrikk-release` runner. | yes |
-| `Makefile` | `make tools` (pinned external tools and this repository's own, into `_bin/`), `make docs-check`, `make release`. Dev targets arrive with the first product. | yes |
+| `Makefile` | `make tools` (pinned external tools and this repository's own, into `_bin/`), `make docs-check`, `make release`, and the dev targets `dev.up`, `dev.down`, `dev.reset`, `check`, `verify`, which fix the compose project names (shared `dataverket` for tier 0/1, private `verify-<commit>` for tier 2) and wait for `compose.yaml`. | yes |
 | `cosign.pub` | Release signing public key. Does not exist yet. | yes |
 
 ## Products and their deployment config
