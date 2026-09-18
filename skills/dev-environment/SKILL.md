@@ -116,6 +116,12 @@ attestation, CI validation, release).
 
 ## Workbench
 
-The workbench (laptop, VM, or an IncusOS container) is defined as code — a bootstrap script or Nix flake pinning Go,
-podman, `ko`, `flux`, `cosign`, `crane`, and the compose file. Every workbench is identical; parallel work items run in
-worktrees on one workbench or on separate workbenches, never against shared remote dependencies.
+The workbench is the one machine that holds the agent, the code, the session stack, and swamp
+(`docs/explanation/how-fabrikk-works.md`, "The workbench"). Rules that follow from it:
+
+- One main checkout, one worktree per work item, one shared session stack, one private verify stack per commit.
+  A worktree never names its own stack; the Makefile does.
+- Never split one loop across a network: dependencies run on the workbench, never on a shared remote.
+- Every workbench is identical, defined as code; until a bootstrap script or Nix flake exists, the workstation guide is
+  that definition. Nothing in the repository names a home directory or a workbench.
+- A workbench never builds what ships; `make release` runs on CI only (delivery skill).

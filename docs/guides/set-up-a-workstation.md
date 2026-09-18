@@ -9,8 +9,9 @@ weight: 10
 
 # Set up a workstation
 
-What a machine needs before it can drive fabrikk. The loop runs entirely on this machine: the agent, the code, the
-session stack, and swamp. Only the release is built elsewhere.
+What a machine needs before it can drive fabrikk. That machine is what the manual calls a
+[workbench](../explanation/how-fabrikk-works.md#the-workbench): the loop runs entirely on it, the agent, the code, the
+session stack, and swamp, with one worktree per work item. Only the release is built elsewhere.
 
 ## 1. Tools
 

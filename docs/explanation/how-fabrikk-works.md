@@ -3,7 +3,7 @@ title: "How fabrikk works"
 type: explanation
 project: fabrikk
 audience: everyone
-last-verified: 2026-09-17 @ 7b38cae
+last-verified: 2026-09-18 @ 84dc3f2
 description: "The actors, the loop, what each stage does and where its code is."
 weight: 10
 ---
@@ -44,6 +44,30 @@ flowchart LR
   gates, and keeps all of it as versioned data in `.swamp/`. Secrets come from the `fabrikk` vault at run time.
 - **The forge and CI** are Forgejo at `git.dataverket.org` and its Actions runners. CI never runs the loop; it validates
   the attestation on every pull request push and builds the release candidate after merge.
+
+## The workbench
+
+The first three actors share one machine: the **workbench**. It is a laptop, a VM, or an IncusOS container that holds
+the agent, the code, the session stack, and swamp with its run data. The loop never crosses a network: the only
+things that leave the workbench are the branch, the signed attestation tag, and the pull request, and the only thing
+that comes back is the release CI built. A workbench never builds what ships.
+
+One workbench serves many work items at once, and git worktrees are how:
+
+- **The main checkout** is the one `git clone` made. It holds `_reference/`, the tool binaries in `_bin/`, and the
+  swamp data every run reads and writes. Nothing is implemented in it.
+- **One worktree per work item**, `git worktree add ../fabrikk-<workItem> -b <workItem>` from the main checkout. The
+  agent implements there; `fabrikk-verify` and `fabrikk-attest` run there and refuse a dirty tree or a moved HEAD, so
+  a green result is about exactly one commit. When the work item is merged, the worktree goes.
+- **One shared session stack** for every worktree: the compose project `dataverket`, with `nats` and `postgres` on
+  fixed host ports. Tests isolate themselves by name, so two work items share it without seeing each other.
+- **One private verify stack per commit**: `make verify` runs its images under the compose project `verify-<commit>`
+  and tears it down, so two work items can verify at the same time.
+
+The Makefile names both stacks and never derives a name from a worktree; the rule and what may never be shared are
+in the dev-environment skill. Every workbench is meant to be identical, defined as code, and [set up a
+workstation](../guides/set-up-a-workstation.md) is that definition until a bootstrap script exists. More than one
+workbench is fine: they share the forge and nothing else.
 
 ## The loop
 
