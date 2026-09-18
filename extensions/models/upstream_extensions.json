@@ -22,7 +22,7 @@
       ".swamp/report-bundles/637144ef/work_item_summary_report.js"
     ],
     "checksum": "29622d1cb0a3bffabf82f68b3d6cbe7e18efcac2c38458b7231e436eb91ab55f",
-    "filesChecksum": "b67885110295b63236743cdc42522703b2c5b18fae873892420b72e662c6c9d7",
+    "filesChecksum": "16fdc986237d45d0fe59460c684ca4ebc56805f483f64ff25ef623fba2d0de00",
     "serverUrl": "https://swamp-club.com"
   },
   "@swamp/git": {
@@ -42,7 +42,7 @@
       ".swamp/pulled-extensions/@swamp/git/models/git.ts"
     ],
     "checksum": "fc70858501290251863e1a6da3485b251dbdde2f146d060fda9580dce31e81ff",
-    "filesChecksum": "801f780fa332ddda61f55176e3b074a85e4e3813b8f72913d3986ab0d228ecd8",
+    "filesChecksum": "ff2070a2c37dd9adf03233de2405fabc90008671c253a042995c46384a577aeb",
     "serverUrl": "https://swamp-club.com"
   },
   "@thomas/forgejo": {

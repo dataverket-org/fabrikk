@@ -38,7 +38,8 @@ inputs:
       default:
         - CLAUDE.md
         - .claude/
-        - skills/
+        - AGENTS.md
+        - .agents/
         - agent-constraints/
         - models/
         - workflows/

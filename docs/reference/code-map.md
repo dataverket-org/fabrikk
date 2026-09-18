@@ -3,7 +3,7 @@ title: "Code map"
 type: reference
 project: fabrikk
 audience: contributor, agent
-last-verified: 2026-09-17 @ cdfe576
+last-verified: 2026-09-18 @ a44c475
 description: "Every path in the repository and its role, including model instances and vault keys."
 weight: 10
 ---
@@ -24,16 +24,21 @@ attestation checksums it ([explanation/attestation-and-trust.md](../explanation/
 | `agent-constraints/planning-conventions.md` | What a plan must contain. `constraints` of `planning`. | yes |
 | `agent-constraints/implementation-conventions.md` | Worktree, plan fidelity, tests, commits, what to record. `constraints` of `implementing`. | yes |
 | `agent-constraints/adversarial-dimensions.md` | What reviewers attack, with severities. `constraints` of both review stages. | yes |
-| `skills/architecture/SKILL.md` | The one architecture skill: Go, tactical DDD, event-driven messaging over NATS with CloudEvents. | yes |
-| `skills/adversary-security/SKILL.md` | Tenancy, auth callout, tokens, secrets, supply chain. | yes |
-| `skills/adversary-testing/SKILL.md` | Testing strategy and tiers 0, 1, 2, UAT. | yes |
-| `skills/adversary-simplicity/SKILL.md` | LOC, dependency, and abstraction budgets. | yes |
-| `skills/adversary-observability/SKILL.md` | Logs, traces, health, what never gets logged. | yes |
-| `skills/adversary-source-standards/SKILL.md` | Licensing, commits, ADRs, protected paths. | yes |
-| `skills/dev-environment/SKILL.md` | Session stack, compose profiles, fragment contract, make targets, reference repos. | yes |
-| `skills/delivery/SKILL.md` | Artifacts, config layers, the join, promotion, UAT. | yes |
-| `.claude/skills/` | Symlinks to `skills/*` plus the pulled `software-factory` skill, so Claude Code loads them by name. | yes |
-| `CLAUDE.md` | Repository rules for the agent: search before build, use swamp, "workflow" means a swamp workflow. | yes |
+| `.agents/skills/architecture/SKILL.md` | The one architecture skill: Go, tactical DDD, event-driven messaging over NATS with CloudEvents. | yes |
+| `.agents/skills/adversary-security/SKILL.md` | Tenancy, auth callout, tokens, secrets, supply chain. | yes |
+| `.agents/skills/adversary-testing/SKILL.md` | Testing strategy and tiers 0, 1, 2, UAT. | yes |
+| `.agents/skills/adversary-simplicity/SKILL.md` | LOC, dependency, and abstraction budgets. | yes |
+| `.agents/skills/adversary-observability/SKILL.md` | Logs, traces, health, what never gets logged. | yes |
+| `.agents/skills/adversary-source-standards/SKILL.md` | Licensing, commits, ADRs, protected paths. | yes |
+| `.agents/skills/dev-environment/SKILL.md` | Session stack, compose profiles, fragment contract, make targets, reference repos. | yes |
+| `.agents/skills/delivery/SKILL.md` | Artifacts, config layers, the join, promotion, UAT. | yes |
+| `.agents/skills/software-factory/SKILL.md` | The pulled `@swamp/software-factory` skill: how any agent drives a run. `.agents/skills/software-factory/references/driving.md` is the loop and the dispatch guard, `.agents/skills/software-factory/references/authoring.md` the definition format. | yes |
+| `.agents/skills/software-factory/references/examples/minimal.yaml`, `.agents/skills/software-factory/references/examples/feature-factory.yaml`, `.agents/skills/software-factory/references/examples/sdlc-classic.yaml`, `.agents/skills/software-factory/references/examples/retry-feedback.yaml` | Example definitions shipped with the pulled skill; `fabrikk.yaml` was seeded from them. | yes |
+| `.agents/skills/` | The skills directory, read by Codex, OpenCode, Copilot, Amp, Pi, and Antigravity: the rows above, one real copy each. | yes |
+| `.claude/skills/` | Claude Code's skills directory: one symlink per entry of `.agents/skills/`. | yes |
+| `AGENTS.md` | Repository rules for every agent: swamp's managed section (search before build, use swamp, "workflow" means a swamp workflow), the documentation pointer, skills and enrolled agents. | yes |
+| `CLAUDE.md` | `@AGENTS.md` plus what only Claude Code needs: its skills path, the generated local settings, how `dispatch` maps to subagents. | yes |
+| `.swamp.yaml` | swamp's repository marker: version, repo id, and the enrolled agent tools (`claude`, `codex`). Changed only by `swamp repo upgrade`. | no |
 | `LICENSE` | AGPL-3.0. Every Go file carries the SPDX header (source-standards skill). | no |
 
 ## Local tools
