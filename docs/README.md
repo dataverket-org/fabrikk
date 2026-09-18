@@ -34,6 +34,8 @@ Start with [explanation/how-fabrikk-works.md](explanation/how-fabrikk-works.md),
 - [How fabrikk works](explanation/how-fabrikk-works.md): the actors, the loop, what each stage does, and where its code is.
 - [Attestation and trust](explanation/attestation-and-trust.md): what the signed tag proves, what CI checks, what it cannot.
 - [Release model](explanation/release-model.md): build once after merge, the config join, gitless promotion, the signing key.
+- [Sentral](explanation/sentral.md): Sentral's ubiquitous language and context map (`project: sentral`).
+- [What the first slice taught](explanation/first-slice-retrospective.md): the first work item's six review cycles, the half-size slice to run instead, and what belongs in the skills.
 
 ### Guides
 
@@ -173,6 +175,7 @@ can be asked to keep. That budget is not set yet; it is the skills' equivalent o
   table says it better, use the table.
 - **Commands** are real and copy-pasteable, and say what they print when they work.
 - **ADRs** follow Structured MADR, as the Dataverket ADR validator expects: see [decisions/README.md](decisions/README.md).
+- **Licence.** Documentation under `docs/` is CC-BY-SA-4.0 ([LICENSE](LICENSE)); code is AGPL-3.0 (`LICENSE` at the root).
 
 ## What stays in the README
 

@@ -49,4 +49,4 @@ added to its allowlist (`builder-hugo`, `config/smadr-validator.yaml`).
 
 ## Index
 
-None yet.
+- [0001: Service naming](0001-service-naming.md), accepted

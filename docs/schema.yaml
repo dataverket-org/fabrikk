@@ -14,6 +14,7 @@ folders:                    # the closed list: folder -> the type every page in 
 
 files:                      # the only non-Markdown files allowed under docs/
   - schema.yaml
+  - LICENSE                 # CC-BY-SA-4.0; documentation carries its own licence (source-standards skill)
 
 index: README.md            # every page is linked from this file (relative to docs/) or from its folder's README.md
 
