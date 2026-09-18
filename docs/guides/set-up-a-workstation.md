@@ -32,7 +32,7 @@ tool reads a directory other than `.agents/skills/`, symlink it the way `.claude
 git clone ssh://git@git.dataverket.org/dataverket/fabrikk.git ~/kode/fabrikk
 git clone ssh://git@git.dataverket.org/dataverket/miljo.git   ~/kode/miljo      # L2 overlays, next to the monorepo
 cd ~/kode/fabrikk
-swamp model search --json | jq '.results[].name'       # fabrikk, forgejo, omni, references, ...
+swamp model search --json | jq '.results[].name'       # fabrikk, forgejo, references, source-standards
 make tools                                              # pinned ko, cosign, kustomize, crane, flux, and tools/ into _bin
 swamp model method run references sync                  # read-only reference clones into _reference/
 ```
@@ -58,22 +58,7 @@ echo -n '<value>' | swamp vault put fabrikk <group>/<key>    # add a secret (all
 Homebrew `ykman` and `age-plugin-yubikey` on Linux need `PCSCLITE_CSOCK_NAME=/run/pcscd/pcscd.comm` to reach the
 system pcscd.
 
-## 4. Cluster access
-
-The factory reaches `dataverket-prod` through Omni-issued contexts in your default kubeconfig. Model definitions name
-contexts, never paths:
-
-| Context | Rights | Used by |
-|---|---|---|
-| `fabrikk-readers` | `view` in `forgejo-runners` | `runner-pods` |
-| `dataverket-prod-admin` | cluster-admin, 30-day token | `dataverket-prod-rbac`, `dataverket-prod-helm` |
-
-```sh
-kubectl config get-contexts
-swamp model method run runner-pods list
-```
-
-## 5. Check
+## 4. Check
 
 ```sh
 swamp model method run forgejo health                  # the forge answers with its version

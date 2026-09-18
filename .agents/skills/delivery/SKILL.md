@@ -5,7 +5,9 @@ description: How Dataverket software becomes a release — ko-built scratch imag
 
 # Delivery
 
-The registry is where releases travel. Git is where they are authored. The UAT environment holds no git credentials.
+The registry is where releases travel. Git is where they are authored. The UAT environment holds no git credentials,
+and the factory holds no credential for what fabrikk-infra deploys: its program reaches the forge and the registry's
+read side, nothing else. A plan whose stage needs a kube context or a push credential is a finding.
 
 ## Artifacts
 

@@ -3,7 +3,7 @@ title: "Operate the forge"
 type: guide
 project: fabrikk
 audience: operator
-description: "Forge tasks through the forgejo model: attesters, required checks, secrets, runners."
+description: "Forge tasks through the forgejo model: attesters and required checks; the rest lives in fabrikk-infra."
 weight: 30
 ---
 
@@ -20,7 +20,6 @@ swamp model method run forgejo health
 swamp model method run forgejo repo_list --input owner=dataverket
 swamp model method run forgejo branch_protection_list --input owner=dataverket --input name=fabrikk
 swamp model method run forgejo pr_list --input owner=dataverket --input repo=fabrikk
-swamp model method run forgejo runner_list --input owner=dataverket
 ```
 
 ## Allow a new attester
@@ -48,30 +47,9 @@ swamp model method run forgejo branch_protection_ensure --input owner=dataverket
 Check the result with `branch_protection_list`. From then on a pull request without a valid attestation tag cannot
 merge.
 
-## Put an Actions secret
+## What is not here
 
-Values come from the vault and are never recorded:
-
-```sh
-swamp model method run forgejo actions_secret_put --input owner=dataverket --input repo=fabrikk \
-  --input name=REGISTRY_PASSWORD --input 'value=${{ vault.get(fabrikk, registry/ci_password) }}'
-```
-
-## Register a runner
-
-```sh
-swamp model method run forgejo runner_registration_token --input owner=dataverket
-swamp vault get fabrikk --json      # the token was stored in the vault; read it from there on the runner host
-```
-
-The org runner `dataverket-runner` (labels `ubuntu-latest`, `kata`) is a Kata VM pod in `dataverket-prod`, deployed
-from `fabrikk-infra` (`apps/forgejo-runners`). The release runner (`fabrikk-release`) does not exist yet.
-
-## Rename a repository
-
-```sh
-swamp model method run forgejo repo_rename --input owner=dataverket --input name=<old> --input newName=<new>
-```
-
-Verify-first: refuses a missing source or an occupied target. Forgejo redirects the old name until it is reused;
-fixed remotes such as push mirrors are not updated.
+Actions secrets, runner registration and pruning, repository renames, and the release runner itself are forge
+operations that reach beyond this repository. They live in fabrikk-infra's swamp with their own token and vault
+(since 2026-09-18); this repository's token is scoped to `dataverket/fabrikk` and the factory holds nothing more
+([how fabrikk works](../explanation/how-fabrikk-works.md#the-loop-boundary)).
