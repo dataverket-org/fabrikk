@@ -34,6 +34,8 @@ Start with [explanation/how-fabrikk-works.md](explanation/how-fabrikk-works.md),
 - [How fabrikk works](explanation/how-fabrikk-works.md): the actors, the loop, what each stage does, and where its code is.
 - [Attestation and trust](explanation/attestation-and-trust.md): what the signed tag proves, what CI checks, what it cannot.
 - [Release model](explanation/release-model.md): build once after merge, the config join, gitless promotion, the signing key.
+- [Sentral](explanation/sentral.md): Sentral's ubiquitous language and context map (`project: sentral`).
+- [What the first slice taught](explanation/first-slice-retrospective.md): the first work item's six review cycles, the half-size slice to run instead, and what belongs in the skills.
 
 ### Guides
 
@@ -65,9 +67,9 @@ three things, and the difference is what it is for, not what it is about:
 
 | | Program | Skills and constraints | Docs |
 |---|---|---|---|
-| Is | `fabrikk.yaml`, `workflows/`, `extensions/`, `.forgejo/`, `Makefile` | `skills/*`, `agent-constraints/*`, the review prompts in the definition | `docs/`, the README |
+| Is | `fabrikk.yaml`, `workflows/`, `extensions/`, `.forgejo/`, `Makefile` | `.agents/skills/*`, `agent-constraints/*`, the review prompts in the definition | `docs/`, the README |
 | Job | makes things happen and proves they happened: gates, cycle limits, workflows, checks, signatures | shapes what the agent writes and reviews, and explains how to use the factory's software | lets a person, or an agent on demand, understand and operate the machine |
-| Read by | swamp, CI | the agent, automatically, while doing a stage's work | whoever opens it; CLAUDE.md points agents here |
+| Read by | swamp, CI | the agent, automatically, while doing a stage's work | whoever opens it; AGENTS.md points agents here |
 | Put it here when | it must always happen and we must know it did: "did you run the tests" is never a skill | it changes what a good plan, good code, or a good review looks like: vocabulary, budgets, severities, simple examples in Go from an unrelated domain | someone would open it to find where a part is, how it works, why, or how to do a task |
 | Trust comes from | here, and only here | never | never |
 
@@ -106,7 +108,7 @@ and required fields depend on the page type.
 | `title` | text | all | Page name; the site's menu entry |
 | `type` | `explanation`, `guide`, `reference`, `tutorial`, `adr`, `index` | all | What kind of page; must match the folder it is in |
 | `project` | `fabrikk`, `dataverket`, `sentral`, `maskin`, `plattform`, `identitet`, `tjeneste`, `objekt`, `nett` | all | What the page is about. `fabrikk` is the machine; `dataverket` is cross-product; a product name is that product. The site groups by it. |
-| `audience` | `operator`, `contributor`, `agent`, `everyone` (comma list allowed) | explanation, guide, reference | Who the page is for, swamp's convention. `agent` marks pages CLAUDE.md or a skill points an agent at. |
+| `audience` | `operator`, `contributor`, `agent`, `everyone` (comma list allowed) | explanation, guide, reference | Who the page is for, swamp's convention. `agent` marks pages AGENTS.md or a skill points an agent at. |
 | `last-verified` | `YYYY-MM-DD @ <short sha>` | explanation, reference | A person checked the claims against the code at that commit. A PR that changes what the page describes bumps it. |
 | `context` | bounded-context id, e.g. `onboarding` | explanation pages that are a product's design | The context the page documents. An explanation page with a product `project` and no `context` is an overview, and there is at most one per product. |
 | `weight` | integer | any | Menu order within the folder |
@@ -145,7 +147,7 @@ fabrikk takes the habits as rules and, where "must always happen" applies, as ch
 | No archive, no proposals, no research | Nothing under `docs/` is kept because it once mattered, and nothing is parked there while it is being thought about: git history holds the first, a conversation or a plan artifact holds the second. The five folders in `schema.yaml` are the closed list, and `schema.yaml` itself is the only non-Markdown file. ADRs are the one exception and have their own status. | `docs-check`: `folders` and `files` in the schema |
 | Rationale lives in the page | A short *Why* section inside the explanation page, never a separate document. | reviewer |
 | Claims are dated | `last-verified` on explanation and reference; a PR that changes a path a page describes bumps it, and the code-review stage treats a stale page as a source-standards finding. | `docs-check` (field present); code review (bumped) |
-| Nothing is orphaned | Every page is linked from this index or its folder's README, and every tracked path under the schema's `mapped_paths` (`models/`, `workflows/`, `extensions/`, `skills/`, `agent-constraints/`, `tools/`, `.forgejo/`) appears in the code map. | `docs-check` |
+| Nothing is orphaned | Every page is linked from this index or its folder's README, and every tracked path under the schema's `mapped_paths` (`models/`, `workflows/`, `extensions/`, `.agents/`, `agent-constraints/`, `tools/`, `.forgejo/`) appears in the code map. | `docs-check` |
 | The plan for the docs is visible | Consolidation notes ("fold into", "split") live in the Index above, not in issues. | this file |
 
 `make docs-check` is that check: `tools/cmd/docs-check`, the repository's first local tool, ported from the docs
@@ -173,6 +175,7 @@ can be asked to keep. That budget is not set yet; it is the skills' equivalent o
   table says it better, use the table.
 - **Commands** are real and copy-pasteable, and say what they print when they work.
 - **ADRs** follow Structured MADR, as the Dataverket ADR validator expects: see [decisions/README.md](decisions/README.md).
+- **Licence.** Documentation under `docs/` is CC-BY-SA-4.0 ([LICENSE](LICENSE)); code is AGPL-3.0 (`LICENSE` at the root).
 
 ## What stays in the README
 

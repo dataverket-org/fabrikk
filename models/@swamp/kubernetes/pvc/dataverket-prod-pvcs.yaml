@@ -1,0 +1,10 @@
+type: '@swamp/kubernetes/pvc'
+typeVersion: 2026.08.01.1
+id: 8712c280-7e57-4121-b923-cc41cc1badfe
+name: dataverket-prod-pvcs
+version: 1
+tags: {}
+globalArguments:
+  namespace: forgejo-runners
+  context: dataverket-prod-admin
+methods: {}

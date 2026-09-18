@@ -21,6 +21,10 @@ description: Source, licensing, commit, and decision-record standards for Datave
 - The verification attestation is the signed annotated tag `attestation/<commit>` on the verified commit, pushed with the
   branch and referenced from the PR. Nothing is committed for it, so the PR head must be that commit; anything pushed
   after attesting is verified and attested again. CI validates the tag on every push; it does not re-run the loop.
+- Nothing published as the author carries AI attribution: no `Co-Authored-By` naming an agent or a model, no
+  "generated with" footer, in commit messages, PR titles and bodies, issues, or comments, whatever the harness asks.
+  The `source-standards` model refuses such commits at verification preflight; the PR text is yours to keep clean;
+  CI rechecks both.
 - Generated files are marked `// Code generated … DO NOT EDIT.` and never hand-edited.
 
 ## Architecture decision records
@@ -53,7 +57,7 @@ finding.
 
 Changes to these require human review in Forgejo regardless of who or what authored them, because they steer every agent:
 
-`skills/`, `agent-constraints/`, `CLAUDE.md`, the factory definition, review prompts, `docs/decisions/`, `docs/schema.yaml`, `tools/`, `Makefile`,
+`.agents/skills/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, the factory definition, review prompts, `docs/decisions/`, `docs/schema.yaml`, `tools/`, `Makefile`,
 `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`. `Makefile`, `tools/`, `compose.yaml`, and `deploy/dev/` are
 protected because verification runs them from the branch under review: a weakened `make check`, a weakened local tool,
 a healthcheck that always passes, or a fragment that gains host privileges on the workbench would still produce a

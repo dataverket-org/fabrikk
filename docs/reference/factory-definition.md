@@ -110,4 +110,4 @@ Records the workflows leave under other models, all keyed by commit: `git-<sha>`
 4. The file is a protected path: the change goes through a pull request and a human.
 
 Authoring rules (work modes, bindings, schemas, retry with feedback) are in the pulled skill,
-`.claude/skills/software-factory/references/authoring.md`.
+`.agents/skills/software-factory/references/authoring.md`.

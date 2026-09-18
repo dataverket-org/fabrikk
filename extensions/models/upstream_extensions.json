@@ -3,6 +3,7 @@
     "version": "2026.06.24.1",
     "pulledAt": "2026-09-16T20:15:44.906Z",
     "files": [
+      ".agents/skills/software-factory",
       ".claude/skills/software-factory",
       ".swamp/bundles/a324fda6/software_factory.js",
       ".swamp/pulled-extensions/@swamp/software-factory/files/LICENSE.txt",
