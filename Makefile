@@ -112,7 +112,7 @@ verify: ## Tier 2: ko images for this commit, private verify stack, contract and
 	# No service in the verify stack may publish a fixed host port, or two commits verifying at once collide.
 	cfg=$$(mktemp); trap 'rm -f "$$cfg"' EXIT
 	$(COMPOSE) -p $(VERIFY_PROJECT) -f $(COMPOSE_FILE) --profile verify config > "$$cfg"
-	if grep -qE '^\s+published:' "$$cfg"; then
+	if grep -qE '^\s+(- )?published:' "$$cfg"; then
 	  echo "verify profile publishes fixed host ports; leave the host side empty so compose picks one" >&2; exit 1
 	fi
 	trap 'rm -f "$$cfg"; $(COMPOSE) -p $(VERIFY_PROJECT) -f $(COMPOSE_FILE) --profile verify down --volumes --remove-orphans' EXIT
