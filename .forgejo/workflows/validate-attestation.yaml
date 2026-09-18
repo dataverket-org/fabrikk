@@ -22,6 +22,8 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
@@ -88,6 +90,19 @@ jobs:
             echo "::warning::this PR changes protected paths; a human must review it in Forgejo whatever else is green"
             { echo ""; echo "**Protected paths changed, human review required:**"; echo '```'; echo "$changed"; echo '```'; } >> "$summary"
           fi
+
+          # 5. No commit on the branch carries AI attribution (recipe: extensions/models/source_standards.ts).
+          pattern='co-authored-by:.*(claude|anthropic|copilot|codex|openai|chatgpt|gemini|cursor|opencode|kiro|antigravity|noreply@anthropic)|generated (with|by) .*(claude|copilot|codex|chatgpt|gemini|cursor|opencode|kiro|antigravity|\bai\b)|🤖'
+          BASE="base/$BASE_REF" HEAD="$HEAD_SHA"
+          if hits=$(git log --format='%H%n%B' "$BASE..$HEAD" |
+            awk '/^[0-9a-f]{40}$/ { sha = substr($0, 1, 12); next } { print sha " " $0 }' | grep -iE "$pattern"); then
+            fail "commit messages carry AI attribution; nothing published as the author does (source-standards skill)"; echo "$hits"
+          else ok "no AI attribution in $(git rev-list --count "$BASE..$HEAD") commits"; fi
+
+          # 6. Nor do the PR title and body (read from the event through env, never interpolated into this script).
+          if hits=$(printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY" | grep -iE "$pattern"); then
+            fail "the PR title or body carries AI attribution; edit it in Forgejo"; echo "$hits"
+          else ok "no AI attribution in the PR title and body"; fi
 
           echo "errors: $errors"
           [ "$errors" -eq 0 ]

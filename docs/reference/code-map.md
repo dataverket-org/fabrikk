@@ -3,7 +3,7 @@ title: "Code map"
 type: reference
 project: fabrikk
 audience: contributor, agent
-last-verified: 2026-09-18 @ a44c475
+last-verified: 2026-09-18 @ 8d89272
 description: "Every path in the repository and its role, including model instances and vault keys."
 weight: 10
 ---
@@ -37,6 +37,7 @@ attestation checksums it ([explanation/attestation-and-trust.md](../explanation/
 | `.agents/skills/software-factory/references/examples/minimal.yaml`, `.agents/skills/software-factory/references/examples/feature-factory.yaml`, `.agents/skills/software-factory/references/examples/sdlc-classic.yaml`, `.agents/skills/software-factory/references/examples/retry-feedback.yaml` | Example definitions shipped with the pulled skill; `fabrikk.yaml` was seeded from them. | yes |
 | `.agents/skills/` | The skills directory, read by Codex, OpenCode, Copilot, Amp, Pi, and Antigravity: the rows above, one real copy each. | yes |
 | `.claude/skills/` | Claude Code's skills directory: one symlink per entry of `.agents/skills/`. | yes |
+| `.claude/settings.json` | Claude Code project settings: turns the harness's AI attribution off at the source (`attribution.commit` and `.pr` empty), so no trailer or footer is offered in the first place; the source-standards check remains the trust. | yes |
 | `AGENTS.md` | Repository rules for every agent: swamp's managed section (search before build, use swamp, "workflow" means a swamp workflow), the documentation pointer, skills and enrolled agents. | yes |
 | `CLAUDE.md` | `@AGENTS.md` plus what only Claude Code needs: its skills path, the generated local settings, how `dispatch` maps to subagents. | yes |
 | `.swamp.yaml` | swamp's repository marker: version, repo id, and the enrolled agent tools (`claude`, `codex`). Changed only by `swamp repo upgrade`. | no |
@@ -69,6 +70,8 @@ TypeScript, one file per concern, each with a `_test.ts` next to it. Run the tes
 | `extensions/models/dev_environment.ts` | `@dataverket/dev-environment` | `up`, `down`, `reset`, `check`, `verify`: the make targets, results pinned to the worktree's HEAD, full log recorded. | `fabrikk-verify` |
 | `extensions/models/attestation.ts` | `@dataverket/attestation` | `tag`: refuses unless verification, review, approval, and digest all concern `headSha`; signs `attestation/<headSha>`. | `fabrikk-attest` |
 | `extensions/models/git_paths_digest.ts` | extends `@swamp/git` | `paths_digest`: sha256 over protected paths at a commit; exports the shell recipe CI reruns. | `fabrikk-attest`, `validate-attestation.yaml` |
+| `extensions/models/git_commit_messages.ts` | extends `@swamp/git` | `commit_messages`: the commits in `base..head` with full messages; upstream `log` has subjects only and no range. | `fabrikk-verify` |
+| `extensions/models/source_standards.ts` | `@dataverket/source-standards` | `commits`: the source-standards skill as a check over data (today: no AI attribution). Holds the pattern and the shell recipe CI copies literally; records the check before failing. | `fabrikk-verify`, `validate-attestation.yaml` |
 | `extensions/models/release_artifact.ts` | `@dataverket/release-artifact` | `verify`: signature (cosign), provenance, `release.json`, digest-pinned images, `:candidate` equals this digest. | `fabrikk-release` |
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos` | `sync`: clones or refreshes each listed repository into `_reference/`, records the commit. | humans and agents |
 | `extensions/models/forgejo_actions.ts` | extends `@thomas/forgejo` | `runner_list`, `runner_prune` (offline runners of one name), `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (to the vault), `repo_rename`, `pr_merge_state`. | forge setup, `fabrikk-runner`, `pull-request` stage |
@@ -94,6 +97,7 @@ Model definitions in `models/`, one YAML per instance. Credentials are vault ref
 | `dataverket-prod-deployments` | `models/@swamp/kubernetes/deployment/dataverket-prod-deployments.yaml` | `@swamp/kubernetes/deployment` | same namespace, context `dataverket-prod-admin`; the release runner's deployment | kubeconfig |
 | `dataverket-prod-helm` | `models/@ginger_pappa/flux/helmrelease/dataverket-prod-helm.yaml` | `@ginger_pappa/flux/helmrelease` | Flux HelmReleases in `dataverket-prod`, context `dataverket-prod-admin`; needs `_bin` on `PATH` for `flux` | kubeconfig |
 | `references` | `models/@dataverket/reference-repos/references.yaml` | `@dataverket/reference-repos` | the reference-repository list | none |
+| `source-standards` | `models/@dataverket/source-standards/source-standards.yaml` | `@dataverket/source-standards` | nothing external: pure checks over data | none |
 | `registry` | `models/@dataverket/registry-mirror/registry.yaml` | `@dataverket/registry-mirror` | `registry.dataverket.org`, namespace `mirror` | `registry/ci_username`, `registry/ci_password` |
 
 Workflows create their own per-commit instances on the fly (`git-<sha>`, `dev-env-<sha>`, `attest-<sha>`,
@@ -115,7 +119,7 @@ Workflows create their own per-commit instances on the fly (`git-<sha>`, `dev-en
 
 | Path | Role | Protected |
 |---|---|---|
-| `.forgejo/workflows/validate-attestation.yaml` | On every PR push: the four attestation checks, bash only. | yes |
+| `.forgejo/workflows/validate-attestation.yaml` | On every PR push: the four attestation checks plus AI attribution in commits and PR text, bash only. | yes |
 | `.forgejo/attesters` | SSH allowed signers who may sign `attestation/*`; read from the base branch by CI. | yes |
 | `.forgejo/workflows/release.yaml` | On merge to `main`: `make release` per product on the `fabrikk-release` runner. | yes |
 | `Makefile` | `make tools` (pinned external tools and this repository's own, into `_bin/`), `make docs-check`, `make release`. Dev targets arrive with the first product. | yes |

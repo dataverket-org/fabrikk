@@ -3,7 +3,7 @@ title: "How fabrikk works"
 type: explanation
 project: fabrikk
 audience: everyone
-last-verified: 2026-09-18 @ a44c475
+last-verified: 2026-09-18 @ 8d89272
 description: "The actors, the loop, what each stage does and where its code is."
 weight: 10
 ---
@@ -99,7 +99,7 @@ The agent never satisfies those on its own.
 | `planning` | agent | Turns the outcome into a plan with the sections `planning-conventions.md` requires; recorded as the `plan` artifact, validated against its schema. | `agent-constraints/planning-conventions.md`, `.agents/skills/*` |
 | `plan-review` | one subagent per skill | Attacks the plan along `adversarial-dimensions.md`; findings recorded as `plan-review`. Critical or high findings send it back. Then the human approves. | `agent-constraints/adversarial-dimensions.md`, the `systemPrompt` in the definition |
 | `implementing` | agent | Implements the plan in a worktree, tier 0 green, commits signed. Records `change-summary` (files, LOC, ADRs) and `change` evidence (worktree, branch, headSha). | `agent-constraints/implementation-conventions.md` |
-| `verifying` | swamp workflow | In that worktree, refuses a dirty tree or a moved HEAD, then `make check` (tier 0) and `make verify` (tier 2). Results are pinned to headSha. No LLM. | `workflows/workflow-fabrikk-verify.yaml`, `extensions/models/dev_environment.ts`, `Makefile` |
+| `verifying` | swamp workflow | In that worktree, refuses a dirty tree, a moved HEAD, or a commit message carrying AI attribution, then `make check` (tier 0) and `make verify` (tier 2). Results are pinned to headSha. No LLM. | `workflows/workflow-fabrikk-verify.yaml`, `extensions/models/dev_environment.ts`, `extensions/models/git_commit_messages.ts`, `extensions/models/source_standards.ts`, `Makefile` |
 | `code-review` | one subagent per skill | Reviews the diff at headSha against the plan and every adversary; compares actual LOC with the estimate; the previous round's findings are fed forward. | the `systemPrompt` in the definition, `agent-constraints/adversarial-dimensions.md` |
 | `attesting` | swamp workflow | Digests the protected paths, lists which the branch changed, checks that verification, review, and approval all concern headSha, and signs the annotated tag `attestation/<headSha>`. | `workflows/workflow-fabrikk-attest.yaml`, `extensions/models/attestation.ts`, `extensions/models/git_paths_digest.ts` |
 | `pull-request` | agent + human | Pushes branch and tag, opens the PR through the `forgejo` model, records the PR head from the API. The human reviews and merges in Forgejo; the merge commit is read back from the API. | `models/@thomas/forgejo/forgejo.yaml`, `extensions/models/forgejo_actions.ts`, `.forgejo/workflows/validate-attestation.yaml` |

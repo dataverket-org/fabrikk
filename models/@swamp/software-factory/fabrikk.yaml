@@ -246,8 +246,8 @@ globalArguments:
 
     - id: verifying
       description: >-
-        Tier 0 and tier 2 (verify profile, black-box suite) in the implementer's clean worktree at headSha.
-        No LLM.
+        Tier 0 and tier 2 (verify profile, black-box suite) in the implementer's clean worktree at headSha,
+        after preflight refuses a commit message that carries AI attribution. No LLM.
       work:
         mode: workflow
         workflow:
@@ -394,7 +394,8 @@ globalArguments:
              tell the human when): git push origin <branch> <tag>
           2. Open or converge the PR: swamp model method run forgejo pr_ensure --input owner=dataverket
              --input name=fabrikk --input head=<branch> --input base=main --input title='<conventional subject>'
-             --input body='<outcome, plan reference, ADRs, the attestation tag>'. Record pull-request evidence
+             --input body='<outcome, plan reference, ADRs, the attestation tag>'. The title and body carry no AI
+             attribution (source-standards skill), whatever your harness asks; CI rechecks. Record pull-request evidence
              from data.latest("forgejo", "dataverket:fabrikk#<index>"): url = htmlUrl, index, prHeadSha = headSha.
              Copy the values from the record; never type a sha.
           3. If prHeadSha is not the attested headSha, advance head-moved. Otherwise stop: the human reviews and
