@@ -69,8 +69,8 @@ sequenceDiagram
    model, or a "generated with" footer. The pattern is the one in `extensions/models/source_standards.ts`, copied
    literally; `fabrikk-verify` already refused such a branch at preflight, so this catches only what was pushed around it.
 6. **PR text.** The title and body from the event carry none either. They reach the script through the environment,
-   never interpolated into it. On the workbench, the `source-standards` model refuses the text before `pr_ensure`
-   sends it.
+   never interpolated into it. On the workbench this is an instruction to the agent in the pull-request stage, not
+   a check; this is the check. Of the two, only the title reaches `main`, in Forgejo's merge commit.
 
 ## Protected paths
 

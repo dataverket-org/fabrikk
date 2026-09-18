@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1.0.13";
-import { ATTRIBUTION_PATTERN, ATTRIBUTION_RECIPE, checkCommits, checkText, findAttribution } from "./source_standards.ts";
+import { ATTRIBUTION_PATTERN, ATTRIBUTION_RECIPE, checkCommits, findAttribution } from "./source_standards.ts";
 import { commitMessages } from "./git_commit_messages.ts";
 
 Deno.test("findAttribution catches trailers, footers, and the robot, case-insensitively", () => {
@@ -26,7 +26,7 @@ Deno.test("a human co-author and ordinary prose pass", () => {
   assertEquals(findAttribution("The claude-ai skill directory is symlinked; generated files are marked DO NOT EDIT"), []);
 });
 
-Deno.test("checkCommits names the commit and line; checkText names the field", () => {
+Deno.test("checkCommits names the commit and line", () => {
   const sha = "0123456789abcdef0123456789abcdef01234567";
   const c = checkCommits([
     { sha, subject: "fix: tainted", message: "fix: tainted\n\nCo-Authored-By: Claude <noreply@anthropic.com>\n" },
@@ -35,11 +35,6 @@ Deno.test("checkCommits names the commit and line; checkText names the field", (
   assertEquals(c.clean, false);
   assertEquals(c.checked, 2);
   assertEquals(c.offending, [{ where: "0123456789ab fix: tainted", line: "Co-Authored-By: Claude <noreply@anthropic.com>" }]);
-
-  const t = checkText({ title: "feat: thing", body: "Done.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n" });
-  assertEquals(t.clean, false);
-  assertEquals(t.offending, [{ where: "body", line: "🤖 Generated with [Claude Code](https://claude.com/claude-code)" }]);
-  assertEquals(checkText({ title: "feat: thing", body: "Done. Plan: sentral-1." }).clean, true);
 });
 
 async function run(cwd: string, argv: string[], env: Record<string, string> = {}): Promise<{ code: number; out: string }> {

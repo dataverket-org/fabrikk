@@ -3,7 +3,7 @@ typeVersion: 2026.09.18.1
 id: 7fe23865-35a6-4e0f-ab54-7aae81be19b6
 name: source-standards
 # The source-standards skill as checks over data: fabrikk-verify runs `commits` over the branch's commit messages
-# in preflight, before the suites; the pull-request stage runs `text` over the PR title and body before pr_ensure sends them.
+# in preflight, before the suites. The PR text is the agent's instruction and CI's check, not a method.
 # No external system, no credentials. This file is a protected path (models/).
 version: 1
 tags: {}

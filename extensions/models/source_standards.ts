@@ -1,9 +1,9 @@
 /**
  * The program's counterpart of the source-standards skill: the rules a commit
- * or a pull request text must meet before it is published as the author's.
- * Today one rule, AI attribution. Pure policy over data other models produced
- * (commit messages from `@swamp/git`, the PR text the agent is about to send);
- * every check is recorded before it fails, and CI reruns the same pattern
+ * message must meet before it is published as the author's. Today one rule,
+ * AI attribution. Pure policy over data another model produced (commit
+ * messages from `@swamp/git`); the check is recorded before it fails, and CI
+ * reruns the same pattern over the commits and the PR text
  * (`.forgejo/workflows/validate-attestation.yaml`, copied literally).
  *
  * @module
@@ -46,15 +46,10 @@ const CommitsArgs = z.object({
   ),
 });
 
-const TextArgs = z.object({
-  title: z.string().min(1).describe("The pull request title as it will be sent"),
-  body: z.string().default("").describe("The pull request body as it will be sent"),
-});
-
 const CheckSchema = z.object({
   rule: z.literal("no-ai-attribution"),
-  subject: z.enum(["commits", "text"]),
-  checked: z.number().int().nonnegative().describe("Commits, or text fields, examined"),
+  subject: z.literal("commits"),
+  checked: z.number().int().nonnegative().describe("Commits examined"),
   offending: z.array(z.object({ where: z.string(), line: z.string() })),
   clean: z.boolean(),
   checkedAt: z.iso.datetime(),
@@ -70,22 +65,6 @@ export function checkCommits(commits: z.infer<typeof CommitSchema>[]): Check {
     rule: "no-ai-attribution",
     subject: "commits",
     checked: commits.length,
-    offending,
-    clean: offending.length === 0,
-    checkedAt: new Date().toISOString(),
-  };
-}
-
-/** Pure: which of the title and body carry attribution. */
-export function checkText(a: z.infer<typeof TextArgs>): Check {
-  const offending = [
-    ...findAttribution(a.title).map((line) => ({ where: "title", line })),
-    ...findAttribution(a.body).map((line) => ({ where: "body", line })),
-  ];
-  return {
-    rule: "no-ai-attribution",
-    subject: "text",
-    checked: 2,
     offending,
     clean: offending.length === 0,
     checkedAt: new Date().toISOString(),
@@ -140,13 +119,6 @@ export const model = {
       arguments: CommitsArgs,
       execute: (args: z.infer<typeof CommitsArgs>, context: Ctx) =>
         record("commits", checkCommits(CommitsArgs.parse(args).commits), context),
-    },
-    text: {
-      description:
-        "Refuse a pull request title or body that carries AI attribution, before pr_ensure sends it. " +
-        "Records the check before failing.",
-      arguments: TextArgs,
-      execute: (args: z.infer<typeof TextArgs>, context: Ctx) => record("text", checkText(TextArgs.parse(args)), context),
     },
   },
 };
