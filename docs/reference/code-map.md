@@ -36,6 +36,7 @@ attestation checksums it ([explanation/attestation-and-trust.md](../explanation/
 | `.agents/skills/software-factory/references/examples/minimal.yaml`, `.agents/skills/software-factory/references/examples/feature-factory.yaml`, `.agents/skills/software-factory/references/examples/sdlc-classic.yaml`, `.agents/skills/software-factory/references/examples/retry-feedback.yaml` | Example definitions shipped with the pulled skill; `fabrikk.yaml` was seeded from them. | yes |
 | `.agents/skills/` | The skills directory, read by Codex, OpenCode, Copilot, Amp, Pi, and Antigravity: the rows above, one real copy each. | yes |
 | `.claude/skills/` | Claude Code's skills directory: one symlink per entry of `.agents/skills/`. | yes |
+| `.claude/settings.json` | Claude Code project settings: turns the harness's AI attribution off at the source (`attribution.commit` and `.pr` empty), so no trailer or footer is offered in the first place; the source-standards check remains the trust. | yes |
 | `AGENTS.md` | Repository rules for every agent: swamp's managed section (search before build, use swamp, "workflow" means a swamp workflow), the documentation pointer, skills and enrolled agents. | yes |
 | `CLAUDE.md` | `@AGENTS.md` plus what only Claude Code needs: its skills path, the generated local settings, how `dispatch` maps to subagents. | yes |
 | `.swamp.yaml` | swamp's repository marker: version, repo id, and the enrolled agent tools (`claude`, `codex`). Changed only by `swamp repo upgrade`. | no |
