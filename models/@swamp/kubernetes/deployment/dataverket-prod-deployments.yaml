@@ -1,0 +1,10 @@
+type: '@swamp/kubernetes/deployment'
+typeVersion: 2026.08.01.1
+id: f9930aae-30cf-4e8c-af95-743fb93c1f5a
+name: dataverket-prod-deployments
+version: 1
+tags: {}
+globalArguments:
+  namespace: forgejo-runners
+  context: dataverket-prod-admin
+methods: {}
