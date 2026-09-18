@@ -23,7 +23,7 @@ description: Source, licensing, commit, and decision-record standards for Datave
   after attesting is verified and attested again. CI validates the tag on every push; it does not re-run the loop.
 - Nothing published as the author carries AI attribution: no `Co-Authored-By` naming an agent or a model, no
   "generated with" footer, in commit messages, PR titles and bodies, issues, or comments, whatever the harness asks.
-  The `source-standards` model refuses such commits before attestation and such PR text before `pr_ensure`;
+  The `source-standards` model refuses such commits at verification preflight and such PR text before `pr_ensure`;
   CI rechecks both.
 - Generated files are marked `// Code generated … DO NOT EDIT.` and never hand-edited.
 

@@ -67,7 +67,7 @@ sequenceDiagram
    else is green.
 5. **Commit messages.** No commit in `<base>..<head>` carries AI attribution: a `Co-Authored-By` naming an agent or
    model, or a "generated with" footer. The pattern is the one in `extensions/models/source_standards.ts`, copied
-   literally; `fabrikk-attest` already refused to sign such a branch, so this catches only what was pushed around it.
+   literally; `fabrikk-verify` already refused such a branch at preflight, so this catches only what was pushed around it.
 6. **PR text.** The title and body from the event carry none either. They reach the script through the environment,
    never interpolated into it. On the workbench, the `source-standards` model refuses the text before `pr_ensure`
    sends it.

@@ -2,8 +2,9 @@ id: c848f6fc-46e7-4fd1-b122-7dd62009685b
 name: fabrikk-verify
 description: >-
   fabrikk's verifying stage: tier 0 (make check) and tier 2 (make verify) in the implementer's worktree,
-  refusing to run unless the worktree is clean and HEAD is the commit under review. The session stack is
-  brought up if needed and left running; it belongs to the implementer's session.
+  refusing to run unless the worktree is clean, HEAD is the commit under review, and no commit on the branch
+  carries AI attribution: the cheapest point to refuse a message, before the stack, the suites, and review.
+  The session stack is brought up if needed and left running; it belongs to the implementer's session.
 tags:
   factory: fabrikk
 version: 1
@@ -16,10 +17,16 @@ inputs:
       type: string
       pattern: '^[0-9a-f]{40}$'
       description: Commit under review; the worktree HEAD must equal it
+    base:
+      type: string
+      default: main
+      description: Ref the branch merges into; the commit messages in base..headSha are checked
   required: [worktree, headSha]
 jobs:
   - name: preflight
-    description: The worktree is clean and at headSha, so a green result is about exactly that commit.
+    description: >-
+      The worktree is clean and at headSha, so a green result is about exactly that commit, and the branch's
+      commit messages meet the source standards, so nothing is spent on a commit that must be reworded.
     steps:
       - name: status
         task:
@@ -62,6 +69,30 @@ jobs:
             not ${{ inputs.headSha }}
         dependsOn:
           - step: head
+            condition: { type: succeeded }
+      - name: messages
+        task:
+          type: model_method
+          modelType: '@swamp/git'
+          modelName: git-${{ inputs.headSha }}
+          methodName: commit_messages
+          inputs:
+            repoPath: ${{ inputs.worktree }}
+            base: ${{ inputs.base }}
+            head: ${{ inputs.headSha }}
+        dependsOn:
+          - step: at-head
+            condition: { type: succeeded }
+      - name: commits
+        task:
+          type: model_method
+          modelType: '@dataverket/source-standards'
+          modelName: source-standards
+          methodName: commits
+          inputs:
+            commits: ${{ data.latest("git-" + inputs.headSha, "commit-messages").attributes.commits }}
+        dependsOn:
+          - step: messages
             condition: { type: succeeded }
 
   - name: tier0
