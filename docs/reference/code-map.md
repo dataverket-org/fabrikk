@@ -21,6 +21,7 @@ attestation checksums it ([explanation/attestation-and-trust.md](../explanation/
 | `workflows/workflow-fabrikk-verify.yaml` | Verifying stage: clean worktree at `headSha`, session stack up, `make check` (tier 0), `make verify` (tier 2). | yes |
 | `workflows/workflow-fabrikk-attest.yaml` | Attesting stage: protected-paths digest and change list, record checks, signed tag `attestation/<headSha>`. | yes |
 | `workflows/workflow-fabrikk-release.yaml` | Releasing stage: waits for CI's candidate for the merge commit and verifies it. | yes |
+| `workflows/workflow-fabrikk-runner.yaml` | The release runner (label `fabrikk-release`, a Kata VM with docker-in-docker in `forgejo-runners`): registration token, secrets, volume, deployment, each step guarded by its record. Defined here only; Flux does not know it. | yes |
 | `agent-constraints/planning-conventions.md` | What a plan must contain. `constraints` of `planning`. | yes |
 | `agent-constraints/implementation-conventions.md` | Worktree, plan fidelity, tests, commits, what to record. `constraints` of `implementing`. | yes |
 | `agent-constraints/adversarial-dimensions.md` | What reviewers attack, with severities. `constraints` of both review stages. | yes |
@@ -73,7 +74,7 @@ TypeScript, one file per concern, each with a `_test.ts` next to it. Run the tes
 | `extensions/models/source_standards.ts` | `@dataverket/source-standards` | `commits`: the source-standards skill as a check over data (today: no AI attribution). Holds the pattern and the shell recipe CI copies literally; records the check before failing. | `fabrikk-verify`, `validate-attestation.yaml` |
 | `extensions/models/release_artifact.ts` | `@dataverket/release-artifact` | `verify`: signature (cosign), provenance, `release.json`, digest-pinned images, `:candidate` equals this digest. | `fabrikk-release` |
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos` | `sync`: clones or refreshes each listed repository into `_reference/`, records the commit. | humans and agents |
-| `extensions/models/forgejo_actions.ts` | extends `@thomas/forgejo` | `runner_list`, `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (to the vault), `repo_rename`, `pr_merge_state`. | forge setup, `pull-request` stage |
+| `extensions/models/forgejo_actions.ts` | extends `@thomas/forgejo` | `runner_list`, `runner_prune` (offline runners of one name), `tag_protection_ensure`, `actions_secret_put` (write-only), `runner_registration_token` (to the vault), `repo_rename`, `pr_merge_state`. | forge setup, `fabrikk-runner`, `pull-request` stage |
 | `extensions/models/flux_reset.ts` | extends `@ginger_pappa/flux/helmrelease` | `reset`: reconcile with `--reset` for a release stuck at `RetriesExceeded`. | cluster operations |
 | `extensions/models/registry_mirror.ts` | `@dataverket/registry-mirror` | `copy`: mirror an upstream image pinned by digest into `<registry>/mirror/<name>:<tag>` with the pinned `crane`; credential on stdin from the vault; unchanged if the digest is already there. | dev fragments, manifests |
 | `extensions/models/_lib/make.ts` | shared | Runs a make target with a timeout and captures the result. | `dev_environment.ts` |
@@ -90,6 +91,10 @@ Model definitions in `models/`, one YAML per instance. Credentials are vault ref
 | `omni` | `models/@mccormick/omni/inventory/omni.yaml` | `@mccormick/omni/inventory` | the Sidero Omni account (Talos fleet, read-only `discover`) | `omni/service_account_key` |
 | `runner-pods` | `models/@swamp/kubernetes/pod/runner-pods.yaml` | `@swamp/kubernetes/pod` | namespace `forgejo-runners` in `dataverket-prod`, kubeconfig context `fabrikk-readers` | kubeconfig |
 | `dataverket-prod-rbac` | `models/@swamp/kubernetes/rbac/dataverket-prod-rbac.yaml` | `@swamp/kubernetes/rbac` | same namespace, context `dataverket-prod-admin` | kubeconfig |
+| `dataverket-prod-pods` | `models/@swamp/kubernetes/pod/dataverket-prod-pods.yaml` | `@swamp/kubernetes/pod` | same namespace, context `dataverket-prod-admin`; `exec`, `create`, `delete` for runner diagnostics (exec into `dind` under Kata fails on cgroups; use `runner`) | kubeconfig |
+| `dataverket-prod-secrets` | `models/@swamp/kubernetes/secret/dataverket-prod-secrets.yaml` | `@swamp/kubernetes/secret` | same namespace, context `dataverket-prod-admin`; the release runner's init and config secrets | kubeconfig |
+| `dataverket-prod-pvcs` | `models/@swamp/kubernetes/pvc/dataverket-prod-pvcs.yaml` | `@swamp/kubernetes/pvc` | same namespace, context `dataverket-prod-admin`; the release runner's Cinder volume | kubeconfig |
+| `dataverket-prod-deployments` | `models/@swamp/kubernetes/deployment/dataverket-prod-deployments.yaml` | `@swamp/kubernetes/deployment` | same namespace, context `dataverket-prod-admin`; the release runner's deployment | kubeconfig |
 | `dataverket-prod-helm` | `models/@ginger_pappa/flux/helmrelease/dataverket-prod-helm.yaml` | `@ginger_pappa/flux/helmrelease` | Flux HelmReleases in `dataverket-prod`, context `dataverket-prod-admin`; needs `_bin` on `PATH` for `flux` | kubeconfig |
 | `references` | `models/@dataverket/reference-repos/references.yaml` | `@dataverket/reference-repos` | the reference-repository list | none |
 | `source-standards` | `models/@dataverket/source-standards/source-standards.yaml` | `@dataverket/source-standards` | nothing external: pure checks over data | none |
@@ -107,6 +112,7 @@ Workflows create their own per-commit instances on the fly (`git-<sha>`, `dev-en
 |---|---|
 | `forgejo/api_token` | the `forgejo` model |
 | `omni/service_account_key` | the `omni` model |
+| `thomas-forgejo-…-runnerRegistration-dataverket:fabrikk:runner-token` | the release runner's registration token, written by `runner_registration_token` (repo scope) and read by `fabrikk-runner` |
 | `registry/ci_username`, `registry/ci_password` | the `registry` model (mirroring), and copied to Actions secrets `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` for `release.yaml`; owned by the cluster repository |
 
 ## CI and release

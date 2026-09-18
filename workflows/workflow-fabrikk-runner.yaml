@@ -1,0 +1,267 @@
+id: 4ebc5d34-024b-4177-871c-ab1ae3806044
+name: fabrikk-runner
+description: >-
+  The release runner: a Forgejo Actions runner registered on dataverket/fabrikk with the label fabrikk-release, the
+  one .forgejo/workflows/release.yaml runs on. Defined here and nowhere else: this workflow creates the objects in
+  namespace forgejo-runners of dataverket-prod (context dataverket-prod-admin) and Flux does not know them. Every step
+  is guarded by its own record, so a re-run creates only what is missing; delete the record (swamp data delete) or the
+  object to make a step run again. The pod is a Kata VM (RuntimeClass kata) with docker-in-docker; virtiofsd gets
+  --xattr through the pod annotation, without which docker cannot pull images that carry file capabilities. Jobs run
+  in golang:1.25-bookworm, which has Go, git, bash, curl, tar, and sha256sum. The runner registers itself on first
+  start and keeps .runner on the same Cinder volume as docker's images, so a restart neither re-registers nor re-pulls.
+tags:
+  factory: fabrikk
+version: 1
+inputs:
+  properties:
+    owner:
+      type: string
+      default: dataverket
+    repo:
+      type: string
+      default: fabrikk
+    name:
+      type: string
+      default: fabrikk-release
+      description: Runner name in Forgejo and the prefix of every Kubernetes object
+    instance:
+      type: string
+      default: https://git.dataverket.org
+    jobImage:
+      type: string
+      default: docker.io/library/golang:1.25-bookworm
+      description: Image jobs with runs-on fabrikk-release execute in
+    storage:
+      type: string
+      default: 20Gi
+      description: Cinder volume for docker's images and the runner state
+jobs:
+  - name: runner
+    steps:
+      - name: registration-token
+        description: A repo-scoped registration token for dataverket/fabrikk, stored in the fabrikk vault. Fetched every run; the init secret keeps the one it was created with.
+        task:
+          type: model_method
+          modelIdOrName: forgejo
+          methodName: runner_registration_token
+          inputs:
+            owner: ${{ inputs.owner }}
+            repo: ${{ inputs.repo }}
+      - name: init-secret
+        description: What the runner registers with on first start; read by the pod as environment.
+        dependsOn:
+          - step: registration-token
+            condition:
+              type: succeeded
+        guard: ${{ data.latest("dataverket-prod-secrets", "fabrikk-release-runner-init").?attributes.?name.hasValue() }}
+        task:
+          type: model_method
+          modelIdOrName: dataverket-prod-secrets
+          methodName: create
+          inputs:
+            secretName: ${{ inputs.name }}-runner-init
+            data:
+              CONFIG_NAME: ${{ inputs.name }}
+              CONFIG_INSTANCE: ${{ inputs.instance }}
+              CONFIG_TOKEN: ${{ vault.get('fabrikk', 'thomas-forgejo-28a0e02d-d8a4-4a35-82cb-385d3ac2012b-runner_registration_token-runnerRegistration-dataverket:fabrikk:runner-token') }}
+      - name: config
+        description: The runner's config.yaml (forgejo-runner config.example.yaml), mounted at /etc/runner; the labels register from here.
+        guard: ${{ data.latest("dataverket-prod-secrets", "fabrikk-release-runner-config").?attributes.?name.hasValue() }}
+        task:
+          type: model_method
+          modelIdOrName: dataverket-prod-secrets
+          methodName: create
+          inputs:
+            secretName: ${{ inputs.name }}-runner-config
+            data:
+              config.yaml: |
+                log:
+                  level: info
+                  job_level: info
+                runner:
+                  file: .runner
+                  capacity: 1
+                  timeout: 3h
+                  fetch_timeout: 5s
+                  fetch_interval: 2s
+                  labels:
+                    - "${{ inputs.name }}:docker://${{ inputs.jobImage }}"
+                cache:
+                  enabled: false
+                container:
+                  network: ""
+                  privileged: false
+                  docker_host: "-"
+                  force_pull: false
+      - name: state
+        description: One Cinder volume; docker's images under docker/, the runner's .runner under runner/.
+        guard: ${{ data.latest("dataverket-prod-pvcs", "fabrikk-release-runner-state").?attributes.?name.hasValue() }}
+        task:
+          type: model_method
+          modelIdOrName: dataverket-prod-pvcs
+          methodName: create
+          inputs:
+            pvcName: ${{ inputs.name }}-runner-state
+            storageClassName: csi-cinder-sc-delete
+            storage: ${{ inputs.storage }}
+      - name: deployment
+        description: The runner pod, a Kata VM with docker-in-docker, one replica, recreated on change (the volume is RWO).
+        # A guarded step is skipped, so accept skipped; registration-token itself must have succeeded, or a
+        # dependency-skipped init-secret would let the deployment start without its secret.
+        dependsOn:
+          - step: registration-token
+            condition:
+              type: succeeded
+          - step: init-secret
+            condition:
+              type: or
+              conditions:
+                - type: succeeded
+                - type: skipped
+          - step: config
+            condition:
+              type: or
+              conditions:
+                - type: succeeded
+                - type: skipped
+          - step: state
+            condition:
+              type: or
+              conditions:
+                - type: succeeded
+                - type: skipped
+        guard: ${{ data.latest("dataverket-prod-deployments", "fabrikk-release-runner").?attributes.?name.hasValue() }}
+        task:
+          type: model_method
+          modelIdOrName: dataverket-prod-deployments
+          methodName: create
+          inputs:
+            deploymentName: ${{ inputs.name }}-runner
+            spec:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: ${{ inputs.name }}-runner
+                namespace: forgejo-runners
+                labels:
+                  app.kubernetes.io/name: forgejo-runner
+                  app.kubernetes.io/instance: ${{ inputs.name }}-runner
+                  app.kubernetes.io/managed-by: fabrikk
+              spec:
+                replicas: 1
+                strategy:
+                  type: Recreate
+                selector:
+                  matchLabels:
+                    app.kubernetes.io/name: forgejo-runner
+                    app.kubernetes.io/instance: ${{ inputs.name }}-runner
+                template:
+                  metadata:
+                    labels:
+                      app.kubernetes.io/name: forgejo-runner
+                      app.kubernetes.io/instance: ${{ inputs.name }}-runner
+                    annotations:
+                      # Appended to Talos's virtiofsd arguments; without --xattr, docker fails to
+                      # register image layers with file capabilities (verified 2026-09-18).
+                      io.katacontainers.config.hypervisor.virtio_fs_extra_args: '["--xattr"]'
+                  spec:
+                    runtimeClassName: kata
+                    automountServiceAccountToken: false
+                    initContainers:
+                      # The runner image runs as 1000:1000 and saves .runner where it registers; a
+                      # fresh volume is root's. Registering without being able to save leaves an
+                      # offline runner in Forgejo on every restart (runner_prune removes them).
+                      - name: own-state
+                        image: docker.io/library/docker:29.5.2-dind@sha256:6b9cd914eb9c6b342c040a49a27a5eb3804453bae6ecc90f7ff96133595a95e8
+                        command: [sh, -c, "mkdir -p /state/runner /state/docker && chown 1000:1000 /state/runner"]
+                        securityContext:
+                          runAsUser: 0
+                        volumeMounts:
+                          - name: state
+                            mountPath: /state
+                    containers:
+                      - name: runner
+                        image: code.forgejo.org/forgejo/runner:12.7.3@sha256:48b0539854bfc769fbf629725e089e35cfa1227ddedc7e45436b83bb9502ae27
+                        command:
+                          - sh
+                          - -c
+                          - |
+                            set -e
+                            cd /data
+                            if [ ! -f /data/.runner ]; then
+                              forgejo-runner register --no-interactive --config /etc/runner/config.yaml \
+                                --instance "$CONFIG_INSTANCE" --token "$CONFIG_TOKEN" --name "$CONFIG_NAME"
+                            fi
+                            while ! nc -z 127.0.0.1 2376 </dev/null; do echo 'waiting for docker daemon...'; sleep 5; done
+                            exec forgejo-runner --config /etc/runner/config.yaml daemon
+                        env:
+                          - name: DOCKER_HOST
+                            value: tcp://127.0.0.1:2376
+                          - name: DOCKER_CERT_PATH
+                            value: /certs/client
+                          - name: DOCKER_TLS_VERIFY
+                            value: "1"
+                        envFrom:
+                          - secretRef:
+                              name: ${{ inputs.name }}-runner-init
+                        resources:
+                          requests:
+                            cpu: 250m
+                            memory: 256Mi
+                        volumeMounts:
+                          - name: config
+                            mountPath: /etc/runner
+                          - name: certs
+                            mountPath: /certs
+                          - name: state
+                            mountPath: /data
+                            subPath: runner
+                      - name: dind
+                        image: docker.io/library/docker:29.5.2-dind@sha256:6b9cd914eb9c6b342c040a49a27a5eb3804453bae6ecc90f7ff96133595a95e8
+                        # vfs: overlay2 needs trusted.* xattrs virtiofsd cannot set on the host.
+                        args:
+                          - --storage-driver=vfs
+                        env:
+                          - name: DOCKER_TLS_CERTDIR
+                            value: /certs
+                        securityContext:
+                          privileged: true
+                        # Kata sizes the VM from limits: 1 + cpu vCPUs, 2Gi + memory.
+                        resources:
+                          requests:
+                            cpu: "1"
+                            memory: 2Gi
+                          limits:
+                            cpu: "1"
+                            memory: 4Gi
+                        volumeMounts:
+                          - name: certs
+                            mountPath: /certs
+                          - name: state
+                            mountPath: /var/lib/docker
+                            subPath: docker
+                    volumes:
+                      - name: certs
+                        emptyDir: {}
+                      - name: config
+                        secret:
+                          secretName: ${{ inputs.name }}-runner-config
+                      - name: state
+                        persistentVolumeClaim:
+                          claimName: ${{ inputs.name }}-runner-state
+      - name: runners
+        description: The runners dataverket/fabrikk can see, for the record; the new one shows up once its VM has booted and registered.
+        dependsOn:
+          - step: deployment
+            condition:
+              type: or
+              conditions:
+                - type: succeeded
+                - type: skipped
+        task:
+          type: model_method
+          modelIdOrName: forgejo
+          methodName: runner_list
+          inputs:
+            owner: ${{ inputs.owner }}
+            repo: ${{ inputs.repo }}

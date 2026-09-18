@@ -6,8 +6,10 @@
  * repository rename, and the merge state of a pull request (the merge commit,
  * which upstream's `pr_get` drops) for the factory's `merge` evidence.
  *
- * Same conventions as upstream: find-or-create, no delete methods, no secret
- * value is ever recorded or logged. The registration token is the one secret
+ * Same conventions as upstream: find-or-create, no secret value is ever
+ * recorded or logged. The one delete is `runner_prune`, which removes offline
+ * runners of a given name: a runner that registers and dies before it can save
+ * `.runner` leaves a record behind on every restart. The registration token is the one secret
  * this file produces; it is marked sensitive so swamp stores it in the vault
  * and records a reference, never the value.
  *
@@ -17,7 +19,7 @@ import { z } from "npm:zod@4";
 
 /** One REST request against `apiUrl`. */
 export interface ApiCall {
-  method: "GET" | "POST" | "PATCH" | "PUT";
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   path: string;
   body?: unknown;
 }
@@ -418,6 +420,47 @@ export async function prMergeState(
   };
 }
 
+// ─────────────────────────── runner prune ───────────────────────────
+
+const RunnerPruneArgs = z.object({
+  owner: z.string().min(1).describe("Org login (org scope) or repo owner."),
+  repo: z.string().min(1).optional().describe("Repository name for repo-scoped runners; omit for the org's."),
+  name: z.string().min(1).describe("Runner name whose offline registrations are deleted."),
+});
+
+const RunnerPruneInfo = z.object({
+  target: z.string(),
+  name: z.string(),
+  deleted: z.array(z.object({ id: z.number().int(), uuid: z.string() })),
+  kept: z.array(z.object({ id: z.number().int(), uuid: z.string(), status: z.string() })),
+  timestamp: z.string(),
+});
+
+/** Delete every offline runner called `name` at a scope; online, idle, and active ones are kept. */
+export async function runnerPrune(
+  api: Caller,
+  a: z.infer<typeof RunnerPruneArgs>,
+): Promise<z.infer<typeof RunnerPruneInfo>> {
+  const runners = (await runnerList(api, { owner: a.owner, repo: a.repo })).filter((r) => r.name === a.name);
+  const deleted: { id: number; uuid: string }[] = [];
+  const kept: { id: number; uuid: string; status: string }[] = [];
+  for (const r of runners) {
+    if (r.status !== "offline") {
+      kept.push({ id: r.id, uuid: r.uuid, status: r.status });
+      continue;
+    }
+    await call(api, { method: "DELETE", path: `${actionsPath(a.owner, a.repo)}/runners/${r.id}` });
+    deleted.push({ id: r.id, uuid: r.uuid });
+  }
+  return {
+    target: a.repo ? `${a.owner}/${a.repo}` : a.owner,
+    name: a.name,
+    deleted,
+    kept,
+    timestamp: new Date().toISOString(),
+  };
+}
+
 // ─────────────────────────── extension ───────────────────────────
 
 interface Ctx {
@@ -454,6 +497,12 @@ export const extension = {
       garbageCollection: 5,
       vaultName: "fabrikk",
     },
+    runnerPrune: {
+      description: "Offline runners of one name deleted at a scope, and the live ones kept.",
+      schema: RunnerPruneInfo,
+      lifetime: "infinite" as const,
+      garbageCollection: 20,
+    },
     runner: {
       description: "A registered Actions runner: name, online/offline status, labels, and scope.",
       schema: RunnerInfo,
@@ -486,13 +535,37 @@ export const extension = {
           count: runners.length,
           target: a.repo ? `${a.owner}/${a.repo}` : a.owner,
         });
+        // Several registrations can share a name (a runner that died before saving .runner
+        // re-registers on every restart); a duplicated name gets its id appended.
+        const dup = new Set(runners.map((r) => r.name).filter((n, i, all) => all.indexOf(n) !== i));
         const dataHandles = [];
         for (const r of runners) {
-          dataHandles.push(
-            await context.writeResource("runner", safeName(`${r.target}:runner:${r.name || r.id}`), r),
-          );
+          const key = !r.name ? String(r.id) : dup.has(r.name) ? `${r.name}:${r.id}` : r.name;
+          dataHandles.push(await context.writeResource("runner", safeName(`${r.target}:runner:${key}`), r));
         }
         return { dataHandles };
+      },
+    },
+    runner_prune: {
+      description:
+        "Delete every offline Actions runner with a given name at a repository or an organization (factory). " +
+        "Runners that are online, idle, or active are kept. One call handles all of them.",
+      arguments: RunnerPruneArgs,
+      execute: async (args: z.infer<typeof RunnerPruneArgs>, context: Ctx) => {
+        const a = RunnerPruneArgs.parse(args);
+        const info = await runnerPrune(fetchCaller(context.globalArgs, context.signal), a);
+        context.logger.info("Runner {name} at {target}: deleted {deleted} offline, kept {kept}", {
+          name: a.name,
+          target: info.target,
+          deleted: info.deleted.length,
+          kept: info.kept.length,
+        });
+        const handle = await context.writeResource(
+          "runnerPrune",
+          safeName(`${info.target}:runner-prune:${a.name}`),
+          info,
+        );
+        return { dataHandles: [handle] };
       },
     },
     tag_protection_ensure: {
