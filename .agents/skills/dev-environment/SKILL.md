@@ -13,6 +13,19 @@ machine should be a server, move the whole workbench — agent, code, and depend
 One `compose.yaml` at the repository root, shared by every product; profiles select what runs. Boot once per session;
 iterate with `go test` many times.
 
+Two stacks exist on a workbench, and the Makefile names them; a worktree never names its own:
+
+- **The shared stack** (`DEV_PROJECT`, compose project `dataverket`): tier 0 and 1. Every worktree on the machine joins
+  the same `nats` and `postgres` on fixed, well-known host ports. Tests isolate themselves by name (below). Two work
+  items in flight share it; a test that cannot share it embeds its own server.
+- **The verify stack** (`VERIFY_PROJECT`, compose project `verify-<commit>`): tier 2. The images built from one commit
+  under the `verify` profile, private to that commit and torn down when `make verify` ends. No service in it may
+  publish a fixed host port (leave the host side of `ports` empty, or `!reset` it in the verify profile); the suite asks
+  compose for the port. `make verify` refuses a profile that publishes one.
+
+Never shared between worktrees: a host port, an image tag (always the commit), the verify stack. Incus is one
+instance per workbench and cannot be duplicated; its isolation is the per-test Incus project, nothing else.
+
 | Profile | Services | Purpose |
 |---|---|---|
 | *(default)* | `nats` (JetStream on), `postgres` | Tier 0 and 1. Rootless, seconds to boot. |
@@ -28,10 +41,10 @@ Zitadel may exist for interactive exploration; **no test may talk to it.**
 ```
 make dev.up [PROFILE=objekt]   compose up --wait for the profile; fails if not healthy
 make dev.down                  stop, keep volumes
-make dev.reset [PROFILE=...]   run every fragment's reset script; wipe volumes if asked
+make dev.reset [PROFILE=...]   run every fragment's reset script; WIPE=1 also removes volumes
 make run                       start services as plain processes against the stack, seeded
-make check                     gofmt, go vet, golangci-lint, go test ./...   (tier 0)
-make verify                    build images with ko, up `verify`, run contract + black-box suites (tier 2)
+make check                     docs-check, gofmt, go vet, go test per module in go.work; golangci-lint joins with the first product (tier 0)
+make verify                    ko images tagged by commit, up the private `verify` stack, contract + black-box suites, teardown (tier 2)
 ```
 
 ## Downstream fragment contract
@@ -103,6 +116,12 @@ attestation, CI validation, release).
 
 ## Workbench
 
-The workbench (laptop, VM, or an IncusOS container) is defined as code — a bootstrap script or Nix flake pinning Go,
-podman, `ko`, `flux`, `cosign`, `crane`, and the compose file. Every workbench is identical; parallel work items run in
-worktrees on one workbench or on separate workbenches, never against shared remote dependencies.
+The workbench is the one machine that holds the agent, the code, the session stack, and swamp
+(`docs/explanation/how-fabrikk-works.md`, "The workbench"). Rules that follow from it:
+
+- One main checkout, one worktree per work item, one shared session stack, one private verify stack per commit.
+  A worktree never names its own stack; the Makefile does.
+- Never split one loop across a network: dependencies run on the workbench, never on a shared remote.
+- Every workbench is identical, defined as code; until a bootstrap script or Nix flake exists, the workstation guide is
+  that definition. Nothing in the repository names a home directory or a workbench.
+- A workbench never builds what ships; `make release` runs on CI only (delivery skill).

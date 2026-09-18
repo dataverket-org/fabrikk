@@ -87,5 +87,17 @@
     "checksum": "9b9f075b33170d3742d6228faea36e00330cc0914abb20b18c531d743ebc3c37",
     "filesChecksum": "4f3b4739e792b5801794f25cea836976d23a09b3d4e3371258beefa428d4e3fe",
     "serverUrl": "https://swamp-club.com"
+  },
+  "@rjeschmi/helm-chart": {
+    "version": "2026.03.03.1",
+    "pulledAt": "2026-09-18T07:46:25.244Z",
+    "files": [
+      ".swamp/bundles/bab6d1ce/helm_chart.js",
+      ".swamp/pulled-extensions/@rjeschmi/helm-chart/manifest.yaml",
+      ".swamp/pulled-extensions/@rjeschmi/helm-chart/models/helm_chart.ts"
+    ],
+    "checksum": "98abd9d436f360dd7816183707f629ad866b6182eb48285a3657776f828a564f",
+    "filesChecksum": "e4368678a26eac9ac979fc52f1b9fc0f99e49183434b6fd5c216038b1ff09c6b",
+    "serverUrl": "https://swamp-club.com"
   }
 }

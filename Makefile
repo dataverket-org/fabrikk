@@ -1,5 +1,6 @@
 # fabrikk monorepo. Protected path: verification and release run these targets.
-# Dev-environment targets (dev.up, check, verify, ...) arrive with the first product; see the dev-environment skill.
+# Dev-environment targets need compose.yaml and the products' suites, which arrive with the first product; the stack
+# naming they enforce is decided here (dev-environment skill, "Session stack").
 
 SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
@@ -31,7 +32,7 @@ PLATFORM := $(shell go env GOOS)_$(shell go env GOARCH)
 LOCAL_TOOLS        := docs-check
 LOCAL_TOOL_SOURCES := tools/go.mod tools/go.sum $(shell find tools -type f -name '*.go')
 
-.PHONY: help tools release docs-check
+.PHONY: help tools release docs-check dev.up dev.down dev.reset check verify
 
 help:
 	@grep -E '^[a-z.-]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
@@ -60,6 +61,67 @@ $(addprefix $(BIN)/,$(LOCAL_TOOLS)): $(BIN)/%: $(LOCAL_TOOL_SOURCES)
 
 docs-check: $(BIN)/docs-check ## Check docs/ against docs/schema.yaml (tools/cmd/docs-check)
 	@"$(BIN)/docs-check" -config docs/schema.yaml
+
+# --- Dev environment: one shared session stack per workbench, one private verify stack per commit ------------------
+#
+# Compose names a project after the directory it runs from, so two worktrees would start two stacks and collide on
+# host ports. Instead the project name is fixed here and never derived from the worktree:
+#   DEV_PROJECT    tier 0 and 1: every worktree on this machine joins the same nats and postgres; tests isolate
+#                  themselves by name (dev-environment skill). Fixed, well-known host ports.
+#   VERIFY_PROJECT tier 2: the images built from this commit under the verify profile, private to the commit, torn
+#                  down when done. Nothing in it may publish a fixed host port; the suite asks compose for the port.
+
+COMPOSE        ?= $(if $(shell command -v podman 2>/dev/null),podman compose,docker compose)
+COMPOSE_FILE   ?= compose.yaml
+PROFILE        ?= default
+PROFILE_FLAG    = $(if $(filter default,$(PROFILE)),,--profile $(PROFILE))
+DEV_PROJECT    := dataverket
+VERIFY_PROJECT  = verify-$(shell git rev-parse --short=12 HEAD)
+COMMIT          = $(shell git rev-parse HEAD)
+WIPE           ?=
+VERIFY_SUITE   ?= go test -count=1 -tags verify ./...
+# go.work has no root module, so ./... from the root matches nothing; every Go target iterates the modules it lists.
+MODULES         = $(shell go list -m -f '{{.Dir}}')
+PRODUCTS        = $(filter-out tools,$(notdir $(MODULES)))
+
+define need_compose
+	[ -f "$(COMPOSE_FILE)" ] || { echo "$(COMPOSE_FILE) is missing: the session stack arrives with the first product (dev-environment skill)" >&2; exit 1; }
+endef
+
+dev.up: ## [PROFILE=objekt|maskin] Start the shared session stack for this workbench and wait until healthy
+	@$(need_compose)
+	$(COMPOSE) -p $(DEV_PROJECT) -f $(COMPOSE_FILE) $(PROFILE_FLAG) up --wait
+
+dev.down: ## Stop the shared session stack, keep volumes
+	@$(need_compose)
+	$(COMPOSE) -p $(DEV_PROJECT) -f $(COMPOSE_FILE) --profile '*' down
+
+dev.reset: ## [PROFILE=...] [WIPE=1] Run every fragment's reset script; WIPE=1 also removes volumes
+	@$(need_compose)
+	for r in deploy/dev/*/reset.sh; do if [ -x "$$r" ]; then echo "reset: $$r"; "$$r"; fi; done
+	[ -z "$(WIPE)" ] || $(COMPOSE) -p $(DEV_PROJECT) -f $(COMPOSE_FILE) --profile '*' down --volumes
+
+check: docs-check ## Tier 0: docs-check, gofmt, go vet, go test over every module in go.work (golangci-lint joins with the first product)
+	@unformatted=$$(gofmt -l $(MODULES) </dev/null)
+	[ -z "$$unformatted" ] || { echo "gofmt:"; echo "$$unformatted"; exit 1; }
+	for m in $(MODULES); do go -C "$$m" vet ./... && go -C "$$m" test ./...; done
+
+verify: ## Tier 2: ko images for this commit, private verify stack, contract and black-box suites from outside, teardown
+	@$(need_compose)
+	[ -z "$$(git status --porcelain)" ] || { echo "verify needs a clean tree: the result is pinned to $(COMMIT)" >&2; exit 1; }
+	# No service in the verify stack may publish a fixed host port, or two commits verifying at once collide.
+	cfg=$$(mktemp); trap 'rm -f "$$cfg"' EXIT
+	$(COMPOSE) -p $(VERIFY_PROJECT) -f $(COMPOSE_FILE) --profile verify config > "$$cfg"
+	if grep -qE '^\s+(- )?published:' "$$cfg"; then
+	  echo "verify profile publishes fixed host ports; leave the host side empty so compose picks one" >&2; exit 1
+	fi
+	trap 'rm -f "$$cfg"; $(COMPOSE) -p $(VERIFY_PROJECT) -f $(COMPOSE_FILE) --profile verify down --volumes --remove-orphans' EXIT
+	for p in $(PRODUCTS); do
+	  [ -d "$$p/deploy/base" ] || continue
+	  (cd "$$p" && KO_DOCKER_REPO=ko.local ko build --local --bare --tags="$(COMMIT)" ./cmd/... >/dev/null)
+	done
+	COMMIT=$(COMMIT) $(COMPOSE) -p $(VERIFY_PROJECT) -f $(COMPOSE_FILE) --profile verify up --wait
+	COMPOSE_PROJECT_NAME=$(VERIFY_PROJECT) $(VERIFY_SUITE)
 
 # --- Release: run by CI on shared infrastructure after merge, never on a workbench (delivery skill) -----------------
 
