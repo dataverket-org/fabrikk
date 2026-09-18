@@ -6,6 +6,7 @@ import {
   type Caller,
   repoRename,
   runnerList,
+  runnerPrune,
   runnerRegistrationToken,
   tagProtectionEnsure,
 } from "./forgejo_actions.ts";
@@ -284,4 +285,31 @@ Deno.test("prMergeState refuses a merged PR that reports no merge commit", async
     Error,
     "reports no merge commit",
   );
+});
+
+Deno.test("runnerPrune deletes only offline runners of the given name", async () => {
+  const runner = (id: number, name: string, status: string) => ({
+    id,
+    uuid: `u${id}`,
+    name,
+    status,
+    labels: ["fabrikk-release"],
+    ephemeral: false,
+    version: "12.7.3",
+    owner_id: 0,
+    repo_id: 9,
+  });
+  const R = "/api/v1/repos/dataverket/fabrikk/actions/runners";
+  const { api, calls } = fakeApi({
+    [`GET ${R}?visible=true&limit=100`]: {
+      status: 200,
+      body: [runner(1, "fabrikk-release", "offline"), runner(2, "fabrikk-release", "idle"), runner(3, "other", "offline"), runner(4, "fabrikk-release", "offline")],
+    },
+    [`DELETE ${R}/1`]: { status: 204 },
+    [`DELETE ${R}/4`]: { status: 204 },
+  });
+  const info = await runnerPrune(api, { owner: "dataverket", repo: "fabrikk", name: "fabrikk-release" });
+  assertEquals(info.deleted.map((d) => d.id), [1, 4]);
+  assertEquals(info.kept, [{ id: 2, uuid: "u2", status: "idle" }]);
+  assertEquals(calls.filter((c) => c.method === "DELETE").map((c) => c.path), [`${R}/1`, `${R}/4`]);
 });

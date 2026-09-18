@@ -1,0 +1,10 @@
+type: '@swamp/kubernetes/pod'
+typeVersion: 2026.08.01.1
+id: 730d6adb-e107-4f22-aa98-c39e5da6ac70
+name: dataverket-prod-pods
+version: 1
+tags: {}
+globalArguments:
+  namespace: forgejo-runners
+  context: dataverket-prod-admin
+methods: {}
