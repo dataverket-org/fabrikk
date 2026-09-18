@@ -57,9 +57,10 @@ swamp model method run fabrikk describe                                # the mac
 swamp model method run fabrikk status --input workItem=<ref>           # what a run needs next
 ```
 
-[Set up a workstation](docs/guides/set-up-a-workstation.md) first. Every protected path (skills, constraints, the
-definition, workflows, extensions, `tools/`, `.forgejo/`, `Makefile`, `docs/decisions/`, `docs/schema.yaml`) needs a human in Forgejo, and the
-attestation checksums them.
+[Set up a workstation](docs/guides/set-up-a-workstation.md) first. Every protected path (skills, constraints, the agent
+instructions, the definition, workflows, extensions, `tools/`, `.forgejo/`, `Makefile`, `docs/decisions/`, `docs/schema.yaml`) needs a human in
+Forgejo, and the attestation checksums them. Any coding agent enrolled in `.swamp.yaml` can drive it (Claude Code
+and Codex today): the rules are in `AGENTS.md`, the skills in `.agents/skills/`, symlinked into `.claude/skills/`.
 
 ## Deliberately not in this set (not settled yet)
 
@@ -77,7 +78,9 @@ Compared with swamp's own factory (`_reference/swamp`, `.github/workflows/ci.yml
 after the changes of 2026-09-17 the forge is wired in: CI validates the attestation tag and the `pull-request` stage
 reads the forge's API. What swamp has that fabrikk still lacks is CI-side LLM review (an adversarial review of core
 source, a security review of `.forgejo/` changes, a review-integrity check on trust-root changes) and auto-merge;
-fabrikk keeps the human merge by design and the other three are listed below. In order:
+fabrikk keeps the human merge by design and the other three are listed below. Since 2026-09-18 the repository is
+also laid out for more than one agent the way swamp's is: `AGENTS.md` carries the rules, `CLAUDE.md` imports it,
+and `.agents/skills/` and `.claude/skills/` point at the same skills. In order:
 
 1. **Stand up the forge and put the repos on it.** Done on `git.dataverket.org` through the `forgejo` model
    (`@thomas/forgejo` plus `extensions/models/forgejo_actions.ts`, token in the `fabrikk` vault): `dataverket/fabrikk`

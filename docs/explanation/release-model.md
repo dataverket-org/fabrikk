@@ -12,7 +12,7 @@ weight: 30
 
 Git is where releases are authored. The registry is where they travel. The candidate is built once, by CI on shared
 infrastructure, after the merge. UAT tests that digest and promotion retags it. Nothing after UAT rebuilds, and a
-workbench never builds what ships. The delivery skill (`skills/delivery/SKILL.md`) is the rule; this page is the
+workbench never builds what ships. The delivery skill (`.agents/skills/delivery/SKILL.md`) is the rule; this page is the
 mechanism.
 
 ## From merge to candidate

@@ -20,7 +20,10 @@ swamp --version
 ```
 
 Also: git 2.36 or newer, Go 1.25 or newer, `jq`, `sops` 3.x, `age` with `age-plugin-yubikey`, and Podman or Docker
-with compose for the session stack. Claude Code is the driving agent; it loads the skills from `.claude/skills/`.
+with compose for the session stack. The driving agent is any coding tool enrolled in `.swamp.yaml`, Claude Code or
+Codex today; the skills live in `.agents/skills/` and `.claude/skills/` symlinks to them, and the rules are in
+`AGENTS.md`. Enrol another with `swamp repo upgrade --tool <tool>`, repeating the flag for every tool to keep; if the
+tool reads a directory other than `.agents/skills/`, symlink it the way `.claude/skills/` is.
 
 ## 2. Clone and initialise
 

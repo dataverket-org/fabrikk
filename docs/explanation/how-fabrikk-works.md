@@ -3,7 +3,7 @@ title: "How fabrikk works"
 type: explanation
 project: fabrikk
 audience: everyone
-last-verified: 2026-09-17 @ 7b38cae
+last-verified: 2026-09-18 @ a44c475
 description: "The actors, the loop, what each stage does and where its code is."
 weight: 10
 ---
@@ -24,7 +24,7 @@ Four things act, and each has a boundary it cannot cross.
 ```mermaid
 flowchart LR
   H[Human<br/>approves the plan<br/>merges the PR<br/>touches the key]
-  A[Driving agent<br/>Claude Code + skills<br/>does or dispatches the work<br/>asks the factory what is next]
+  A[Driving agent<br/>coding agent + skills<br/>does or dispatches the work<br/>asks the factory what is next]
   S[(swamp<br/>fabrikk model + workflows<br/>run data, gates, vault)]
   F[Forge + CI<br/>git.dataverket.org<br/>validates the tag<br/>builds the release]
   H -- "outcome, approvals" --> A
@@ -37,7 +37,8 @@ flowchart LR
 
 - **The human** writes the outcome, approves the plan, and merges the pull request. Those are the only two approvals in
   the loop. Their YubiKey signs every commit and the attestation tag, so nothing gets signed without a touch.
-- **The driving agent** is a Claude Code session with the `software-factory` skill and the fabrikk skills loaded. It
+- **The driving agent** is a session of any enrolled coding tool (Claude Code or Codex today, `.swamp.yaml` lists
+  them) with the `software-factory` skill and the fabrikk skills loaded. It
   executes whatever the current stage's `work` block says: do it itself (`interactive`), spawn one reviewer per skill
   (`dispatch`), or trigger a swamp workflow (`workflow`). It records what it produced through the model and asks again.
 - **swamp** holds the factory definition, runs the workflows, validates every artifact against its schema, evaluates the
@@ -95,7 +96,7 @@ The agent never satisfies those on its own.
 
 | Stage | Who | What happens | Code |
 |---|---|---|---|
-| `planning` | agent | Turns the outcome into a plan with the sections `planning-conventions.md` requires; recorded as the `plan` artifact, validated against its schema. | `agent-constraints/planning-conventions.md`, `skills/*` |
+| `planning` | agent | Turns the outcome into a plan with the sections `planning-conventions.md` requires; recorded as the `plan` artifact, validated against its schema. | `agent-constraints/planning-conventions.md`, `.agents/skills/*` |
 | `plan-review` | one subagent per skill | Attacks the plan along `adversarial-dimensions.md`; findings recorded as `plan-review`. Critical or high findings send it back. Then the human approves. | `agent-constraints/adversarial-dimensions.md`, the `systemPrompt` in the definition |
 | `implementing` | agent | Implements the plan in a worktree, tier 0 green, commits signed. Records `change-summary` (files, LOC, ADRs) and `change` evidence (worktree, branch, headSha). | `agent-constraints/implementation-conventions.md` |
 | `verifying` | swamp workflow | In that worktree, refuses a dirty tree or a moved HEAD, then `make check` (tier 0) and `make verify` (tier 2). Results are pinned to headSha. No LLM. | `workflows/workflow-fabrikk-verify.yaml`, `extensions/models/dev_environment.ts`, `Makefile` |
@@ -117,7 +118,7 @@ needs a human in Forgejo, and the attestation carries a checksum of them.
 ```mermaid
 flowchart LR
   subgraph steering [Protected steering files]
-    SK[skills/<br/>architecture + 5 adversaries<br/>dev-environment, delivery]
+    SK[.agents/skills/<br/>architecture + 5 adversaries<br/>dev-environment, delivery]
     AC[agent-constraints/<br/>planning, implementation,<br/>adversarial dimensions]
     DEF[fabrikk.yaml<br/>stages, schemas, gates,<br/>review prompts]
     WF[workflows/ + extensions/<br/>verify, attest, release]
@@ -129,7 +130,8 @@ flowchart LR
   A <--> S
 ```
 
-- `skills/` are symlinked into `.claude/skills/` so Claude Code loads them by name. Stage `work` blocks list which
+- Skills live in `.agents/skills/`, symlinked into `.claude/skills/`, so every enrolled agent loads them by name,
+  and `AGENTS.md` (imported by `CLAUDE.md`) carries the repository rules once. Stage `work` blocks list which
   skills apply. The architecture skill is used everywhere: one pattern, its vocabulary, and small Go examples from an
   unrelated domain (bike rental) so the agent copies the shape and not the domain. Each adversary is used twice, on the
   plan and on the code.

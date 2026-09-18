@@ -7,7 +7,7 @@ weight: 50
 
 # Architecture decision records
 
-ADRs for fabrikk and the products it builds. The source-standards skill (`skills/adversary-source-standards/SKILL.md`)
+ADRs for fabrikk and the products it builds. The source-standards skill (`.agents/skills/adversary-source-standards/SKILL.md`)
 says when one is required in product code: a new subject namespace, a new CloudEvents type family, a new Go module
 dependency, a new downstream port or compose fragment, a new tunable field in an environment overlay, or a change to
 a budget in an adversary skill. No ADR, no approval. The factory's own machinery (`tools/`, `extensions/`,
@@ -49,4 +49,4 @@ added to its allowlist (`builder-hugo`, `config/smadr-validator.yaml`).
 
 ## Index
 
-None yet.
+- [0001: Service naming](0001-service-naming.md), accepted

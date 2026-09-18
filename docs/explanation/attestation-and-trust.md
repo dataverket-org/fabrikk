@@ -3,7 +3,7 @@ title: "Attestation and trust"
 type: explanation
 project: fabrikk
 audience: operator, contributor
-last-verified: 2026-09-17 @ 7b38cae
+last-verified: 2026-09-18 @ a44c475
 description: "What the signed attestation tag proves, what CI checks, and what it cannot."
 weight: 20
 ---
@@ -71,7 +71,7 @@ regardless of who authored the change. The list lives in three places that must 
 (the rule), the `paths` default of `workflows/workflow-fabrikk-attest.yaml` (what gets digested), and Forgejo's
 branch protection (the enforcement, once `validate-attestation` is a required check).
 
-`skills/`, `agent-constraints/`, `CLAUDE.md`, `.claude/`, `models/` (the factory definition and model instances),
+`.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `models/` (the factory definition and model instances),
 `workflows/`, `extensions/`, `tools/`, `docs/decisions/`, `docs/schema.yaml`, `Makefile`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
 
 `Makefile`, `tools/`, `compose.yaml`, and `deploy/dev/` are protected because verification runs them from the branch

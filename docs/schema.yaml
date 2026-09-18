@@ -14,6 +14,7 @@ folders:                    # the closed list: folder -> the type every page in 
 
 files:                      # the only non-Markdown files allowed under docs/
   - schema.yaml
+  - LICENSE                 # CC-BY-SA-4.0; documentation carries its own licence (source-standards skill)
 
 index: README.md            # every page is linked from this file (relative to docs/) or from its folder's README.md
 
@@ -47,4 +48,4 @@ adr_sections: [Status, Context, Decision, Consequences, Decision Outcome, Audit]
 adr_filename: '^[0-9]{4}-[a-z0-9][a-z0-9-]*\.md$'     # NNNN-short-title.md; `related` entries must exist
 
 code_map: reference/code-map.md   # relative to docs/
-mapped_paths: [models, workflows, extensions, skills, agent-constraints, tools, .forgejo]   # every tracked path appears there
+mapped_paths: [models, workflows, extensions, .agents, agent-constraints, tools, .forgejo]   # every tracked path appears there

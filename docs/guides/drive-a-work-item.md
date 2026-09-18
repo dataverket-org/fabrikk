@@ -9,8 +9,8 @@ weight: 20
 
 # Drive a work item
 
-How to take one work item through the factory, from the operator's side. The driving agent (Claude Code with the
-`software-factory` skill, which says the same loop in the agent's terms) does most of this; the human's part is the
+How to take one work item through the factory, from the operator's side. The driving agent (any enrolled coding tool with
+the `software-factory` skill, which says the same loop in the agent's terms) does most of this; the human's part is the
 outcome, two approvals, the YubiKey, and the merge. Everything below is the
 same loop, stage after stage: ask `status`, dispatch, do the work, record, ask again.
 
