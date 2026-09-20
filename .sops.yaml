@@ -4,8 +4,10 @@
 #
 # - age1yubikey1...  beddari, YubiKey serial 19668198 (PIN once, touch always)
 # - age15d64...      fabrikk, soft key at ~/.config/sops/age/fabrikk.txt on the factory host; decrypts unattended
+# - age1yubikey1qwt.. Linus Johansen, YubiKey; since 2026-09-20
 creation_rules:
   - path_regex: vaults/.*\.enc\.json(\.plain\.tmp)?$
     age: >-
       age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,
-      age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v
+      age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v,
+      age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
