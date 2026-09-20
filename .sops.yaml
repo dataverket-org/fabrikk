@@ -1,6 +1,7 @@
 # SOPS recipients for files humans and the factory both read. Public keys only; safe to commit.
-# The swamp vault (vaults/@zocc/sops-age/) carries the same list in agePublicKey and ignores this file;
-# this file makes `sops vaults/forgejo.enc.json` from a terminal encrypt to the same recipients.
+# The swamp vault (vaults/fabrikk/<key>.enc.json, one file per secret, @dataverket/sops) carries the same list in
+# agePublicKey under vaults/@dataverket/sops/ and ignores this file; this file makes `sops vaults/fabrikk/...` from
+# a terminal encrypt to the same recipients.
 #
 # - age1yubikey1...  beddari, YubiKey serial 19668198 (PIN once, touch always)
 # - age15d64...      fabrikk, soft key at ~/.config/sops/age/fabrikk.txt on the factory host; decrypts unattended
