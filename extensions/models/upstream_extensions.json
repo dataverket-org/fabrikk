@@ -60,20 +60,6 @@
     "filesChecksum": "833f5702017eae11d9aee0571f8a4d4fb8d5b7bd668365676fd71458d4f73ffe",
     "serverUrl": "https://swamp-club.com"
   },
-  "@zocc/sops-age": {
-    "version": "2026.05.22.1",
-    "pulledAt": "2026-09-17T11:04:36.831Z",
-    "files": [
-      ".swamp/pulled-extensions/@zocc/sops-age/files/LICENSE.txt",
-      ".swamp/pulled-extensions/@zocc/sops-age/files/README.md",
-      ".swamp/pulled-extensions/@zocc/sops-age/manifest.yaml",
-      ".swamp/pulled-extensions/@zocc/sops-age/vaults/sops_age/mod.ts",
-      ".swamp/vault-bundles/90ed82fd/sops_age/mod.js"
-    ],
-    "checksum": "36ea5fa1d4f424fcf5d3eec2cb8895764b0db36397b8caaf9d5bdfdc3c92b19c",
-    "filesChecksum": "7ef55be2884bef880294aecaccb6b07ddd9afb91f484428c8bf0f9a6a0881b9a",
-    "serverUrl": "https://swamp-club.com"
-  },
   "@thomas/zitadel": {
     "version": "2026.06.24.1",
     "pulledAt": "2026-09-17T13:34:00.142Z",
@@ -98,6 +84,22 @@
     ],
     "checksum": "98abd9d436f360dd7816183707f629ad866b6182eb48285a3657776f828a564f",
     "filesChecksum": "e4368678a26eac9ac979fc52f1b9fc0f99e49183434b6fd5c216038b1ff09c6b",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@dataverket/sops": {
+    "version": "2026.09.20.2",
+    "pulledAt": "2026-09-20T17:29:19.049Z",
+    "files": [
+      ".swamp/pulled-extensions/@dataverket/sops/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/sops/files/NOTICE.md",
+      ".swamp/pulled-extensions/@dataverket/sops/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/sops/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/sops/vaults/files.ts",
+      ".swamp/pulled-extensions/@dataverket/sops/vaults/sops.ts",
+      ".swamp/vault-bundles/443ea5fd/files.js"
+    ],
+    "checksum": "dcb6cae7218e02f35e5a89b7422e06f15b60a569688f8f25018dfd77b361d95e",
+    "filesChecksum": "ab78af3cfbfbcabf7be4ed573863616c508b5ba8a33c52977ea0fbcaa5d11ae4",
     "serverUrl": "https://swamp-club.com"
   }
 }
