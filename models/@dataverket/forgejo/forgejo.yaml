@@ -1,5 +1,5 @@
-type: '@thomas/forgejo'
-typeVersion: 2026.09.04.2
+type: '@dataverket/forgejo'
+typeVersion: 2026.10.05.4
 id: 28a0e02d-d8a4-4a35-82cb-385d3ac2012b
 name: forgejo
 version: 1

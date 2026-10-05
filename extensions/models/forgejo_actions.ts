@@ -1,5 +1,5 @@
 /**
- * Adds to `@thomas/forgejo` what the factory needs that the upstream model
+ * Adds to `@dataverket/forgejo` what the factory needs that the upstream model
  * does not cover: a tag protection rule (who may push `attestation/*`, the
  * forge-side half of `.forgejo/attesters`) and the merge state of a pull
  * request (the merge commit, which upstream's `pr_get` drops) for the
@@ -257,9 +257,9 @@ interface Ctx {
   ) => Promise<{ name: string }>;
 }
 
-/** Extension adding tag protection and merge state to @thomas/forgejo. */
+/** Extension adding tag protection and merge state to @dataverket/forgejo. */
 export const extension = {
-  type: "@thomas/forgejo",
+  type: "@dataverket/forgejo",
   resources: {
     tagProtection: {
       description:
