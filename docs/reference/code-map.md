@@ -73,7 +73,7 @@ TypeScript, one file per concern, each with a `_test.ts` next to it. Run the tes
 | `extensions/models/source_standards.ts` | `@dataverket/source-standards` | `commits`: the source-standards skill as a check over data (today: no AI attribution). Holds the pattern and the shell recipe CI copies literally; records the check before failing. | `fabrikk-verify`, `validate-attestation.yaml` |
 | `extensions/models/release_artifact.ts` | `@dataverket/release-artifact` | `verify`: signature (cosign), provenance, `release.json`, digest-pinned images, `:candidate` equals this digest. | `fabrikk-release` |
 | `extensions/models/reference_repos.ts` | `@dataverket/reference-repos` | `sync`: clones or refreshes each listed repository into `_reference/`, records the commit. | humans and agents |
-| `extensions/models/forgejo_actions.ts` | extends `@thomas/forgejo` | `tag_protection_ensure` (who may push `attestation/*`; the forge-side half of `.forgejo/attesters`), `pr_merge_state` (the merge commit for `merge` evidence). Forge operations beyond this repository live in fabrikk-infra's swamp. | attester setup, `pull-request` stage |
+| `extensions/models/forgejo_actions.ts` | extends `@dataverket/forgejo` | `tag_protection_ensure` (who may push `attestation/*`; the forge-side half of `.forgejo/attesters`), `pr_merge_state` (the merge commit for `merge` evidence). Forge operations beyond this repository live in fabrikk-infra's swamp. | attester setup, `pull-request` stage |
 | `extensions/models/_lib/make.ts` | shared | Runs a make target with a timeout and captures the result. | `dev_environment.ts` |
 | `extensions/models/upstream_extensions.json` | manifest | The pulled extensions and their pinned versions (swamp-managed). | swamp |
 
@@ -87,7 +87,7 @@ cluster, the Talos fleet, or the registry's push side live in fabrikk-infra's sw
 | Instance | Definition | Type | Points at | Credential |
 |---|---|---|---|---|
 | `fabrikk` | `models/@swamp/software-factory/fabrikk.yaml` | `@swamp/software-factory` | the factory itself | none |
-| `forgejo` | `models/@thomas/forgejo/forgejo.yaml` | `@thomas/forgejo` | `https://git.dataverket.org` | `forgejo/api_token` |
+| `forgejo` | `models/@dataverket/forgejo/forgejo.yaml` | `@dataverket/forgejo` | `https://git.dataverket.org` | `forgejo/api_token` |
 | `references` | `models/@dataverket/reference-repos/references.yaml` | `@dataverket/reference-repos` | the reference-repository list | none |
 | `source-standards` | `models/@dataverket/source-standards/source-standards.yaml` | `@dataverket/source-standards` | nothing external: pure checks over data | none |
 

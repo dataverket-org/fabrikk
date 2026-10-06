@@ -1,7 +1,7 @@
 {
   "@swamp/software-factory": {
-    "version": "2026.06.24.1",
-    "pulledAt": "2026-09-16T20:15:44.906Z",
+    "version": "2026.09.24.2",
+    "pulledAt": "2026-10-05T19:41:08.884Z",
     "files": [
       ".agents/skills/software-factory",
       ".claude/skills/software-factory",
@@ -22,13 +22,13 @@
       ".swamp/pulled-extensions/@swamp/software-factory/reports/work_item_summary_report.ts",
       ".swamp/report-bundles/637144ef/work_item_summary_report.js"
     ],
-    "checksum": "29622d1cb0a3bffabf82f68b3d6cbe7e18efcac2c38458b7231e436eb91ab55f",
-    "filesChecksum": "16fdc986237d45d0fe59460c684ca4ebc56805f483f64ff25ef623fba2d0de00",
+    "checksum": "e7b28f2c5ed8ebe8df690cd3c3a37abfb72d67ff1e3e578163fe7b14c83ffdd0",
+    "filesChecksum": "b2677af50803063f13995fa133fa93d48bff024c12909537d7df49b79224fec6",
     "serverUrl": "https://swamp-club.com"
   },
   "@swamp/git": {
-    "version": "2026.09.15.1",
-    "pulledAt": "2026-09-17T06:23:39.482Z",
+    "version": "2026.09.28.1",
+    "pulledAt": "2026-10-05T19:41:10.751Z",
     "files": [
       ".swamp/bundles/2b63a75e/git.js",
       ".swamp/pulled-extensions/@swamp/git/files/LICENSE.txt",
@@ -42,48 +42,8 @@
       ".swamp/pulled-extensions/@swamp/git/models/_lib/types.ts",
       ".swamp/pulled-extensions/@swamp/git/models/git.ts"
     ],
-    "checksum": "fc70858501290251863e1a6da3485b251dbdde2f146d060fda9580dce31e81ff",
-    "filesChecksum": "ff2070a2c37dd9adf03233de2405fabc90008671c253a042995c46384a577aeb",
-    "serverUrl": "https://swamp-club.com"
-  },
-  "@thomas/forgejo": {
-    "version": "2026.09.04.2",
-    "pulledAt": "2026-09-17T10:49:19.726Z",
-    "files": [
-      ".swamp/bundles/e5cabb76/forgejo.js",
-      ".swamp/pulled-extensions/@thomas/forgejo/files/LICENSE.txt",
-      ".swamp/pulled-extensions/@thomas/forgejo/files/README.md",
-      ".swamp/pulled-extensions/@thomas/forgejo/manifest.yaml",
-      ".swamp/pulled-extensions/@thomas/forgejo/models/forgejo.ts"
-    ],
-    "checksum": "f06a28bc37ac1494415e03a8a2ea86d15db7ea6db9f25288dc97aaa9a1abd09c",
-    "filesChecksum": "833f5702017eae11d9aee0571f8a4d4fb8d5b7bd668365676fd71458d4f73ffe",
-    "serverUrl": "https://swamp-club.com"
-  },
-  "@thomas/zitadel": {
-    "version": "2026.06.24.1",
-    "pulledAt": "2026-09-17T13:34:00.142Z",
-    "files": [
-      ".swamp/bundles/9bd2d0c7/zitadel.js",
-      ".swamp/pulled-extensions/@thomas/zitadel/files/LICENSE.txt",
-      ".swamp/pulled-extensions/@thomas/zitadel/files/README.md",
-      ".swamp/pulled-extensions/@thomas/zitadel/manifest.yaml",
-      ".swamp/pulled-extensions/@thomas/zitadel/models/zitadel.ts"
-    ],
-    "checksum": "9b9f075b33170d3742d6228faea36e00330cc0914abb20b18c531d743ebc3c37",
-    "filesChecksum": "4f3b4739e792b5801794f25cea836976d23a09b3d4e3371258beefa428d4e3fe",
-    "serverUrl": "https://swamp-club.com"
-  },
-  "@rjeschmi/helm-chart": {
-    "version": "2026.03.03.1",
-    "pulledAt": "2026-09-18T07:46:25.244Z",
-    "files": [
-      ".swamp/bundles/bab6d1ce/helm_chart.js",
-      ".swamp/pulled-extensions/@rjeschmi/helm-chart/manifest.yaml",
-      ".swamp/pulled-extensions/@rjeschmi/helm-chart/models/helm_chart.ts"
-    ],
-    "checksum": "98abd9d436f360dd7816183707f629ad866b6182eb48285a3657776f828a564f",
-    "filesChecksum": "e4368678a26eac9ac979fc52f1b9fc0f99e49183434b6fd5c216038b1ff09c6b",
+    "checksum": "d097c1d4a2f9de68022d399f4a167e966777cc02d80c17cd6a97ab80f8c5d15f",
+    "filesChecksum": "ce33c1c618bfac1d65f3af974a6482753bc8a730135b78d60b48d0b33317a9d6",
     "serverUrl": "https://swamp-club.com"
   },
   "@dataverket/sops": {
@@ -100,6 +60,43 @@
     ],
     "checksum": "dcb6cae7218e02f35e5a89b7422e06f15b60a569688f8f25018dfd77b361d95e",
     "filesChecksum": "ab78af3cfbfbcabf7be4ed573863616c508b5ba8a33c52977ea0fbcaa5d11ae4",
+    "serverUrl": "https://swamp-club.com"
+  },
+  "@dataverket/forgejo": {
+    "version": "2026.10.05.4",
+    "pulledAt": "2026-10-05T20:01:41.792Z",
+    "files": [
+      ".swamp/bundles/86b24583/actions.js",
+      ".swamp/bundles/86b24583/checks.js",
+      ".swamp/bundles/86b24583/forgejo.js",
+      ".swamp/bundles/86b24583/issues.js",
+      ".swamp/bundles/86b24583/labels.js",
+      ".swamp/bundles/86b24583/org_delete.js",
+      ".swamp/bundles/86b24583/pr_assign.js",
+      ".swamp/bundles/86b24583/pull_mirror.js",
+      ".swamp/bundles/86b24583/push_mirror.js",
+      ".swamp/bundles/86b24583/repo_delete.js",
+      ".swamp/bundles/86b24583/topics.js",
+      ".swamp/bundles/86b24583/units.js",
+      ".swamp/pulled-extensions/@dataverket/forgejo/files/LICENSE.md",
+      ".swamp/pulled-extensions/@dataverket/forgejo/files/README.md",
+      ".swamp/pulled-extensions/@dataverket/forgejo/manifest.yaml",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/actions.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/api.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/checks.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/forgejo.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/issues.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/labels.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/org_delete.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/pr_assign.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/pull_mirror.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/push_mirror.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/repo_delete.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/topics.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/units.ts"
+    ],
+    "checksum": "a338bff80b17861851efc05226599ce0a128252995be04d29589c3017237bea4",
+    "filesChecksum": "6d1660b9286f2ca56809d14ed1a5dcbffdde46513dbb6bf7943d80dfe084c627",
     "serverUrl": "https://swamp-club.com"
   }
 }

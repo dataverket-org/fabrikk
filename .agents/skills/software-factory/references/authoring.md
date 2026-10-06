@@ -255,7 +255,7 @@ All gates on a transition must pass for `advance`.
 | `cooldown` | `afterEvidence`\|`afterArtifact`, `seconds` | enough wall-clock time since the record |
 | `max-cycles` | `stage`, `limit`, `invert?` | routing only (e.g. make `escalate` live after N rounds) — the safety net is the per-stage `maxCycles` |
 | `cel` | `expr`, `message?` | the CEL predicate is true over `artifacts.<snake_name>`, `evidence.<snake_name>`, `approvals`, `state`, `workItem` |
-| `workflow-succeeded` | `workflow`, `requireStepOutputs?` | swamp's own run record for the named workflow shows the latest run succeeded during this stage entry — verified, not attested |
+| `workflow-succeeded` | `workflow`, `requireStepOutputs?` | swamp's own run record shows the work item's run of the named workflow succeeded during this stage entry — verified, not attested. When the stage runs that workflow itself, the run is the one named by the stage's `resultEvidence` runId, else `record_dispatch runId=` (resultEvidence wins when both are recorded); a stage declaring `resultEvidence` fails the gate until it is recorded. Otherwise the latest run is checked |
 
 Reserved: `human-approval` ids must not start with `cycle-override:`.
 

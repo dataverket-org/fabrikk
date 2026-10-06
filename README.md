@@ -83,7 +83,7 @@ also laid out for more than one agent the way swamp's is: `AGENTS.md` carries th
 and `.agents/skills/` and `.claude/skills/` point at the same skills. In order:
 
 1. **Stand up the forge and put the repos on it.** Done on `git.dataverket.org` through the `forgejo` model
-   (`@thomas/forgejo` plus `extensions/models/forgejo_actions.ts`, token in the `fabrikk` vault): `dataverket/fabrikk`
+   (`@dataverket/forgejo` plus `extensions/models/forgejo_actions.ts`, token in the `fabrikk` vault): `dataverket/fabrikk`
    and `dataverket/miljo` exist, `main` is pull-request only, and only `beddari` may push `attestation/*` tags.
    The org runner `dataverket-runner` (labels `ubuntu-latest`, `kata`; a Kata VM pod in `dataverket-prod`)
    is not the release runner: that is `fabrikk-release`, a Kata VM pod in the same namespace that Flux does not know,
@@ -102,7 +102,7 @@ and `.agents/skills/` and `.claude/skills/` point at the same skills. In order:
    real runner. Left: after its first run on a real PR, make it a required status check on `main`
    (`branch_protection_ensure`, `enableStatusCheck: true`, `statusCheckContexts` = the context Forgejo reports).
    The review-integrity check comes later.
-3. **Wire Forgejo into the `pull-request` stage.** Done with `@thomas/forgejo`: the stage's prompt drives `pr_ensure`
+3. **Wire Forgejo into the `pull-request` stage.** Done with `@dataverket/forgejo`: the stage's prompt drives `pr_ensure`
    (open, converge) and `pr_merge_state` (extension: merge commit, time, merger), and `pull-request` evidence now
    carries the PR `index`. `@shrug/forgejo` covers issues if work items become issue URLs.
 4. **Run Sentral's first work item through the whole loop.** It brings `go.work`, the first module, `make check`,

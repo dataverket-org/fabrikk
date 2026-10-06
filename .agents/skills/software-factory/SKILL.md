@@ -115,8 +115,11 @@ method reference. In short:
 
 Every stage has `maxCycles` (default 5). When an entry is blocked at the
 limit, the run is parked for a human: present the history and let them
-`approve gateId=cycle-override:<stage>` (one grant = one entry), take an
-escalation/abort transition, or rethink the approach.
+`approve gateId=cycle-override:<stage>`, take an escalation/abort
+transition, or rethink the approach. Each grant adds exactly one entry to
+that stage's allowance — it does not reset the counter. Grants accumulate:
+the stage allows `maxCycles` + (number of grants) entries, so every further
+re-entry past the limit needs another grant.
 
 ## Quick reference
 

@@ -9,7 +9,7 @@ weight: 30
 
 # Operate the forge
 
-Forge tasks go through the `forgejo` model (`@thomas/forgejo` plus `extensions/models/forgejo_actions.ts`), never
+Forge tasks go through the `forgejo` model (`@dataverket/forgejo` plus `extensions/models/forgejo_actions.ts`), never
 through the web UI or `curl`, so that what was done is recorded. The token is `forgejo/api_token` in the vault.
 Methods are find-or-create and report `created`, `updated`, or `unchanged`; nothing here deletes.
 
@@ -17,9 +17,9 @@ Methods are find-or-create and report `created`, `updated`, or `unchanged`; noth
 
 ```sh
 swamp model method run forgejo health
-swamp model method run forgejo repo_list --input owner=dataverket
+swamp model method run forgejo repo_list                 # no owner: the token has neither read:organization nor read:user
 swamp model method run forgejo branch_protection_list --input owner=dataverket --input name=fabrikk
-swamp model method run forgejo pr_list --input owner=dataverket --input repo=fabrikk
+swamp model method run forgejo pr_list --input owner=dataverket --input name=fabrikk
 ```
 
 ## Allow a new attester
