@@ -35,6 +35,7 @@ Start with [explanation/how-fabrikk-works.md](explanation/how-fabrikk-works.md),
 - [Attestation and trust](explanation/attestation-and-trust.md): what the signed tag proves, what CI checks, what it cannot.
 - [Release model](explanation/release-model.md): build once after merge, the config join, gitless promotion, the signing key.
 - [Sentral](explanation/sentral.md): Sentral's ubiquitous language and context map (`project: sentral`).
+- [Maskin](explanation/maskin.md): Maskin's ubiquitous language and the messages that enter and leave it (`project: maskin`).
 - [What the first slice taught](explanation/first-slice-retrospective.md): the first work item's six review cycles, the half-size slice to run instead, and what belongs in the skills.
 
 ### Guides
