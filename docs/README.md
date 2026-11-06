@@ -34,7 +34,7 @@ Start with [explanation/how-fabrikk-works.md](explanation/how-fabrikk-works.md),
 - [How fabrikk works](explanation/how-fabrikk-works.md): the actors, the loop, what each stage does, and where its code is.
 - [Attestation and trust](explanation/attestation-and-trust.md): what the signed tag proves, what CI checks, what it cannot.
 - [Release model](explanation/release-model.md): build once after merge, the config join, gitless promotion, the signing key.
-- [Sentral](explanation/sentral.md): Sentral's ubiquitous language and context map (`project: sentral`).
+- [Sentral](explanation/sentral.md): the service that holds the control plane; how fabrikk reads the Dataverket domain model, which is its language and design (`project: sentral`).
 - [What the first slice taught](explanation/first-slice-retrospective.md): the first work item's six review cycles, the half-size slice to run instead, and what belongs in the skills.
 
 ### Guides

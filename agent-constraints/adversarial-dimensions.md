@@ -19,17 +19,24 @@ Each dimension names the skill that defines it and what to attack. Findings cite
 
 ### 1. Architecture conformance — `architecture`
 Attack: aggregates bypassed (writes outside methods); business rules in application services or adapters; adapters
-imported by domain; interfaces without consumers; technology names above `adapters`; vocabulary drift; request/reply
-disguised as an event pair; a command whose token travels in `data`.
+imported by domain; interfaces without consumers; technology names above `adapters`; a word not in the domain model's
+glossary, or a command, event, aggregate or read model the model's design for that context does not name; a rule the
+plan states that the model does not, or states differently; a reply published as an event or an event pair standing in
+for a reply; an actor or organisation written by the sender.
 
-### 2. Tenant isolation and authentication — `adversary-security`
-Attack: any path from tenant A's account to an effect in tenant B; callout fallbacks or bypasses; handlers acting before
-verification; missing `jti`/time-window checks; `tenant` claim not compared to the pinned tenant; behavior when callout,
-JWKS, or clocks fail; undeclared standing credentials; secrets in logs, subjects, artifacts, or plans.
+### 2. Account isolation and admission — `adversary-security`
+Attack: any crossing between accounts the wiring did not declare, or one that outlives the agreement or terms it was
+made for; any path between two customer accounts; the front desk reaching more than its three commands; admission
+fallbacks or bypasses; a login placed where it has no user; handlers acting before verification; a message naming
+organisation X accepted on another export, or `tenant` not compared to the pinned tenant; behavior when admission, JWKS,
+or clocks fail; a payload in an audit entry; a provider able to alter its own record; undeclared standing credentials;
+secrets in logs, subjects, artifacts, or plans.
 
 ### 3. Messaging correctness — `architecture`, `adversary-security`
-Attack: non-CloudEvents payloads; wrong `type` grammar or tense; missing `tenant`/`traceparent`; subjects not per the ADR;
-consumers without idempotency; events that are not facts; at-least-once delivery assumed to be exactly-once.
+Attack: non-CloudEvents payloads; wrong `type` grammar or tense, or a name the integration contract does not list;
+missing `tenant`/`traceparent`; a fact concerning several organisations published once instead of once per
+organisation; subjects not per the ADR; a consumer that a redelivered message changes; a projection keyed by a counter;
+events that are not facts; at-least-once delivery assumed to be exactly-once.
 
 ### 4. Testing adequacy — `adversary-testing`
 Attack: security-relevant change without a black-box test; server-configuring tests on the shared stack; shared-stack

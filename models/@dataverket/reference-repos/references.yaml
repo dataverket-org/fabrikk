@@ -37,4 +37,13 @@ globalArguments:
         Swamp's source, itself built by a software factory with local verification, attestation, and CI that validates
         rather than executes. Guides fabrikk's factory design (attestation, PR, merge, release) and shows how swamp
         behaves when extending it. Every build is tagged; read the installed version (swamp --version) at its tag.
+    - name: domain-model
+      url: https://git.dataverket.org/dataverket/domain-model
+      ref: main
+      purpose: >-
+        The Dataverket domain model, agreed with the domain owner and authoritative over every skill here where they
+        differ: the control plane's glossary, stories, map, decisions, and the designs of Person, Organisation,
+        Catalogue, Audit and Tenancy. Plans cite its rules by page and heading and name the commit they read; the
+        implementors' guide (for-implementors/README.md) lists the rules that bind every slice. Not untrusted: read,
+        cited, never pasted.
 methods: {}

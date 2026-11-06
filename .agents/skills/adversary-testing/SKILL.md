@@ -1,6 +1,6 @@
 ---
 name: adversary-testing
-description: Testing strategy and test-tier rules for Dataverket services. Use when planning what tests a change needs, writing tests, or reviewing whether tests are adequate — including any change to callout, accounts, subjects, downstream ports, or the dev environment. Also use to decide where a test runs (embedded server vs session stack vs artifact verification vs UAT).
+description: Testing strategy and test-tier rules for Dataverket services. Use when planning what tests a change needs, writing tests, or reviewing whether tests are adequate — including any change to admission, accounts and their wiring, subjects, downstream ports, or the dev environment. Also use to decide where a test runs (embedded server vs session stack vs artifact verification vs UAT).
 ---
 
 # Adversary: testing
@@ -22,7 +22,7 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 
 - Domain, application, and flow tests use the session stack. Isolation is per test: clone a throwaway PostgreSQL database
   from the template; prefix subjects, streams, and consumers with `t.Name()`.
-- Callout, account topology, subject permission, and isolation tests own their server: `nats-server` embedded
+- Admission, account wiring, subject permission, and isolation tests own their server: `nats-server` embedded
   in-process on a random port, JetStream in `t.TempDir()`, memory resolver. They never touch the shared stack.
 - Zitadel is never in tier 0 or 1. Tokens come from an `httptest` JWKS issuer. Real Zitadel appears in tier 2 and UAT.
 
@@ -30,8 +30,10 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 
 - Table-driven unit tests for every aggregate method and value-object constructor touched.
 - For every downstream port touched: the contract suite still passes against the fake **and** the real fragment.
-- For any change to callout, subject mapping, account topology, or the CloudEvents envelope: a black-box acceptance test,
-  not only a unit test.
+- For any change to admission, subject mapping, the wiring Tenancy makes, or the CloudEvents envelope: a black-box
+  acceptance test, not only a unit test.
+- For every rule the plan cites from the domain model's binding list (`for-implementors/README.md` in the
+  `domain-model` reference): a test named for the rule, at the lowest tier that can show it broken.
 - Fault paths tested through the fake (`FailNext`, timeouts, partial failure). Happy-path-only is a finding.
 
 ## Contract suites
@@ -46,10 +48,15 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 
 - Separate module. Talks only to the public surface: a NATS client with tenant credentials, S3/API endpoints where relevant.
   Never imports service internals.
-- The isolation trio must exist and pass for every release:
-  1. Tenant A publishes; tenant B observes nothing.
-  2. A token whose `tenant` claim does not match is refused at callout.
-  3. A replayed message (same `id`) is rejected.
+- The isolation trio must exist and pass for every release, in the domain model's terms:
+  1. **Nothing crosses that the wiring did not declare.** Organisation A publishes on its agreement's rows; its
+     provider receives, organisation B observes nothing, and a provider A has no agreement with observes nothing.
+     The front desk reaches its three commands and the catalogue entry and nothing else.
+  2. **Admission places a login only where it has a user.** A login with no user in organisation X is not placed in
+     X's account; a message naming X on any export but X's, or claiming an actor the connection was not bound to,
+     is refused before dispatch.
+  3. **A message seen twice changes nothing.** The same message delivered again leaves every count, state and
+     projection as the first delivery left it.
 - Tests are selected by the promises the environment declares. Functional tests run everywhere; environmental tests
   (restart survival, persistence, backup) run only where the overlay declares them.
 

@@ -99,7 +99,12 @@ Upstream code and documentation, cloned in full (every branch and tag) into `_re
 root. The list, with each repo's URL, pinned ref, and purpose, is `models/@dataverket/reference-repos/references.yaml`
 (protected). Today: `nats-architecture-and-design` (NATS ADRs: JetStream, accounts, auth callout), `cloudevents-spec`
 (the envelope), `zitadel` (tokens, claims, JWKS), `swamp` (swamp's source and its own software factory: verification,
-attestation, CI validation, release).
+attestation, CI validation, release), and `domain-model` (the Dataverket domain model: glossary, stories, map,
+decisions and the designs of the control plane's contexts).
+
+`domain-model` is the one reference that is not untrusted input: it is the agreed model fabrikk implements, and
+plans and reviews cite its rules by page and heading. Like every reference it is read and never copied, and it is
+pinned by ref: a plan names the commit of the model it was written against.
 
 - Read them; never build, import, or copy from them. Go libraries are read from the module cache (`go env GOMODCACHE`)
   at the version `go.mod` pins, not from here.

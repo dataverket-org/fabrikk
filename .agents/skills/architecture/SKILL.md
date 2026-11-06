@@ -9,6 +9,17 @@ One pattern, one vocabulary, everywhere. Consistency is what lets anyone — hum
 implementation top-down starting from these words. Examples below are from a small **bike-rental** domain on purpose:
 copy the *shape*, never the domain.
 
+## Two vocabularies, one source each
+
+This skill supplies the **pattern words**: value object, aggregate, port, application service. The **domain's own
+nouns** come from the Dataverket domain model, the `domain-model` reference repository (dev-environment skill): its
+glossary (`control-plane/language/`) is the ubiquitous language, its map (`control-plane/map/`) names the bounded
+contexts, Person, Organisation, Catalogue, Audit and Tenancy, and its designs (`control-plane/design/<context>/`) name
+every command, policy, read model, aggregate and event. Go identifiers, CloudEvents types, subjects and policy
+entities use those words and no others. A word the glossary lacks, or a rule a design page does not state, is a
+question for the domain owner through the model, never a choice made in a plan or in code. The model is authoritative
+over this skill where they differ; the model's `for-implementors/README.md` lists the rules that bind every slice.
+
 ## Vocabulary
 
 | Term | Meaning | Go shape |
@@ -18,7 +29,9 @@ copy the *shape*, never the domain.
 | Entity | Has identity, mutable state, invariants. | struct with `ID` value object |
 | Aggregate | Consistency boundary. All writes go through its methods; methods record domain events. | struct with `events []Event`, `Events()` drains |
 | Domain event | A fact, past tense, produced by an aggregate. | struct implementing `Event` |
-| Command / intent | An instruction, imperative, authorized by a token. Never a disguised request/reply. | CloudEvent with imperative type |
+| Command | An instruction, imperative, sent by an actor admission bound to the connection; answered by a reply. | CloudEvent with imperative type |
+| Reply | The answer to a command or a query: success or failure with the ids, on the sender's reply subject. Audited as the command's outcome; never an event. | CloudEvent, past tense of the verb, on the inbox only |
+| Integration event | A fact published across an account boundary, named after its aggregate; the model's integration contract lists every one. | CloudEvent with past-tense type |
 | Repository | Loads/saves one aggregate type. Hides JetStream vs PostgreSQL. | interface in `domain`, impls in `adapters` |
 | Application service | One use case: load → call aggregate → save → publish. No business rules. | func or small struct in `app` |
 | Inbound adapter | NATS subscription → decode CloudEvent → application service. | `adapters/nats` |
@@ -134,7 +147,7 @@ func (uc EndRental) Handle(ctx context.Context, id RentalID) error {
 
 ```go
 func (a *Adapter) onEndRental(msg *nats.Msg) {
-	ctx, ce, err := a.envelope.Decode(msg) // verifies token, tenant claim, jti/nbf/exp
+	ctx, ce, err := a.envelope.Decode(msg) // valid CloudEvent, tenant == pinned, arrived on that organisation's export
 	if err != nil {
 		a.reject(msg, err) // log once, nak/term; never process
 		return
@@ -182,16 +195,20 @@ The real implementation passes `RunContract` against the compose fragment; the f
 ## Messaging rules
 
 - Every message on NATS is a **CloudEvent** (structured JSON, CloudEvents 1.0: `_reference/cloudevents-spec`). No bare payloads.
-- `type` is reverse-DNS: `no.dataverket.<context>.<aggregate>.<event>`. Events are past tense (`…ended`); commands are imperative (`…end`).
-- `source` and `subject` carry the global resource ID of the aggregate. `id` is unique per message and used for replay protection.
-- Required extensions: `tenant`, `traceparent`. Commands additionally carry the authorization token in the envelope, never in `data`.
-- Subjects are tenant-scoped inside the tenant's NATS account and follow the subject-naming ADR. Never put secrets or tokens in subjects.
-- A command produces zero or more events. Request/reply exists only for synchronous reads via NATS services; never fake it with an event pair.
+- `type` is reverse-DNS: `no.dataverket.<context>.<aggregate>.<event>`. Events are past tense (`…ended`); commands are imperative (`…end`). The names are the model's: an integration event is named after its aggregate, as the integration contract (`control-plane/decisions/integration-contract.md`) lists it.
+- `source` and `subject` carry the global resource ID of the aggregate. `id` is unique per message; a consumer that sees a message it has handled changes nothing (the model's `reads` decision: projections are sets keyed by identity).
+- Required extensions: `tenant`, the one organisation the message concerns, and `traceparent`. A fact concerning several organisations is published once per organisation, each naming that one alone. The actor is what admission bound to the connection; the sender writes neither the actor nor the organisation, and a message claiming another is refused at the edge. Payloads never enter an audit entry, which is the envelope only; a login or an organisation's rules travel in `data` and nowhere else.
+- Subjects are scoped inside the organisation's NATS account and follow the subject-naming ADR, which fixes where the organisation id and the actor sit. Never put secrets or tokens in subjects.
+- A command produces zero or more events and is answered by a reply: success or failure with the ids, on the sender's reply subject. A reply is not an event and is never published on a subject. A query is a request for a read model and is answered the same way. Never fake either with an event pair.
 
 ## Tenancy structure
 
-- Tenant = NATS account = Zitadel organization. No account imports or exports between tenants.
-- Every service pins its tenant at startup. Every handler rejects a message whose `tenant` claim does not match the pinned tenant, whatever subject it arrived on.
+The shape is the model's `provider-tenant` decision and Tenancy's boundary page (`control-plane/design/tenancy/boundary.md`); this skill repeats only the rules every handler rests on.
+
+- One tenant per organisation, one NATS account per tenant; the tenant id is the organisation id. A tenant has no kind: whether an organisation provides is a fact of its agreements.
+- Every instance pins one tenant at startup, except admission and Tenancy, which run in the installation's account and serve every tenant. Person, Catalogue and the installation's Audit pin the installation organisation's tenant.
+- Accounts cross only by a **declared export and import that Tenancy makes as a consequence of an agreement**: the installation agreement's wiring at *Tenant created*, a provider's at the first *Terms accepted* naming it, a product's at the first *Terms accepted* naming it, each withdrawn when the agreement or the terms end. Nothing ever crosses between two customer accounts. The front desk is an account of no tenant's that exports exactly *accept installation terms*, *validate* and *create organisation* into the installation's account and imports the catalogue entry.
+- A message naming organisation X is accepted because it arrived on X's export and its `tenant` equals the pinned tenant; the subject of arrival alone grants nothing, and no handler accepts it from another export. The wiring does the gate's work: a product can be asked only while its wiring stands.
 - The security adversary owns the enforcement checklist; this skill owns the shape.
 
 ## Persistence

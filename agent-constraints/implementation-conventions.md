@@ -24,7 +24,11 @@ what good code looks like. This file does not repeat either.
   context, a new dependency, a new port, anything on the ADR-required list): stop, and take the work item back to
   planning through the human rather than through the code.
 - Every design choice not the default in a skill was justified in the plan. Do not add new ones during implementation.
-- Read, never copy, from `_reference/`. Reusing upstream code is a dependency with an ADR, or a reimplementation.
+- Identifiers, CloudEvents types, subjects and policy entities use the domain model's words (the `domain-model`
+  reference's glossary and design pages) and no others. A word the code needs that the model lacks is a deviation of
+  the large kind: it goes back through the human to the model, not into the code.
+- Read, never copy, from `_reference/`. Reusing upstream code is a dependency with an ADR, or a reimplementation. The
+  domain model is the exception to "untrusted": it is authoritative, read and cited by heading, still never pasted.
 
 ## Tests are part of the change
 
