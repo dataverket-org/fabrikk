@@ -16,6 +16,8 @@ read side, nothing else. A plan whose stage needs a kube context or a push crede
 - Release builds happen on shared infrastructure (Forgejo Actions runner), after merge. A developer's or agent's machine
   never produces the artifact that ships.
 - Everything upstream is mirrored into the Dataverket registry and pinned by digest there.
+- The ko base image pin lives in the product directory (`<product>/.ko.yaml`), and ko is run from there.
+- A local daemon reference is resolved to an image ID before it enters any rendered config; never a tag.
 
 ## Three layers of config
 
@@ -25,7 +27,8 @@ read side, nothing else. A plan whose stage needs a kube context or a push crede
 | L1 — app base | Env-agnostic manifests with defaults, next to the code in `<product>/deploy/base/` | Code factory | Per code change |
 | L2 — environment overlay | Replicas, PVC sizes and classes, backup policy, resources, placement, in `miljo`: `environments/<env>/<product>/` | Environment line | Per environment change |
 
-L2 may only touch fields the L1 schema declares tunable; a linter enforces it. New tunable fields need an ADR.
+L2 may only touch fields the L1 schema declares tunable; a linter enforces it. A new tunable field is a change to
+this skill, in the same pull request.
 
 ## Where it lives
 
@@ -40,7 +43,7 @@ environment line; secrets never enter git; the black-box acceptance suite is its
 
 ## The join
 
-`release = render(L1 @ commit, L2 @ version)` — a pure function, run by `make release PRODUCT=<product>` in CI after
+`release = render(L1 @ commit, L2 @ version)` — a pure function, run by `task release PRODUCT=<product>` in CI after
 merge, producing **one complete, immutable artifact per environment**. Never join in the cluster.
 
 ```
@@ -79,6 +82,6 @@ change with pinned env config, or an env change with pinned app digests, each yi
 
 - Is any image or config reference a tag?
 - Does the rendered output for *every* environment still build and pass the schema linter, not only the one being deployed?
-- Does the change add an L2 field without an ADR?
+- Does the change add an L2 field that this skill does not list as tunable?
 - Does anything get joined, templated, or substituted in the cluster?
 - Can this artifact be mirrored anywhere safely — no secrets inside?

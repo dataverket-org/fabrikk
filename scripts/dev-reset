@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#
+# dev-reset: runs every fragment's reset script, returning each service to
+# its seeded state. WIPE=1 also removes the session stack's volumes.
+#
+
+source "${0%/*}/functions.sh" || exit $?
+
+wipe="${WIPE:-}"
+
+#
+# Runs the reset script of every dev-environment fragment that has one.
+#
+function reset_fragments()
+{
+	local script
+
+	for script in deploy/dev/*/reset.sh; do
+		[[ -x "$script" ]] || continue
+
+		log "reset: $script"
+		"$script" || return $?
+	done
+}
+
+init         || exit $?
+need_compose || exit $?
+
+reset_fragments || fail "A fragment's reset script failed!"
+
+if [[ -n "$wipe" ]]; then
+	dev_compose --profile '*' down --volumes ||
+		fail "Removing the session stack's volumes failed!"
+fi

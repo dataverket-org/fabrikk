@@ -43,13 +43,17 @@ consumption, run `swamp help [<command>...]` — e.g. `swamp help` returns
 the full tree, and `swamp help model method run` scopes to a subtree.
 <!-- END swamp managed section -->
 
-## Documentation
+## Design
 
-The factory is a program; skills are its context; docs explain it. To understand fabrikk, start at
-`docs/explanation/how-fabrikk-works.md`; to find where a part lives, `docs/reference/code-map.md`. The rule for what
-goes into the program, a skill, or a doc is in `docs/README.md`. A product's design is the explanation pages whose frontmatter names it
-(`project: <product>`, `context: <bounded context>`); none exist yet. The architecture skill gives the vocabulary
-those pages are written in.
+The factory is a program; skills are its context; `design/` says how it works and what is decided. To understand
+fabrikk, start at
+`design/factory.md`; to find where a part lives, `design/operations.md`. The rule for what goes into the program, a
+skill, or a design page is in `design/README.md`, and what is decided about the stack (messaging, persistence,
+identity) is in the pages it indexes. What is being built is the Dataverket domain model,
+the `domain-model` reference repository (`_reference/domain-model`, dev-environment skill): its glossary is the
+vocabulary, its designs name every command, event and aggregate, and it is authoritative over the skills where they
+differ. The architecture skill gives the pattern words code is written in. No skill and no page here restates a
+domain rule: they cite the model.
 
 ## Skills and agents
 

@@ -1,8 +1,8 @@
 # Implementation conventions
 
 Input to the implementing stage. The plan is the contract; this file says how the implementer turns it into a commit
-the factory can verify, review, and attest. What reviewers attack is in `adversarial-dimensions.md`; the skills say
-what good code looks like. This file does not repeat either.
+the factory can verify, review, and attest. How findings are graded is in `adversarial-dimensions.md`; the skills and
+`design/` say what good code looks like. This file does not repeat either.
 
 ## Where the work happens
 
@@ -12,8 +12,9 @@ what good code looks like. This file does not repeat either.
 - The worktree is what `fabrikk-verify` and `fabrikk-attest` run in: they refuse a dirty tree or a HEAD that is not the
   recorded `headSha`. Commit everything before recording `change` evidence; leave scratch files out of the tree.
 - Product code lives in `<product>/`, its own Go module in the root `go.work`; downstream fragments in `deploy/dev/<system>/`;
-  manifests in `<product>/deploy/base/`. The first work item of a product brings the module, `go.work`, `make check`,
-  `make verify`, and `compose.yaml` with it (dev-environment skill).
+  manifests in `<product>/deploy/base/`. The first work item of a product brings the module, its `go.work` entry,
+  `compose.yaml`, and the lint that makes `task check` enforce the import rules (architecture skill, "Checked, not
+  reviewed") with it (dev-environment skill).
 
 ## Implement the plan, not around it
 
@@ -21,14 +22,22 @@ what good code looks like. This file does not repeat either.
   third, is a deviation: implement it if it is what the plan needs, and name it in the change summary with one
   sentence of reason. Reviewers compare actual LOC with the plan; unexplained growth is a simplicity finding.
 - A plan that turns out wrong is not fixed silently. Small: implement, record the deviation. Large (a different bounded
-  context, a new dependency, a new port, anything on the ADR-required list): stop, and take the work item back to
-  planning through the human rather than through the code.
-- Every design choice not the default in a skill was justified in the plan. Do not add new ones during implementation.
-- Read, never copy, from `_reference/`. Reusing upstream code is a dependency with an ADR, or a reimplementation.
+  context, a new dependency, a new port, a change to a design page or to the model that the plan did not propose):
+  stop, and take the work item back to planning through the human rather than through the code.
+- Every design choice not the default in a skill or a design page was justified in the plan. Do not add new ones
+  during implementation.
+- Identifiers, CloudEvents types, subjects and policy entities use the domain model's words (the `domain-model`
+  reference's glossary and design pages) and no others. A word the code needs that the model lacks is a deviation of
+  the large kind: it goes back to planning as a proposed model change, not into the code.
+- A design page the plan changes (`designChanges`) is changed in the same commit series as the code that needs it.
+  A model change the plan proposed is made in the model's repository, and the branch moves the pin in
+  `models/@dataverket/reference-repos/references.yaml`.
+- Read, never copy, from `_reference/`. Reusing upstream code is a dependency or a reimplementation. The domain
+  model is the exception to "untrusted": it is authoritative, read and cited by heading, still never pasted.
 
 ## Tests are part of the change
 
-- The plan's testing strategy by tier is implemented with the code, in the same commit series. Tier 0 (`make check`)
+- The plan's testing strategy by tier is implemented with the code, in the same commit series. Tier 0 (`task check`)
   is green in the worktree before `change` evidence is recorded; `fabrikk-verify` runs tiers 0 and 2, it does not debug them.
 - Security-relevant behavior gets a black-box test at the tier the plan names. Fakes run through the contract suite.
 - For a bug: reproduce first, as a failing test at the lowest tier that shows it; then fix; the test stays.
@@ -45,7 +54,7 @@ what good code looks like. This file does not repeat either.
 
 ## What to record
 
-- `change-summary`: one paragraph on what changed and why, every file with its actual LOC, the total, the ADRs added
-  or changed, and the deviations from the plan (in `summary`, each in one sentence).
+- `change-summary`: one paragraph on what changed and why, every file with its actual LOC, the total, the design
+  pages changed (`designChanges`), and the deviations from the plan (in `summary`, each in one sentence).
 - `change` evidence: `worktree` (absolute path), `branch`, and `headSha` from `git rev-parse HEAD` of the worktree,
   copied, not typed. Record it last, after the final commit; a stale `headSha` fails verification at preflight.

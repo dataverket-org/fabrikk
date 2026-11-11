@@ -11,13 +11,13 @@ and without a shell on the node (there is none).
 ## Rules
 
 - **Logs:** `log/slog`, JSON handler, one logger injected at wiring. Every log line for a handled message carries
-  `tenant`, `msg_id`, `type`, and the resource ID. Log an error once, at the boundary where it is handled — not at
-  every layer it passes through.
+  `tenant`, `msg_id`, `type`, and the resource ID; never anything from `data`, which is payload. Log an error once,
+  at the boundary where it is handled — not at every layer it passes through.
 - **Traces:** OpenTelemetry. Inbound adapters extract `traceparent` from the CloudEvents extension; outbound adapters
   inject it. One span per handler, child spans per downstream call and repository call.
 - **Metrics:** minimal and RED-shaped per handler: rate, errors, duration. No per-tenant cardinality in labels beyond
   the tenant ID itself.
-- **Health:** every service exposes `/healthz` (process alive) and `/readyz` (NATS connected, callout reachable, repository
+- **Health:** every service exposes `/healthz` (process alive) and `/readyz` (NATS connected, admission reachable, repository
   reachable). Readiness flips false before a graceful shutdown drains.
 - **Shutdown:** `SIGTERM` → stop consuming → finish in-flight → close. Bounded by a deadline.
 - **Never log** tokens, keys, full CloudEvents `data`, or payload fields that are not needed to diagnose the line.

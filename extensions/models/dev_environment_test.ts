@@ -1,11 +1,11 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert@1.0.13";
-import { resetSpawn, runTarget, setSpawn, type Spawn } from "./_lib/make.ts";
+import { resetSpawn, runTarget, setSpawn, type Spawn } from "./_lib/task.ts";
 import { model } from "./dev_environment.ts";
 
 const SHA = "0123456789abcdef0123456789abcdef01234567";
 
 function fakeSpawn(
-  make: (
+  task: (
     argv: string[],
     signal?: AbortSignal,
   ) => Promise<{ exitCode: number; output: string }>,
@@ -16,7 +16,7 @@ function fakeSpawn(
     if (argv[0] === "git") {
       return Promise.resolve({ exitCode: 0, output: `${SHA}\n` });
     }
-    return make(argv, opts.signal);
+    return task(argv, opts.signal);
   };
   setSpawn(fn);
   return { calls };
@@ -68,9 +68,9 @@ Deno.test("runTarget pins the result to HEAD and passes PROFILE only when not de
       profile: "objekt",
       timeoutSeconds: 5,
     });
-    assertEquals(calls.filter((c) => c[0] === "make"), [
-      ["make", "dev.up"],
-      ["make", "dev.up", "PROFILE=objekt"],
+    assertEquals(calls.filter((c) => c[0] === "task"), [
+      ["task", "-x", "dev.up"],
+      ["task", "-x", "dev.up", "PROFILE=objekt"],
     ]);
     assertEquals(plain.headSha, SHA);
     assertEquals(plain.profile, null);
@@ -145,7 +145,7 @@ Deno.test("check records result and full log before failing the method", async (
     await assertRejects(
       () => model.methods.check.execute({ timeoutSeconds: 5 }, context),
       Error,
-      "make check failed with exit 1",
+      "task check failed with exit 1",
     );
     assertEquals(resources.check.succeeded, false);
     assertEquals(resources.check.headSha, SHA);
@@ -172,13 +172,16 @@ Deno.test("verify returns data handles on success", async () => {
   }
 });
 
-async function gitWorktree(makefile: string): Promise<string> {
+/** A committed Taskfile with one task that runs the given commands. */
+async function gitWorktree(name: string, cmds: string[]): Promise<string> {
   const dir = await Deno.makeTempDir({ prefix: "dev-env-test-" });
-  await Deno.writeTextFile(`${dir}/Makefile`, makefile);
+  const taskfile = `version: '3'\nsilent: true\ntasks:\n  ${name}:\n    cmds:\n` +
+    cmds.map((c) => `      - ${JSON.stringify(c)}\n`).join("");
+  await Deno.writeTextFile(`${dir}/Taskfile.yml`, taskfile);
   for (
     const args of [
       ["init", "-q"],
-      ["add", "Makefile"],
+      ["add", "Taskfile.yml"],
       [
         "-c",
         "commit.gpgsign=false",
@@ -198,17 +201,15 @@ async function gitWorktree(makefile: string): Promise<string> {
   return dir;
 }
 
-Deno.test("real make: output is captured and pinned to the commit", async () => {
-  const dir = await gitWorktree(
-    "check:\n\t@echo out\n\t@echo err >&2\n\t@exit 3\n",
-  );
+Deno.test("real task: output is captured and pinned to the commit", async () => {
+  const dir = await gitWorktree("check", ["echo out", "echo err >&2", "exit 3"]);
   try {
     const r = await runTarget({
       worktree: dir,
       target: "check",
       timeoutSeconds: 30,
     });
-    assertEquals(r.exitCode, 2); // make exits 2 when a recipe fails
+    assertEquals(r.exitCode, 3); // -x: the command's own exit code, not task's 201
     assertEquals(r.succeeded, false);
     assertEquals(r.headSha.length, 40);
     assertEquals(r.output.includes("out") && r.output.includes("err"), true);
@@ -217,8 +218,8 @@ Deno.test("real make: output is captured and pinned to the commit", async () => 
   }
 });
 
-Deno.test("real make: a grandchild holding the pipes does not hang the run", async () => {
-  const dir = await gitWorktree("dev.up:\n\t@echo started\n\t@sleep 60 &\n");
+Deno.test("real task: a grandchild holding the pipes does not hang the run", async () => {
+  const dir = await gitWorktree("dev.up", ["bash -c 'echo started; sleep 60 &'"]);
   try {
     const start = Date.now();
     const r = await runTarget({
@@ -234,8 +235,8 @@ Deno.test("real make: a grandchild holding the pipes does not hang the run", asy
   }
 });
 
-Deno.test("real make: timeout kills make and reports it", async () => {
-  const dir = await gitWorktree("verify:\n\t@sleep 60\n");
+Deno.test("real task: timeout kills task and reports it", async () => {
+  const dir = await gitWorktree("verify", ["sleep 60"]);
   try {
     const start = Date.now();
     const r = await runTarget({

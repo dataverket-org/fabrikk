@@ -6,7 +6,7 @@
 # The matching public key is cosign.pub at the repository root.
 name: release
 
-# Triggers on product paths only. A change to the Makefile, go.work, or this workflow does not release by itself:
+# Triggers on product paths only. A change to the Taskfile, scripts/, go.work, or this workflow does not release by itself:
 # the next product change exercises it, and a release is identified by the product commit it was built from.
 on:
   push:
@@ -48,6 +48,7 @@ jobs:
           git -C "$miljo" "${auth[@]}" fetch -q "$SERVER_URL/$OWNER/miljo" main
           git -C "$miljo" checkout -q --detach FETCH_HEAD
 
-          make tools
+          # scripts/tools installs the pinned tools, task among them; the runner needs none of them beforehand.
+          scripts/tools
           _bin/ko login "$REGISTRY" --username "$REGISTRY_USERNAME" --password-stdin <<< "$REGISTRY_PASSWORD"
-          make release PRODUCT="$PRODUCT" MILJO="$miljo" REGISTRY="$REGISTRY" COSIGN_KEY=env://COSIGN_PRIVATE_KEY
+          _bin/task release PRODUCT="$PRODUCT" MILJO="$miljo" REGISTRY="$REGISTRY" COSIGN_KEY=env://COSIGN_PRIVATE_KEY

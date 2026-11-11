@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+#
+# tools: installs every binary the repository runs into _bin (gitignored,
+# skipped by go ./...), each pinned by version. They are never built from
+# this repository. Run directly on a fresh machine: it installs task itself.
+#
+
+source "${0%/*}/functions.sh" || exit $?
+
+task_version="v3.54.0"
+ko_version="v0.19.1"
+cosign_version="v3.1.3"
+kustomize_version="v5.8.1"
+crane_version="v0.22.1"
+flux_version="2.9.5"
+
+#
+# Prints the pinned sha256 of the flux release tarball for a platform. flux
+# cannot be go-installed (its go.mod has replace directives), so its tarball
+# is pinned by checksum instead.
+#
+function flux_sha256()
+{
+	local platform="$1"
+
+	case "$platform" in
+		linux_amd64)	echo "b853df82adfd7736f580692f9f734473d571606307139f8fd20c2a80dd1ff473" ;;
+		linux_arm64)	echo "f3e159af616ec0b9bd0a405c2185cf09d06b74652c1de3c7f377e8166826651a" ;;
+	esac
+}
+
+#
+# Installs one Go command at its pinned version into _bin.
+#
+function go_install()
+{
+	local package="$1"
+
+	GOBIN="$bin" go install "$package" || return $?
+}
+
+#
+# Downloads the flux tarball into a directory, checks it, and unpacks flux.
+#
+function fetch_flux()
+{
+	local platform="$1"
+	local sha="$2"
+	local dir="$3"
+	local releases="https://github.com/fluxcd/flux2/releases/download"
+	local archive="flux_${flux_version}_$platform.tar.gz"
+
+	curl -fsSL -o "$dir/$archive" \
+		"$releases/v$flux_version/$archive"                     || return $?
+	echo "$sha  $dir/$archive" | sha256sum --check --quiet || return $?
+	tar -xzf "$dir/$archive" -C "$bin" flux                 || return $?
+}
+
+#
+# Installs flux at its pinned version, unless it is already there.
+#
+function install_flux()
+{
+	local platform sha tmp status
+
+	if [[ "$("$bin/flux" version --client 2>/dev/null)" == "flux: v$flux_version" ]]; then
+		return
+	fi
+
+	platform="$(go env GOOS)_$(go env GOARCH)" || return $?
+	sha="$(flux_sha256 "$platform")"
+
+	if [[ -z "$sha" ]]; then
+		error "No pinned flux checksum for $platform"
+		return 1
+	fi
+
+	tmp="$(mktemp -d)" || return $?
+	fetch_flux "$platform" "$sha" "$tmp"
+	status=$?
+
+	rm -rf "$tmp"
+	return $status
+}
+
+init || exit $?
+
+mkdir -p "$bin" || fail "Could not create $bin!"
+
+log "Installing pinned tools into $bin ..."
+
+go_install "github.com/go-task/task/v3/cmd/task@$task_version"              || fail "Installing task failed!"
+go_install "github.com/google/ko@$ko_version"                               || fail "Installing ko failed!"
+go_install "github.com/sigstore/cosign/v3/cmd/cosign@$cosign_version"       || fail "Installing cosign failed!"
+go_install "sigs.k8s.io/kustomize/kustomize/v5@$kustomize_version"          || fail "Installing kustomize failed!"
+go_install "github.com/google/go-containerregistry/cmd/crane@$crane_version" || fail "Installing crane failed!"
+install_flux                                                                || fail "Installing flux failed!"
+
+log "Tools are installed"

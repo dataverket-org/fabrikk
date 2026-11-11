@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#
+# verify: tier 2. Builds ko images for this commit, brings up the private
+# verify stack, runs the contract and black-box suites from outside, and
+# tears the stack down. The result is pinned to the commit, so the tree must
+# be clean.
+#
+
+source "${0%/*}/functions.sh" || exit $?
+
+verify_suite="${VERIFY_SUITE:-go test -count=1 -tags verify ./...}"
+
+#
+# Runs compose against this commit's private verify stack.
+#
+function verify_compose()
+{
+	"${compose[@]}" -p "$verify_project" -f "$compose_file" \
+		--profile verify "$@"
+}
+
+#
+# Fails when a service in the verify stack publishes a fixed host port, or
+# two commits verifying at once would collide.
+#
+function no_fixed_ports()
+{
+	local config
+
+	config="$(verify_compose config)" || return $?
+
+	if grep -qE '^\s+(- )?published:' <<< "$config"; then
+		error "verify profile publishes fixed host ports; leave the host side empty so compose picks one"
+		return 1
+	fi
+}
+
+#
+# Builds the scratch images of every product that has manifests, tagged by
+# the commit, into the local daemon.
+#
+function build_images()
+{
+	local module product
+
+	for module in "${modules[@]}"; do
+		product="${module##*/}"
+		[[ -d "$product/deploy/base" ]] || continue
+
+		(
+			cd "$product" &&
+			KO_DOCKER_REPO=ko.local ko build --local --bare \
+				--tags="$commit" ./cmd/... >/dev/null
+		) || return $?
+	done
+}
+
+#
+# Removes the verify stack with its volumes.
+#
+function teardown()
+{
+	verify_compose down --volumes --remove-orphans
+}
+
+init         || exit $?
+need_compose || exit $?
+load_modules || fail "Could not list the modules in go.work!"
+
+commit="$(git rev-parse HEAD)" || fail "Not a git repository!"
+verify_project="verify-$(git rev-parse --short=12 HEAD)"
+
+clean_tree . || fail "verify needs a clean tree: the result is pinned to $commit"
+
+no_fixed_ports || fail "The verify profile is not private to the commit!"
+
+trap teardown EXIT
+
+build_images || fail "Building the images for $commit failed!"
+
+COMMIT="$commit" verify_compose up --wait ||
+	fail "The verify stack did not become healthy!"
+
+COMPOSE_PROJECT_NAME="$verify_project" bash -c "$verify_suite" ||
+	fail "The verify suite failed at $commit!"

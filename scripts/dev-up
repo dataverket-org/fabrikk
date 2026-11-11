@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# dev-up: starts the shared session stack for this workbench and waits until
+# it is healthy. PROFILE selects an opt-in profile (objekt, maskin).
+#
+
+source "${0%/*}/functions.sh" || exit $?
+
+profile="${PROFILE:-default}"
+
+init         || exit $?
+need_compose || exit $?
+
+if [[ "$profile" == "default" ]]; then
+	dev_compose up --wait || fail "The session stack did not become healthy!"
+else
+	dev_compose --profile "$profile" up --wait ||
+		fail "The session stack ($profile) did not become healthy!"
+fi

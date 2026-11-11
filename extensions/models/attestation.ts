@@ -132,7 +132,7 @@ export function violations(args: WriteArgs): string[] {
     ]] as const
   ) {
     if (run.target !== name) {
-      problems.push(`${name}: record is for make ${run.target}`);
+      problems.push(`${name}: record is for task ${run.target}`);
     }
     if (run.headSha !== args.headSha) {
       problems.push(`${name}: ran at ${run.headSha}, not ${args.headSha}`);
