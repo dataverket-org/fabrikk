@@ -93,7 +93,7 @@ the skills are in `.agents/skills/`. Enrol another tool with `swamp repo upgrade
 
 The loop is built through `releasing` and stops at `uat`. No product code has gone through it yet.
 
-1. **Drive one small slice to a merge.** The first product code brings the module, `compose.yaml`, and the lints,
+1. **Drive one small slice to a merge.** The first product code brings the module, its fragments, and the lints,
    which makes `verifying` real, and is the first run of `validate-attestation` and `release.yaml` on the real
    runners. Nothing else in the factory changes until this has happened.
 2. **Close the design questions the slice needs.** Each stack page lists its own under **Open**: the subject

@@ -76,10 +76,10 @@ branch protection (the enforcement, once `validate-attestation` is a required ch
 
 `.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `design/`, `domain/`, `models/` (the factory
 definition and model instances, the reference list among them), `workflows/`, `extensions/`, `Taskfile.yml`,
-`scripts/`, `.golangci.yml`, `renovate.json`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
+`scripts/`, `.golangci.yml`, `renovate.json`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
 
-`Taskfile.yml`, `scripts/`, `.golangci.yml`, `compose.yaml`, and `deploy/dev/` are protected because verification
-runs them from the branch under review: a weakened `task check`, a lint with a rule switched off, a healthcheck that always passes, or a fragment that gains host privileges would
+`Taskfile.yml`, `scripts/`, `.golangci.yml`, and `deploy/dev/` are protected because verification
+runs them from the branch under review: a weakened `task check`, a lint with a rule switched off, a probe that always passes, or a fragment that gains host privileges would
 still yield a green attestation. `design/` and `domain/` are protected because every plan and review is measured against them.
 `.forgejo/` builds and signs releases and validates attestations; `cosign.pub` decides which release signatures verify.
 `renovate.json` is protected because it decides where a proposed version or digest is looked up; a pull request that

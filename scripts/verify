@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# verify: tier 2. Builds ko images for this commit, brings up the private
-# verify stack, runs the contract and black-box suites from outside, and
+# verify: tier 2. Plays the default and verify fragments and every product's
+# own manifests, with images ko builds from this commit, into a stack private
+# to the commit; runs the contract and black-box suites from outside; and
 # tears the stack down. The result is pinned to the commit, so the tree must
 # be clean.
 #
@@ -11,62 +12,81 @@ source "${0%/*}/functions.sh" || exit $?
 verify_suite="${VERIFY_SUITE:-}"
 
 #
-# Runs compose against this commit's private verify stack.
+# Exports where a suite reaches what was just played: one variable per
+# published port, STACK_<NAME>_<CONTAINER PORT>=127.0.0.1:<host port>.
 #
-function verify_compose()
+function export_ports()
 {
-	"${compose[@]}" -p "$verify_project" -f "$compose_file" \
-		--profile verify "$@"
-}
+	local name="$1"
+	local pod id line port
 
-#
-# Fails when a service in the verify stack publishes a fixed host port, or
-# two commits verifying at once would collide.
-#
-function no_fixed_ports()
-{
-	local config
+	name="$(printf '%s' "$name" | tr '[:lower:]-' '[:upper:]_')"
 
-	config="$(verify_compose config)" || return $?
+	for pod in "${played_pods[@]}"; do
+		for id in $(podman ps -q --filter "pod=$pod"); do
+			while IFS= read -r line; do
+				[[ -n "$line" ]] || continue
 
-	if grep -qE '^\s+(- )?published:' <<< "$config"; then
-		error "verify profile publishes fixed host ports; leave the host side empty so compose picks one"
-		return 1
-	fi
-}
-
-#
-# Builds the scratch images of every product that has manifests, tagged by
-# the commit, into the local daemon.
-#
-function build_images()
-{
-	local module product
-
-	for module in "${modules[@]}"; do
-		product="${module##*/}"
-		[[ -d "$product/deploy/base" ]] || continue
-
-		(
-			cd "$product" &&
-			KO_DOCKER_REPO=ko.local ko build --local --bare \
-				--tags="$commit" ./cmd/... >/dev/null
-		) || return $?
+				port="${line%%/*}"
+				export "STACK_${name}_${port}=${line##* }"
+			done <<< "$(podman port "$id" 2>/dev/null)"
+		done
 	done
 }
 
 #
-# Runs the contract and black-box suites against the verify stack: the tests
-# under the verify build tag in every module, or VERIFY_SUITE when it is set.
+# Plays the fragments every verify stack has.
+#
+function play_fragments()
+{
+	local dir
+
+	for dir in $(fragments default verify); do
+		log "playing $dir ..."
+		play_fragment "$stack" "$root/$dir" random || return $?
+		export_ports "${dir##*/}"
+	done
+}
+
+#
+# Plays every product that has manifests: its deploy/base, with each ko://
+# reference built from this commit and loaded into podman.
+#
+function play_products()
+{
+	local module product manifests
+
+	for module in "${modules[@]}"; do
+		product="${module##*/}"
+		manifests="$stack_work/$product.yaml"
+		[[ -d "$module/deploy/base" ]] || continue
+
+		log "building and playing $product ..."
+		render "$stack" "$module/deploy/base" > "$manifests.in" || return $?
+		(
+			cd "$module" &&
+			KO_DOCKER_REPO=ko.local ko resolve --local \
+				--tags="$commit" -f "$manifests.in"
+		) > "$manifests" || return $?
+
+		refuse_host_ports "$manifests"    || return $?
+		play "$stack" "$manifests" random || return $?
+		export_ports "$product"
+	done
+}
+
+#
+# Runs the contract and black-box suites against the stack: the tests under
+# the verify build tag in every module, or VERIFY_SUITE when it is set.
 # go.work has no root module, so ./... from the root matches nothing; the
-# suite runs in each module instead. A test finds the stack by its project
-# name.
+# suite runs in each module instead. STACK names the stack, and the STACK_*
+# variables say where each port is.
 #
 function run_suite()
 {
 	local module
 
-	export COMPOSE_PROJECT_NAME="$verify_project"
+	export STACK="$stack"
 
 	if [[ -n "$verify_suite" ]]; then
 		bash -c "$verify_suite" || return $?
@@ -79,30 +99,52 @@ function run_suite()
 }
 
 #
-# Removes the verify stack with its volumes.
+# Prints the end of every container's log when the run failed, then removes
+# the stack, the images built for this commit and the work directory.
 #
 function teardown()
 {
-	verify_compose down --volumes --remove-orphans
+	local status=$?
+	local id image ref
+
+	if (( status != 0 )); then
+		for id in $(stack_containers "$stack"); do
+			log "last lines of $(podman inspect --format '{{.Name}}' "$id"):"
+			podman logs --tail 40 "$id" 2>&1
+		done
+	fi
+
+	stack_down "$stack"
+
+	# Never forced: an image another stack still runs stays where it is.
+	for image in $(podman images --quiet \
+	                   --filter "reference=ko.local/*:$commit" | sort -u); do
+		for ref in $(podman image inspect \
+		                 --format '{{range .RepoTags}}{{println .}}{{end}}' \
+		                 "$image"); do
+			podman rmi "$ref" >/dev/null 2>&1
+		done
+	done
+
+	rm -rf "$stack_work"
 }
 
 init         || exit $?
-need_compose || exit $?
+need_stack   || exit $?
+need_podman  || exit $?
 need_tools   || exit $?
 load_modules || fail "Could not list the modules in go.work!"
 
 commit="$(git rev-parse HEAD)" || fail "Not a git repository!"
-verify_project="verify-$(git rev-parse --short=12 HEAD)"
+stack="verify-$(git rev-parse --short=12 HEAD)"
 
 clean_tree . || fail "verify needs a clean tree: the result is pinned to $commit"
 
-no_fixed_ports || fail "The verify profile is not private to the commit!"
-
+stack_prepare "$stack" || fail "Could not prepare the verify stack!"
 trap teardown EXIT
 
-build_images || fail "Building the images for $commit failed!"
-
-COMMIT="$commit" verify_compose up --wait ||
-	fail "The verify stack did not become healthy!"
+play_fragments        || fail "A fragment did not start!"
+play_products         || fail "Building or playing a product failed at $commit!"
+wait_healthy "$stack" || fail "The verify stack did not become healthy!"
 
 run_suite || fail "The verify suite failed at $commit!"

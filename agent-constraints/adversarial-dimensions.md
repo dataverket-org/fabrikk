@@ -30,7 +30,7 @@ Where the skill's own severity guide is more specific, it wins. Never soften a s
 | Delivery | `delivery` | code |
 
 The last three review code only, and only what the diff touches in their area: handlers and service wiring; the
-`Taskfile.yml`, `scripts/`, `compose.yaml` and `deploy/dev/`; images, manifests under `deploy/base/` and release config. A reviewer
+`Taskfile.yml`, `scripts/` and `deploy/dev/`; images, manifests under `deploy/base/` and release config. A reviewer
 whose area the diff does not touch records no findings.
 
 ## Scope of a finding

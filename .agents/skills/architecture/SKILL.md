@@ -36,7 +36,7 @@ in a plan or in code: the plan proposes the model change (`planning-conventions.
 | Repository | Loads and saves one aggregate type, with the events it recorded. Hides the store. | interface in `domain`, impls in `adapters` |
 | Application service | One use case: load → call aggregate → save. No business rules. | func or small struct in `app` |
 | Inbound adapter | Transport message → verify → decode → application service. | `adapters/<transport>` |
-| Downstream port | Interface to an external system. Comes with in-memory fake, contract suite, compose fragment. | interface in `domain` or `app`, impls in `adapters/<system>` |
+| Downstream port | Interface to an external system. Comes with in-memory fake, contract suite, dev fragment. | interface in `domain` or `app`, impls in `adapters/<system>` |
 
 ## Package layout
 
@@ -182,7 +182,7 @@ func RunContract(t *testing.T, newImpl func(t *testing.T) LockController) {
 }
 ```
 
-The real implementation passes `RunContract` against the compose fragment; the fake passes the same suite in tier 0.
+The real implementation passes `RunContract` against the dev fragment; the fake passes the same suite in tier 0.
 
 The inbound adapter's shape is in `design/messaging.md`, because it is where the pattern meets the transport.
 

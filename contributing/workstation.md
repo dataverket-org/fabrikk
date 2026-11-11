@@ -11,11 +11,30 @@ curl -fsSL https://swamp-club.com/install.sh | sh     # swamp
 swamp --version
 ```
 
-Also: git 2.36 or newer, Go 1.25 or newer, [task](https://taskfile.dev) 3.x on `PATH`, `jq`, `sops` 3.x, `age` with `age-plugin-yubikey`, and Podman or Docker
-with compose for the session stack. The driving agent is any coding tool enrolled in `.swamp.yaml`; the skills live in
+Also: git 2.36 or newer, Go 1.25 or newer, [task](https://taskfile.dev) 3.x on `PATH`, `jq`, `sops` 3.x, `age` with `age-plugin-yubikey`, and rootless Podman
+for the session stack. The driving agent is any coding tool enrolled in `.swamp.yaml`; the skills live in
 `.agents/skills/`, `.claude/skills/` symlinks to them, and the rules are in `AGENTS.md`. Enrol another with
 `swamp repo upgrade --tool <tool>`, repeating the flag for every tool to keep; if the tool reads a directory other
 than `.agents/skills/`, symlink it the way `.claude/skills/` is.
+
+### The container engine
+
+One engine is supported: **rootless Podman**. The stacks never run as root, and there is no fallback to Docker.
+
+| Platform | Podman |
+|---|---|
+| Linux | Ubuntu 26.04 or newer, with the distribution's own `podman` (5.7 or newer) |
+| macOS | Homebrew's `podman`, with a `podman machine` |
+
+The stacks are played with `podman kube play` from Kubernetes manifests. There is no compose and nothing to install
+beside Podman.
+
+`task dev.up`, `task dev.down`, `task dev.reset` and `task verify` check the engine and stop on an older or a
+rootful Podman. On Linux, enable the user's API socket once, since `ko` loads the images it builds through it:
+
+```sh
+systemctl --user enable --now podman.socket
+```
 
 ## 2. Clone and initialise
 

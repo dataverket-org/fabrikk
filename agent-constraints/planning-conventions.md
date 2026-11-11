@@ -46,7 +46,7 @@ may attack it.
   each a rule of the model; what a message arriving elsewhere, or naming another tenant, does. What the isolation
   trio (testing skill) asserts for this slice.
 - **Ports and downstreams** (`portsAndDownstreams`). For each external system: the port interface, the in-memory
-  fake, the contract suite, the compose fragment and its profile, the tier at which the real system first appears,
+  fake, the contract suite, the dev fragment and its profile, the tier at which the real system first appears,
   and the reference repos the fake's behavior was checked against, as `<name>@<commit>`.
 - **Persistence** (`persistence`). Buckets, mirrors and consumers, and what the second copy receives, per
   `design/persistence.md`.

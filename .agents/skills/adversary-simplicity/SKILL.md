@@ -39,7 +39,7 @@ the terms a check can measure, with the counted paths named.
 - Does every interface have two implementations or a port justification?
 - Does every new dependency replace more code than it adds?
 - Is there an event pair that is really a request/reply?
-- Did the dev environment, the Taskfile, `scripts/`, or the compose file grow? Did that pass admission?
+- Did the dev environment, the Taskfile, `scripts/`, or the fragments grow? Did that pass admission?
 - Would a reader new to the repo find this by following the architecture vocabulary alone?
 
 ## Severity guide

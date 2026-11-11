@@ -52,7 +52,7 @@ page that owns it, in the same pull request:
 | An issuer, a token, an audience, what admission accepts | `design/identity.md` |
 | A new service, or which context a service holds | `design/products.md` |
 | A word, a rule or a boundary of the domain | `domain/`, in the page that owns it |
-| A new downstream port or compose fragment | the dev-environment skill's fragment table |
+| A new downstream port or dev fragment | the dev-environment skill's fragment table |
 | A new tunable field in an environment overlay | the delivery skill |
 | A budget | the adversary skill that states it |
 
@@ -74,11 +74,11 @@ agent or produce what ships:
 
 `.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `design/`, `domain/` (the domain model),
 `models/` (the factory definition with its review prompts, and the reference list), `workflows/`, `extensions/`,
-`Taskfile.yml`, `scripts/`, `.golangci.yml`, `renovate.json`, `compose.yaml`, `deploy/dev/`, `.forgejo/`,
+`Taskfile.yml`, `scripts/`, `.golangci.yml`, `renovate.json`, `deploy/dev/`, `.forgejo/`,
 `cosign.pub`.
 
-`Taskfile.yml`, `scripts/`, `.golangci.yml`, `compose.yaml`, and `deploy/dev/` are protected because verification
-runs them from the branch under review: a weakened `task check`, a lint with a rule switched off, a healthcheck that always passes, or a fragment that gains host privileges on the
+`Taskfile.yml`, `scripts/`, `.golangci.yml`, and `deploy/dev/` are protected because verification
+runs them from the branch under review: a weakened `task check`, a lint with a rule switched off, a probe that always passes, or a fragment that gains host privileges on the
 workbench would still produce a green attestation. `.forgejo/` builds and signs releases, and `cosign.pub` decides
 which signatures verify. The list is kept equal in `design/trust.md` and the `paths` default of the attest workflow.
 

@@ -81,13 +81,13 @@ globalArguments:
                 type: array
                 items:
                   type: object
-                  required: [system, port, fake, contractSuite, composeFragment, profile, firstRealTier, references]
+                  required: [system, port, fake, contractSuite, fragment, profile, firstRealTier, references]
                   properties:
                     system: { type: string, minLength: 1 }
                     port: { type: string, minLength: 1 }
                     fake: { type: string, minLength: 1 }
                     contractSuite: { type: string, minLength: 1 }
-                    composeFragment: { type: string, minLength: 1 }
+                    fragment: { type: string, minLength: 1 }
                     profile: { type: string, minLength: 1 }
                     firstRealTier: { type: string, enum: ["0", "1", "2", uat] }
                     references:

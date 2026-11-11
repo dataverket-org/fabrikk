@@ -63,7 +63,7 @@ async function denoSpawn(
   const status = await child.status;
   clearTimeout(killTimer);
   opts.signal?.removeEventListener("abort", onAbort);
-  // task can exit (or be killed) while a grandchild such as `docker compose`
+  // task can exit (or be killed) while a grandchild such as `podman`
   // still holds the pipes open; stop waiting for it after a grace period.
   let timer: ReturnType<typeof setTimeout> | undefined;
   const grace = new Promise((resolve) => {
