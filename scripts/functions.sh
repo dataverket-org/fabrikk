@@ -52,14 +52,32 @@ function fail()
 }
 
 #
-# Moves to the repository root, puts _bin first on PATH and picks compose.
+# Prints the main checkout: the one every worktree of this repository shares.
+# Outside a worktree that is the checkout itself.
+#
+function main_checkout()
+{
+	local common
+
+	common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+
+	case "$common" in
+		*/.git)	echo "${common%/.git}" ;;
+		*)	echo "$root" ;;
+	esac
+}
+
+#
+# Moves to the repository root, puts the main checkout's _bin first on PATH
+# and picks compose. One _bin serves every worktree, so a work item needs no
+# tools of its own.
 #
 function init()
 {
 	cd "${BASH_SOURCE[0]%/*}/.." || return $?
 
 	root="$PWD"
-	bin="${BIN:-$root/_bin}"
+	bin="${BIN:-$(main_checkout)/_bin}"
 	export PATH="$bin:$PATH"
 
 	if [[ -n "$COMPOSE" ]]; then
@@ -69,6 +87,31 @@ function init()
 	else
 		compose=(docker compose)
 	fi
+}
+
+#
+# Prints the pinned tool versions, as this checkout's scripts/tools states
+# them.
+#
+function tool_pins()
+{
+	grep -E '^[a-z_]+_(version|image)=' "$root/scripts/tools"
+}
+
+#
+# Fails unless the tools in _bin were installed from this checkout's pins.
+# _bin is shared, so a branch that moves a pin must not be judged by the
+# tools another branch installed.
+#
+function need_tools()
+{
+	local installed
+
+	installed="$(cat "$bin/.pins" 2>/dev/null)"
+	[[ -n "$installed" && "$installed" == "$(tool_pins)" ]] && return
+
+	error "The tools in $bin were not installed from the pins in scripts/tools: run task tools"
+	return 1
 }
 
 #

@@ -16,7 +16,7 @@ tasks:
       - task --list
 
   tools:
-    desc: Install pinned task, ko, cosign, kustomize, crane and flux into _bin
+    desc: Install pinned task, ko, cosign, kustomize, crane, golangci-lint and flux into _bin
     cmds:
       - scripts/tools
 
@@ -40,7 +40,7 @@ tasks:
       - scripts/dev-reset
 
   check:
-    desc: 'Tier 0: SPDX headers, gofmt, go vet, go test over every module in go.work'
+    desc: 'Tier 0: SPDX headers, gofmt, go vet, golangci-lint, go test over every module in go.work'
     cmds:
       - scripts/check
 

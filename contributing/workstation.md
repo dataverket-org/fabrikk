@@ -24,11 +24,14 @@ git clone ssh://git@git.dataverket.org/dataverket/fabrikk.git ~/kode/fabrikk
 git clone ssh://git@git.dataverket.org/dataverket/miljo.git   ~/kode/miljo      # L2 overlays, next to the monorepo
 cd ~/kode/fabrikk
 swamp model search --json | jq '.results[].name'       # fabrikk, forgejo, references, source-standards
-task tools                                              # pinned task, ko, cosign, kustomize, crane, flux into _bin
+task tools                                              # the pinned tools into _bin (scripts/tools lists them)
 swamp model method run references sync                  # read-only reference clones into _reference/
 ```
 
 Pulled extensions are restored by swamp on first use from `extensions/models/upstream_extensions.json`.
+
+`_bin/` in the main checkout serves every worktree. Run `task tools` again when a task says the tools were not
+installed from the checkout's pins, which happens after a pull or on a branch that moves one.
 
 Update the reference clones with `sync`, never `git pull`: each checkout is detached at its listed ref. A work-item
 worktree has no `_reference/`; read it from the main checkout (dev-environment skill). The domain model is not a

@@ -14,6 +14,7 @@ the pull request.
 | Rule | Where it is checked |
 |---|---|
 | Every Go file carries the SPDX header | `task check` |
+| Every `switch` over a closed set covers every case | `task check` (golangci-lint, `.golangci.yml`) |
 | No AI attribution in commit messages | `fabrikk-verify` preflight, and CI |
 | No AI attribution in the PR title and body | CI |
 | Rendered release config pins every image by digest | `task release` |
@@ -73,10 +74,11 @@ agent or produce what ships:
 
 `.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `design/`, `domain/` (the domain model),
 `models/` (the factory definition with its review prompts, and the reference list), `workflows/`, `extensions/`,
-`Taskfile.yml`, `scripts/`, `renovate.json`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
+`Taskfile.yml`, `scripts/`, `.golangci.yml`, `renovate.json`, `compose.yaml`, `deploy/dev/`, `.forgejo/`,
+`cosign.pub`.
 
-`Taskfile.yml`, `scripts/`, `compose.yaml`, and `deploy/dev/` are protected because verification runs them from the
-branch under review: a weakened `task check`, a healthcheck that always passes, or a fragment that gains host privileges on the
+`Taskfile.yml`, `scripts/`, `.golangci.yml`, `compose.yaml`, and `deploy/dev/` are protected because verification
+runs them from the branch under review: a weakened `task check`, a lint with a rule switched off, a healthcheck that always passes, or a fragment that gains host privileges on the
 workbench would still produce a green attestation. `.forgejo/` builds and signs releases, and `cosign.pub` decides
 which signatures verify. The list is kept equal in `design/trust.md` and the `paths` default of the attest workflow.
 

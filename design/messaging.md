@@ -80,6 +80,11 @@ func (a *Adapter) onEndRental(msg *nats.Msg) {
 }
 ```
 
+**A message is decoded once.** The inbound adapter maps `type` to the context's closed set of messages exactly once
+and rejects anything unknown. Handlers switch on Go types; they never compare `type` strings and never see raw
+`data`. The outbound adapter is the only place a Go type becomes a `type` string (architecture skill, "Compile-time
+invariants").
+
 Steps 1 and 2 are one function in `internal/platform`, written once and used by every handler. A handler that
 reimplements them is a finding. With the first product, a lint allows only that package to import `nats.go`, so no
 handler can subscribe around it.

@@ -149,7 +149,8 @@ export const model = {
         record("dev.reset", args, context),
     },
     check: {
-      description: "task check: SPDX headers, gofmt, go vet, go test (tier 0)",
+      description:
+        "task check: SPDX headers, gofmt, go vet, golangci-lint, go test (tier 0)",
       arguments: PlainArgsSchema(900),
       execute: (
         args: z.infer<ReturnType<typeof PlainArgsSchema>>,

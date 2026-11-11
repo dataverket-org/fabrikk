@@ -163,6 +163,8 @@ init || exit $?
 [[ -n "$product" ]]    || fail "PRODUCT is required"
 [[ -n "$cosign_key" ]] || fail "COSIGN_KEY is required"
 
+need_tools || exit $?
+
 clean_tree .        || fail "release needs a clean tree"
 clean_tree "$miljo" || fail "release needs a clean $miljo"
 

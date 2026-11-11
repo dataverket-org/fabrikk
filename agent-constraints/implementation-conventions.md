@@ -13,8 +13,10 @@ the factory can verify, review, and attest. How findings are graded is in `adver
   recorded `headSha`. Commit everything before recording `change` evidence; leave scratch files out of the tree.
 - Product code lives in `<product>/`, its own Go module in the root `go.work`; downstream fragments in `deploy/dev/<system>/`;
   manifests in `<product>/deploy/base/`. The first work item of a product brings the module, its `go.work` entry,
-  `compose.yaml`, and the lint that makes `task check` enforce the import rules (architecture skill, "Checked, not
-  reviewed") with it (dev-environment skill).
+  `compose.yaml`, and the import rules added to `.golangci.yml` (architecture skill, "Checked, not reviewed") with
+  it (dev-environment skill).
+- A rule goes into a type where Go allows it, as the plan's `invariants` say (architecture skill, "Compile-time
+  invariants"). A closed set is marked `//sumtype:decl`, or the lint cannot see it.
 
 ## Implement the plan, not around it
 
