@@ -74,14 +74,16 @@ regardless of who authored the change. The list lives in three places that must 
 (the rule), the `paths` default of `workflows/workflow-fabrikk-attest.yaml` (what gets digested), and Forgejo's
 branch protection (the enforcement, once `validate-attestation` is a required check).
 
-`.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `design/`, `models/` (the factory definition
-and model instances, the reference list with the domain model's pin among them), `workflows/`, `extensions/`,
-`Taskfile.yml`, `scripts/`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
+`.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `design/`, `domain/`, `models/` (the factory
+definition and model instances, the reference list among them), `workflows/`, `extensions/`, `Taskfile.yml`,
+`scripts/`, `renovate.json`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
 
 `Taskfile.yml`, `scripts/`, `compose.yaml`, and `deploy/dev/` are protected because verification runs them from the
 branch under review: a weakened `task check`, a healthcheck that always passes, or a fragment that gains host privileges would
-still yield a green attestation. `design/` is protected because every plan and review is measured against it.
+still yield a green attestation. `design/` and `domain/` are protected because every plan and review is measured against them.
 `.forgejo/` builds and signs releases and validates attestations; `cosign.pub` decides which release signatures verify.
+`renovate.json` is protected because it decides where a proposed version or digest is looked up; a pull request that
+changes one pin is hard to tell from one that was steered to a wrong source.
 
 ## What this does and does not prove
 

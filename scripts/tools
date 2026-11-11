@@ -4,30 +4,28 @@
 # skipped by go ./...), each pinned by version. They are never built from
 # this repository. Run directly on a fresh machine: it installs task itself.
 #
+# Renovate moves the pins (renovate.json). It reads the comment above each
+# version, so keep comment and variable on adjacent lines. A major version of
+# a go-installed tool changes its module path below and is a change by hand.
+#
 
 source "${0%/*}/functions.sh" || exit $?
 
+# renovate: datasource=go depName=github.com/go-task/task/v3
 task_version="v3.54.0"
+# renovate: datasource=go depName=github.com/google/ko
 ko_version="v0.19.1"
+# renovate: datasource=go depName=github.com/sigstore/cosign/v3
 cosign_version="v3.1.3"
+# renovate: datasource=go depName=sigs.k8s.io/kustomize/kustomize/v5
 kustomize_version="v5.8.1"
+# renovate: datasource=go depName=github.com/google/go-containerregistry
 crane_version="v0.22.1"
-flux_version="2.9.5"
 
-#
-# Prints the pinned sha256 of the flux release tarball for a platform. flux
-# cannot be go-installed (its go.mod has replace directives), so its tarball
-# is pinned by checksum instead.
-#
-function flux_sha256()
-{
-	local platform="$1"
-
-	case "$platform" in
-		linux_amd64)	echo "b853df82adfd7736f580692f9f734473d571606307139f8fd20c2a80dd1ff473" ;;
-		linux_arm64)	echo "f3e159af616ec0b9bd0a405c2185cf09d06b74652c1de3c7f377e8166826651a" ;;
-	esac
-}
+# flux cannot be go-installed (its go.mod has replace directives), so it is
+# taken from its image, pinned by tag and digest. One digest covers every
+# platform the image is built for. Renovate moves tag and digest together.
+flux_image="ghcr.io/fluxcd/flux-cli:v2.9.5@sha256:704d5529535570a495249b643159c93a9aa88ffca07813c974a54b7ba6edbd86"
 
 #
 # Installs one Go command at its pinned version into _bin.
@@ -40,47 +38,25 @@ function go_install()
 }
 
 #
-# Downloads the flux tarball into a directory, checks it, and unpacks flux.
-#
-function fetch_flux()
-{
-	local platform="$1"
-	local sha="$2"
-	local dir="$3"
-	local releases="https://github.com/fluxcd/flux2/releases/download"
-	local archive="flux_${flux_version}_$platform.tar.gz"
-
-	curl -fsSL -o "$dir/$archive" \
-		"$releases/v$flux_version/$archive"                     || return $?
-	echo "$sha  $dir/$archive" | sha256sum --check --quiet || return $?
-	tar -xzf "$dir/$archive" -C "$bin" flux                 || return $?
-}
-
-#
-# Installs flux at its pinned version, unless it is already there.
+# Installs flux from its pinned image with crane, unless that version is
+# already there. crane is installed before this runs.
 #
 function install_flux()
 {
-	local platform sha tmp status
+	local version platform
 
-	if [[ "$("$bin/flux" version --client 2>/dev/null)" == "flux: v$flux_version" ]]; then
+	version="${flux_image#*:}"
+	version="${version%%@*}"
+
+	if [[ "$("$bin/flux" version --client 2>/dev/null)" == "flux: $version" ]]; then
 		return
 	fi
 
-	platform="$(go env GOOS)_$(go env GOARCH)" || return $?
-	sha="$(flux_sha256 "$platform")"
+	platform="$(go env GOOS)/$(go env GOARCH)" || return $?
 
-	if [[ -z "$sha" ]]; then
-		error "No pinned flux checksum for $platform"
-		return 1
-	fi
-
-	tmp="$(mktemp -d)" || return $?
-	fetch_flux "$platform" "$sha" "$tmp"
-	status=$?
-
-	rm -rf "$tmp"
-	return $status
+	"$bin/crane" export --platform "$platform" "$flux_image" - |
+		tar -xf - -C "$bin" --strip-components=3 usr/local/bin/flux ||
+		return $?
 }
 
 init || exit $?

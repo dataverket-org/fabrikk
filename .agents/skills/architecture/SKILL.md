@@ -15,9 +15,9 @@ copy the *shape*, never the domain.
 |---|---|---|
 | **Pattern words**: value object, aggregate, port, application service | this skill | Names no technology and no domain noun |
 | **The stack**: how a message is shaped, where state lives, how a connection is identified | `design/messaging.md`, `design/persistence.md`, `design/identity.md` | Read the page before planning or reviewing anything it covers |
-| **The domain's nouns and rules** | the Dataverket domain model, the `domain-model` reference (`design/products.md` says how to read it) | Go identifiers, message types and subjects use its words and no others |
+| **The domain's nouns and rules** | the Dataverket domain model, `domain/` (`design/products.md` says how to read it) | Go identifiers, message types and subjects use its words and no others |
 
-The model is authoritative over this skill where they differ. Its `for-implementors/README.md` lists the rules that
+The model is authoritative over this skill where they differ. `domain/README.md` lists the rules that
 bind every slice. A word the glossary lacks, or a rule a design page does not state, is never a choice made silently
 in a plan or in code: the plan proposes the model change (`planning-conventions.md`) and the human decides.
 

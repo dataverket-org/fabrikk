@@ -141,10 +141,10 @@ flowchart LR
     SK[.agents/skills/<br/>architecture + 5 adversaries<br/>dev-environment, delivery]
     AC[agent-constraints/<br/>planning, implementation,<br/>adversarial dimensions]
     DS[design/<br/>messaging, persistence,<br/>identity, products]
+    DM[domain/<br/>the domain model]
     DEF[fabrikk.yaml<br/>stages, schemas, gates,<br/>review prompts]
     WF[workflows/ + extensions/<br/>verify, attest, release]
   end
-  DM[(domain model<br/>pinned by commit)]
   SK --> A[Driving agent and reviewers]
   AC --> A
   DS --> A
@@ -161,9 +161,8 @@ flowchart LR
 - **`agent-constraints/`** are the `constraints` file of a stage: what a plan must contain, how a change is handed
   over, how a finding is written. They describe the stage's artifact, never the subject matter.
 - **`design/`** holds what is decided about the stack and the products. The skills point here instead of restating it.
-- **The domain model** is a reference repository, pinned by commit in
-  `models/@dataverket/reference-repos/references.yaml`. It is the only home of domain rules
-  ([products.md](products.md)).
+- **The domain model** is `domain/`. It is the only home of domain rules, and a slice that needs it changed changes
+  it in the same pull request ([products.md](products.md)).
 - **The definition's `systemPrompt` blocks** are the review prompts. They bind run data (`${{ data.latest(...) }}`),
   so a reviewer is told the branch and commit it reviews and fetches the rest itself.
 

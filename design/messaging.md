@@ -96,5 +96,7 @@ handler can subscribe around it.
 - **The subject taxonomy.** Where the tenant id, the actor, the context and the aggregate sit in a subject. It is
   written into this page by the slice that first needs a subject, and decided by the human in that plan. Until then a
   plan that needs a subject proposes one and marks it as the proposal it is.
-- **`subject` on a creating command.** The aggregate has no resource ID yet; the model's implementation notes leave
+- **The asking account.** How a handler learns which account sent a request that crossed an import, so that "the
+  import tells who sent it" is checked and not assumed.
+- **`subject` on a creating command.** The aggregate has no resource ID yet; the model leaves
   it to the taxonomy.

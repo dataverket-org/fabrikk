@@ -1,0 +1,77 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Protected path. Renovate proposes; a person merges. Every file it touches here is a protected path.",
+    "What it does not move, and why, is in design/operations.md under Updates."
+  ],
+  "extends": ["config:recommended", "docker:pinDigests"],
+  "schedule": ["* * * * 1"],
+  "automerge": false,
+  "semanticCommits": "enabled",
+  "semanticCommitScope": "deps",
+  "customManagers": [
+    {
+      "description": "scripts/tools: a `# renovate:` comment on the line above each <name>_version variable",
+      "customType": "regex",
+      "managerFilePatterns": ["/^scripts/tools$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\n[a-z_]+_version=\"(?<currentValue>[^\"]+)\""
+      ]
+    },
+    {
+      "description": "scripts/tools: an image pinned by tag and digest in a <name>_image variable",
+      "customType": "regex",
+      "managerFilePatterns": ["/^scripts/tools$/"],
+      "matchStrings": [
+        "[a-z_]+_image=\"(?<depName>[^:\"\\s]+):(?<currentValue>[^@\"\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})\""
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "description": "The reference list: url, a `# renovate:` comment, then a ref that is a tag. git-tags reads the tags from the url itself and needs no token",
+      "customType": "regex",
+      "managerFilePatterns": ["/^models/@dataverket/reference-repos/.+\\.yaml$/"],
+      "matchStrings": [
+        "url: (?<packageName>\\S+)\\n\\s+# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\n\\s+ref: (?<currentValue>\\S+)"
+      ]
+    },
+    {
+      "description": "Extensions pin their dependencies in the import specifier, because swamp bundles them (AGENTS.md, rule 7)",
+      "customType": "regex",
+      "managerFilePatterns": ["/^extensions/.+\\.ts$/"],
+      "matchStrings": [
+        "[\"']jsr:(?<depName>@[a-z0-9-]+/[a-z0-9-]+)@(?<currentValue>[0-9][^\"'/]*)"
+      ],
+      "datasourceTemplate": "jsr"
+    },
+    {
+      "description": "The same for npm specifiers",
+      "customType": "regex",
+      "managerFilePatterns": ["/^extensions/.+\\.ts$/"],
+      "matchStrings": [
+        "[\"']npm:(?<depName>(?:@[a-z0-9-]+/)?[a-z0-9._-]+)@(?<currentValue>[0-9][^\"'/]*)"
+      ],
+      "datasourceTemplate": "npm"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Every update is a chore, whatever kind of dependency it is",
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "chore"
+    },
+    {
+      "description": "A major version of a go-installed tool changes its module path, which scripts/tools spells out. That is a change by hand",
+      "matchFileNames": ["scripts/tools"],
+      "matchDatasources": ["go"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "swamp supplies zod and does not bundle it, so the specifier is not ours to move",
+      "matchFileNames": ["extensions/**"],
+      "matchPackageNames": ["zod"],
+      "enabled": false
+    }
+  ]
+}

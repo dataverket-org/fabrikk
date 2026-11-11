@@ -30,9 +30,9 @@ swamp model method run references sync                  # read-only reference cl
 
 Pulled extensions are restored by swamp on first use from `extensions/models/upstream_extensions.json`.
 
-The reference clones include the domain model, at the commit `models/@dataverket/reference-repos/references.yaml`
-pins. Update with `sync`, never `git pull`: each checkout is detached at its listed ref. A work-item worktree has no
-`_reference/`; read it from the main checkout (dev-environment skill).
+Update the reference clones with `sync`, never `git pull`: each checkout is detached at its listed ref. A work-item
+worktree has no `_reference/`; read it from the main checkout (dev-environment skill). The domain model is not a
+reference: it is `domain/`, in every checkout and worktree.
 
 ## 3. Signing and the vault
 

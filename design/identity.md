@@ -59,4 +59,11 @@ is not, and the first slice that admits a machine needs it decided first:
 - **The organisation a human is entering.** Which claim names it, given that a login spans organisations.
 - **The dev loop.** What stands in for an in-cluster issuer in the verify stack.
 - **Key custody.** Where the NATS operator and account signing keys that admission and the account wiring need are
-  held, their scope and rotation. The model's implementation notes ask fabrikk for this table.
+  held, their scope and rotation. In operator mode that is the operator's and each account's signing keys, the
+  activation tokens for private imports, and the callout's own key. The same table covers the wiring a provider's
+  and a product's crossings need.
+- **The identity provider's side of a tenant.** Whether a tenant is a Zitadel organisation or a project
+  (`domain/open.md`, known tensions), who creates it when a tenant is made, and how a login that was named before
+  it existed at the identity provider is matched at its first login.
+- **Authorisation.** Where a handler reads what decides a command. The model fixes that the role, the policy and
+  the login's validation are read at each command and never stored as a state of the user.

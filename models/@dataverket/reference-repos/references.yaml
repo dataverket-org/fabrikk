@@ -10,6 +10,9 @@ tags: {}
 # Read, never build, import, or copy from. Go libraries come from the module cache (go env GOMODCACHE)
 # at the version go.mod pins, not from here.
 # This file is a protected path: adding a reference changes what agents read.
+# A ref that is a tag is moved by Renovate (renovate.json), which reads three adjacent lines: url, the renovate
+# comment, ref. Keep them in that order. A ref that is a branch follows that branch at every sync and is not
+# Renovate's.
 globalArguments:
   dir: _reference
   repos:
@@ -21,11 +24,13 @@ globalArguments:
         built on these; planners and the security reviewer check claims about NATS behavior here.
     - name: cloudevents-spec
       url: https://github.com/cloudevents/spec
+      # renovate: datasource=git-tags depName=cloudevents-spec
       ref: v1.0.2
       purpose: >-
         CloudEvents 1.0 specification and extensions. The event envelope every Sentral event and command uses.
     - name: zitadel
       url: https://github.com/zitadel/zitadel
+      # renovate: datasource=git-tags depName=zitadel
       ref: v4.20.2
       purpose: >-
         Zitadel source and docs (Identitet). Token claims and JWKS behavior Sentral's auth callout validates, and what
@@ -37,13 +42,4 @@ globalArguments:
         Swamp's source, itself built by a software factory with local verification, attestation, and CI that validates
         rather than executes. Guides fabrikk's factory design (attestation, PR, merge, release) and shows how swamp
         behaves when extending it. Every build is tagged; read the installed version (swamp --version) at its tag.
-    - name: domain-model
-      url: https://git.dataverket.org/dataverket/domain-model
-      ref: a628a3808b1063a0ff1adf1cf377c4f55c9294d2
-      purpose: >-
-        The Dataverket domain model, agreed with the domain owner and authoritative over every skill here where they
-        differ: the control plane's glossary, stories, map, decisions, and the designs of Person, Organisation,
-        Catalogue, Audit and Tenancy. Pinned by commit: plans cite its rules by page and heading, and a slice that
-        changes the model moves this ref in its own branch (design/products.md). The implementors' guide
-        (for-implementors/README.md) lists the rules that bind every slice. Not untrusted: read, cited, never pasted.
 methods: {}

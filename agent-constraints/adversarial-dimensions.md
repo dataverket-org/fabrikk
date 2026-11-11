@@ -41,6 +41,8 @@ whose area the diff does not touch records no findings.
   skill, "Checked, not reviewed").
 - An item a design page lists under **Open** is not a finding against the plan, unless the slice needs it decided and
   the plan does not propose an answer.
+- What a design page lists under **Planned, not built** is not a finding against a slice whose work has not reached
+  that piece's trigger. A slice that reaches the trigger and leaves the piece out is.
 
 ## Output format
 

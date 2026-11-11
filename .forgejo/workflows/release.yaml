@@ -1,7 +1,8 @@
 # Protected path. Builds each product's release candidate on shared infrastructure after merge; a workbench never
 # builds what ships (delivery skill). fabrikk-release verifies the result; it does not build.
 #
-# Runner (label fabrikk-release): Go >= 1.25, git, bash, curl, tar, sha256sum, network access to the registry.
+# Runner (label fabrikk-release): Go >= 1.25, git, bash, tar, network access to the registry, the Go module proxy,
+# and ghcr.io (scripts/tools takes flux from its image).
 # Secrets: REGISTRY_USERNAME, REGISTRY_PASSWORD, COSIGN_PRIVATE_KEY, COSIGN_PASSWORD.
 # The matching public key is cosign.pub at the repository root.
 name: release

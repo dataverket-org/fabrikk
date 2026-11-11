@@ -26,14 +26,14 @@ the factory can verify, review, and attest. How findings are graded is in `adver
   stop, and take the work item back to planning through the human rather than through the code.
 - Every design choice not the default in a skill or a design page was justified in the plan. Do not add new ones
   during implementation.
-- Identifiers, CloudEvents types, subjects and policy entities use the domain model's words (the `domain-model`
-  reference's glossary and design pages) and no others. A word the code needs that the model lacks is a deviation of
+- Identifiers, CloudEvents types, subjects and policy entities use the domain model's words (the glossary and
+  design pages under `domain/`) and no others. A word the code needs that the model lacks is a deviation of
   the large kind: it goes back to planning as a proposed model change, not into the code.
 - A design page the plan changes (`designChanges`) is changed in the same commit series as the code that needs it.
-  A model change the plan proposed is made in the model's repository, and the branch moves the pin in
-  `models/@dataverket/reference-repos/references.yaml`.
+  A model change the plan proposed (`modelChanges`) is made in `domain/` the same way, in the page that owns the
+  rule, following `domain/method/working-rules.md`: a rule has one home, and every other page links to it.
 - Read, never copy, from `_reference/`. Reusing upstream code is a dependency or a reimplementation. The domain
-  model is the exception to "untrusted": it is authoritative, read and cited by heading, still never pasted.
+  model is not a reference: it is authoritative, read and cited by heading, and never pasted into code or a skill.
 
 ## Tests are part of the change
 

@@ -45,8 +45,8 @@ where its code is. [design/README.md](design/README.md) indexes the rest and say
 - **Skills**: what good looks like. The `architecture` skill is the tactical DDD pattern; the `adversary-*` skills
   are how reviewers attack.
 - **Design pages**: what is decided about the stack and how the factory works. The skills point at them.
-- **The domain model**: what is being built, in the domain's own words. A repository of its own, pinned here by
-  commit, and the only home of domain rules.
+- **The domain model**: what is being built, in the domain's own words. It lives in `domain/` and is the only home
+  of domain rules.
 - **Attestation**: a signed tag on the verified commit. CI validates it; CI never runs the loop.
 - **Workbench**: the one machine that holds the agent, the code, the session stack and swamp.
 
@@ -55,6 +55,7 @@ where its code is. [design/README.md](design/README.md) indexes the rest and say
 | Path | Holds |
 |---|---|
 | `design/` | How the factory works, and what is decided about messaging, persistence, identity and the products |
+| `domain/` | The domain model: the glossary, the context map, the domain's decisions, the designs of the contexts, and the stories behind them |
 | `contributing/` | How a person sets up a workbench, drives a work item, and operates the forge |
 | `.agents/skills/` | The skills, one directory each; `.claude/skills/` symlinks to them |
 | `agent-constraints/` | Per-stage conventions: what a plan contains, how a change is handed over, how a finding is written |
@@ -63,7 +64,7 @@ where its code is. [design/README.md](design/README.md) indexes the rest and say
 | `Taskfile.yml`, `scripts/` | The tasks a person and the factory both run (`task check`, `task verify`), and the scripts that do the work |
 | `.forgejo/` | CI: attestation validation on every pull request, the release build after merge |
 | `<product>/` | One Go module per product, joined by `go.work`. None has code yet |
-| `_reference/` | Read-only clones of upstream code and of the domain model (ignored; `references sync`) |
+| `_reference/` | Read-only clones of upstream code (ignored; `references sync`) |
 | `_bin/` | Pinned tool binaries (ignored; `task tools`) |
 
 Environment overlays live in [`miljo`](https://git.dataverket.org/dataverket/miljo), a separate repository with its
@@ -94,8 +95,10 @@ Smaller, in no order:
 
 - Run the review stages as a swamp workflow: one reviewer step per skill, an assertion on the output shape, a merge
   step that writes the findings artifact. Today the agent dispatches and merges from the skill's instructions.
-- The domain model's entry in the reference list is pinned to a commit, and its URL needs credentials: confirm the
-  pin against the forge and that `references sync` can fetch it.
+- Archive the old `domain-model` repository read-only: the model moved to `domain/` without its history, and that
+  repository holds the history and the tag `v0.5.0-parked`.
+- A line of its own for model and steering changes, once `validate-attestation` is a required check on `main`:
+  until then a change to `domain/`, `design/` or a skill is a pull request a person reviews.
 - A fast lane for a fix with a reproduction and no protected-path change. Every work item takes the full loop today.
 - The `releasing` stage defaults to `sentral`/`uat`; the product should come from the plan or `change` evidence.
 - Move the Zitadel reference to the pinned Zitadel image once one is chosen.

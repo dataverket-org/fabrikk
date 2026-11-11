@@ -45,8 +45,10 @@ inputs:
         - workflows/
         - extensions/
         - design/
+        - domain/
         - Taskfile.yml
         - scripts/
+        - renovate.json
         - compose.yaml
         - deploy/dev/
         - .forgejo/
