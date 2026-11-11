@@ -1,76 +1,49 @@
 # Adversarial dimensions
 
 Used twice: to attack a plan before approval, and to review implementation before the PR. The reviewer is a separate
-agent with no shared context. Its job is to break the work, not to describe it. Surface only critical and high findings;
-record medium and low without blocking.
+agent with no shared context, working from exactly one skill. Its job is to break the work, not to describe it.
+
+This file says how a finding is graded and written. What to attack is the reviewer's own skill: its invariants, its
+checklist and its severity guide. Nothing here repeats a skill.
 
 ## Severities
 
 | Severity | Meaning | Effect |
 |---|---|---|
-| Critical | A security invariant, data-loss path, cross-tenant effect, or budget blown without a plan revision | Blocks approval / PR. Must be resolved. |
-| High | Missing protection or test that a skill requires; unjustified dependency; missing ADR; unpinned image | Blocks approval / PR. Must be resolved or explicitly waived by the human. |
-| Medium | Drift from a skill that does not weaken correctness or security | Recorded; fixed in this or the next slice. |
+| Critical | A security invariant, a binding rule of the domain model, a data-loss path, a cross-tenant effect, or a budget blown without a plan revision | Blocks approval / PR. Must be resolved. |
+| High | A protection or test that a skill requires is missing; an unjustified dependency; a design-changing change without its page; an unpinned image | Blocks approval / PR. Must be resolved or explicitly waived by the human. |
+| Medium | Drift from a skill or a design page that does not weaken correctness or security | Recorded; fixed in this or the next slice. |
 | Low | Hygiene | Recorded. |
+
+Where the skill's own severity guide is more specific, it wins. Never soften a severity.
 
 ## Dimensions
 
-Each dimension names the skill that defines it and what to attack. Findings cite the skill section.
+| Dimension | Skill | Reviews |
+|---|---|---|
+| Architecture and model conformance | `architecture` | plan, code |
+| Isolation, admission and messaging security | `adversary-security` | plan, code |
+| Testing adequacy | `adversary-testing` | plan, code |
+| Simplicity | `adversary-simplicity` | plan, code |
+| Observability | `adversary-observability` | code |
+| Development environment | `dev-environment` | code |
+| Delivery | `delivery` | code |
 
-### 1. Architecture conformance — `architecture`
-Attack: aggregates bypassed (writes outside methods); business rules in application services or adapters; adapters
-imported by domain; interfaces without consumers; technology names above `adapters`; a word not in the domain model's
-glossary, or a command, event, aggregate or read model the model's design for that context does not name; a rule the
-plan states that the model does not, or states differently; a reply published as an event or an event pair standing in
-for a reply; an actor or organisation written by the sender.
+The last three review code only, and only what the diff touches in their area: handlers and service wiring; the
+`Taskfile.yml`, `scripts/`, `compose.yaml` and `deploy/dev/`; images, manifests under `deploy/base/` and release config. A reviewer
+whose area the diff does not touch records no findings.
 
-### 2. Account isolation and admission — `adversary-security`
-Attack: any crossing between accounts the wiring did not declare, or one that outlives the agreement or terms it was
-made for; any path between two customer accounts; the front desk reaching more than its three commands; admission
-fallbacks or bypasses; a login placed where it has no user; handlers acting before verification; a message naming
-organisation X accepted on another export, or `tenant` not compared to the pinned tenant; behavior when admission, JWKS,
-or clocks fail; a payload in an audit entry; a provider able to alter its own record; undeclared standing credentials;
-secrets in logs, subjects, artifacts, or plans.
+## Scope of a finding
 
-### 3. Messaging correctness — `architecture`, `adversary-security`
-Attack: non-CloudEvents payloads; wrong `type` grammar or tense, or a name the integration contract does not list;
-missing `tenant`/`traceparent`; a fact concerning several organisations published once instead of once per
-organisation; subjects not per the ADR; a consumer that a redelivered message changes; a projection keyed by a counter;
-events that are not facts; at-least-once delivery assumed to be exactly-once.
-
-### 4. Testing adequacy — `adversary-testing`
-Attack: security-relevant change without a black-box test; server-configuring tests on the shared stack; shared-stack
-tests without name-scoped isolation; fakes not run through the contract suite; happy-path-only; sleeps; tier-0 tests
-needing Zitadel, a cluster, or the network; a plan that does not say where the real downstream first appears.
-
-### 5. Simplicity — `adversary-simplicity`
-Attack: LOC over estimate or budget; abstractions with one implementation; new dependency or framework; speculative
-fields and options; a second way of doing an existing thing; dev-environment growth that did not pass admission.
-Always ask and answer: what can be removed?
-
-### 6. Observability — `adversary-observability`
-Attack: untraceable path; error logged at several layers; readiness not covering a real dependency; token or payload in
-a log or span; missing graceful shutdown.
-
-### 7. Source standards — `adversary-source-standards`
-Attack: missing SPDX header; ADR-required change without an ADR; mutable tags; upstream image references; protected path
-changed without a human; no signed `attestation/<commit>` tag for the PR head.
-
-### 8. Development environment — `dev-environment`
-Attack: a dependency added to the default profile; fragment without healthcheck, seed, or reset; unpinned fragment image;
-a loop that reaches over the network; tests that depend on the long-lived dev Zitadel.
-
-### 9. Delivery — `delivery`
-Attack: join performed in the cluster; images or config by tag; L2 touching non-tunable fields; rendered output not
-verified for every environment; secrets in an artifact; UAT taking input other than the release artifact; promotion
-without a passing UAT.
+- A finding is about what the slice builds. What the plan lists as out of scope, and what it does not name, is not a
+  finding; a plan that names something it does not build is (simplicity skill).
+- A rule that a check enforces is not a finding (source-standards skill, "Checked by the program"; architecture
+  skill, "Checked, not reviewed").
+- An item a design page lists under **Open** is not a finding against the plan, unless the slice needs it decided and
+  the plan does not propose an answer.
 
 ## Output format
 
 For each finding: dimension, severity, location (file or plan section), the attack that succeeds, and the smallest
-change that defeats it. On code review, include the previous round's findings and state which are resolved.
-
-## Rework
-
-Findings are folded back and the work reworked, at most five rounds per stage. A stage that still has critical findings
-after five rounds returns to the human with the open findings — never with a softened severity.
+change that defeats it. Cite the skill section, the design page, or the model's page and heading. On re-review,
+state for each of the previous round's findings whether it is resolved.

@@ -1,12 +1,3 @@
----
-title: "Operate the forge"
-type: guide
-project: fabrikk
-audience: operator
-description: "Forge tasks through the forgejo model: attesters and required checks; the rest lives in fabrikk-infra."
-weight: 30
----
-
 # Operate the forge
 
 Forge tasks go through the `forgejo` model (`@dataverket/forgejo` plus `extensions/models/forgejo_actions.ts`), never
@@ -50,6 +41,6 @@ merge.
 ## What is not here
 
 Actions secrets, runner registration and pruning, repository renames, and the release runner itself are forge
-operations that reach beyond this repository. They live in fabrikk-infra's swamp with their own token and vault
-(since 2026-09-18); this repository's token is scoped to `dataverket/fabrikk` and the factory holds nothing more
-([how fabrikk works](../explanation/how-fabrikk-works.md#the-loop-boundary)).
+operations that reach beyond this repository. They live in fabrikk-infra's swamp with their own token and vault; this
+repository's token is scoped to `dataverket/fabrikk` and the factory holds nothing more
+([the loop boundary](../design/factory.md#the-loop-boundary)).

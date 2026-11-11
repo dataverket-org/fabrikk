@@ -1,21 +1,16 @@
 ---
-title: "How fabrikk works"
-type: explanation
-project: fabrikk
 audience: everyone
 last-verified: 2026-09-18 @ 5a55161
-description: "The actors, the loop, what each stage does and where its code is."
-weight: 10
 ---
 
-# How fabrikk works
+# The factory
 
 fabrikk is a software factory: a state machine that takes a work item (an outcome someone wants) through planning,
 adversarial review, implementation, verification, code review, attestation, a pull request, a release, and user
 acceptance testing, and records every step as data. It is built on [swamp](https://github.com/swamp-club/swamp), and it
 follows one idea: **the factory is a program; skills are its context.** The process lives in a swamp model and a few
-swamp workflows. The skills and constraint files say what good looks like. An agent drives the loop, but the agent
-never decides what the next step is. It asks the factory.
+swamp workflows. The skills, the constraint files and the pages in this directory say what good looks like. An agent
+drives the loop, but the agent never decides what the next step is. It asks the factory.
 
 ## The actors
 
@@ -37,10 +32,10 @@ flowchart LR
 
 - **The human** writes the outcome, approves the plan, and merges the pull request. Those are the only two approvals in
   the loop. Their YubiKey signs every commit and the attestation tag, so nothing gets signed without a touch.
-- **The driving agent** is a session of any enrolled coding tool (Claude Code or Codex today, `.swamp.yaml` lists
-  them) with the `software-factory` skill and the fabrikk skills loaded. It
-  executes whatever the current stage's `work` block says: do it itself (`interactive`), spawn one reviewer per skill
-  (`dispatch`), or trigger a swamp workflow (`workflow`). It records what it produced through the model and asks again.
+- **The driving agent** is a session of any enrolled coding tool (`.swamp.yaml` lists them) with the
+  `software-factory` skill and the fabrikk skills loaded. It executes whatever the current stage's `work` block says:
+  do it itself (`interactive`), spawn one reviewer per skill (`dispatch`), or trigger a swamp workflow (`workflow`).
+  It records what it produced through the model and asks again.
 - **swamp** holds the factory definition, runs the workflows, validates every artifact against its schema, evaluates the
   gates, and keeps all of it as versioned data in `.swamp/`. Secrets come from the `fabrikk` vault at run time.
 - **The forge and CI** are Forgejo at `git.dataverket.org` and its Actions runners. CI never runs the loop; it validates
@@ -62,18 +57,19 @@ One workbench serves many work items at once, and git worktrees are how:
   a green result is about exactly one commit. When the work item is merged, the worktree goes.
 - **One shared session stack** for every worktree: the compose project `dataverket`, with `nats` and `postgres` on
   fixed host ports. Tests isolate themselves by name, so two work items share it without seeing each other.
-- **One private verify stack per commit**: `make verify` runs its images under the compose project `verify-<commit>`
+- **One private verify stack per commit**: `task verify` runs its images under the compose project `verify-<commit>`
   and tears it down, so two work items can verify at the same time.
 
-The Makefile names both stacks and never derives a name from a worktree; the rule and what may never be shared are
-in the dev-environment skill. Every workbench is meant to be identical, defined as code, and [set up a
-workstation](../guides/set-up-a-workstation.md) is that definition until a bootstrap script exists. More than one
-workbench is fine: they share the forge and nothing else.
+`scripts/functions.sh` names both stacks and never derives a name from a worktree; the rule and what may never be shared are
+in the dev-environment skill. Every workbench is meant to be identical, defined as code, and
+[contributing/workstation.md](../contributing/workstation.md) is that definition until a bootstrap script exists.
+More than one workbench is fine: they share the forge and nothing else.
 
 ## The loop
 
-The factory definition is `models/@swamp/software-factory/fabrikk.yaml`. Rendered as a graph it looks like this
-(`swamp model method run fabrikk describe` prints the exact one):
+The factory definition is `models/@swamp/software-factory/fabrikk.yaml`. It is the source of truth for stages,
+schemas and gates; `swamp model method run fabrikk describe` renders the exact graph and the stage table, and
+`validate` lints it.
 
 ```mermaid
 flowchart TD
@@ -120,19 +116,19 @@ The agent never satisfies those on its own.
 
 | Stage | Who | What happens | Code |
 |---|---|---|---|
-| `planning` | agent | Turns the outcome into a plan with the sections `planning-conventions.md` requires; recorded as the `plan` artifact, validated against its schema. | `agent-constraints/planning-conventions.md`, `.agents/skills/*` |
-| `plan-review` | one subagent per skill | Attacks the plan along `adversarial-dimensions.md`; findings recorded as `plan-review`. Critical or high findings send it back. Then the human approves. | `agent-constraints/adversarial-dimensions.md`, the `systemPrompt` in the definition |
-| `implementing` | agent | Implements the plan in a worktree, tier 0 green, commits signed. Records `change-summary` (files, LOC, ADRs) and `change` evidence (worktree, branch, headSha). | `agent-constraints/implementation-conventions.md` |
-| `verifying` | swamp workflow | In that worktree, refuses a dirty tree, a moved HEAD, or a commit message carrying AI attribution, then `make check` (tier 0) and `make verify` (tier 2). Results are pinned to headSha. No LLM. | `workflows/workflow-fabrikk-verify.yaml`, `extensions/models/dev_environment.ts`, `extensions/models/git_commit_messages.ts`, `extensions/models/source_standards.ts`, `Makefile` |
-| `code-review` | one subagent per skill | Reviews the diff at headSha against the plan and every adversary; compares actual LOC with the estimate; the previous round's findings are fed forward. | the `systemPrompt` in the definition, `agent-constraints/adversarial-dimensions.md` |
+| `planning` | agent | Turns the outcome into a plan with the sections `planning-conventions.md` requires; recorded as the `plan` artifact, validated against its schema. A plan names only what the slice builds: most sections are optional. | `agent-constraints/planning-conventions.md`, `.agents/skills/*`, `design/` |
+| `plan-review` | one subagent per skill | Four reviewers attack the plan: architecture, security, testing, simplicity. Findings are recorded as `plan-review`. Critical or high findings send it back. Then the human approves. | `agent-constraints/adversarial-dimensions.md`, the `systemPrompt` in the definition |
+| `implementing` | agent | Implements the plan in a worktree, tier 0 green, commits signed. Records `change-summary` (files, LOC, design pages changed) and `change` evidence (worktree, branch, headSha). | `agent-constraints/implementation-conventions.md` |
+| `verifying` | swamp workflow | In that worktree, refuses a dirty tree, a moved HEAD, or a commit message carrying AI attribution, then `task check` (tier 0) and `task verify` (tier 2). Results are pinned to headSha. No LLM. | `workflows/workflow-fabrikk-verify.yaml`, `extensions/models/dev_environment.ts`, `extensions/models/git_commit_messages.ts`, `extensions/models/source_standards.ts`, `Taskfile.yml`, `scripts/` |
+| `code-review` | one subagent per skill | The same four review the diff at headSha against the plan, and compare actual LOC with the estimate. Observability, dev-environment and delivery reviewers join, and report nothing when the diff does not touch their area. The previous round's findings are fed forward. | the `systemPrompt` in the definition, `agent-constraints/adversarial-dimensions.md` |
 | `attesting` | swamp workflow | Digests the protected paths, lists which the branch changed, checks that verification, review, and approval all concern headSha, and signs the annotated tag `attestation/<headSha>`. | `workflows/workflow-fabrikk-attest.yaml`, `extensions/models/attestation.ts`, `extensions/models/git_paths_digest.ts` |
 | `pull-request` | agent + human | Pushes branch and tag, opens the PR through the `forgejo` model, records the PR head from the API. The human reviews and merges in Forgejo; the merge commit is read back from the API. | `models/@dataverket/forgejo/forgejo.yaml`, `extensions/models/forgejo_actions.ts`, `.forgejo/workflows/validate-attestation.yaml` |
-| `releasing` | CI, then swamp workflow | CI builds the candidate on merge (`make release`). The workflow waits for it and verifies signature, provenance, `release.json`, digest-pinned images, and the `candidate` tag. Never builds. | `.forgejo/workflows/release.yaml`, `Makefile`, `workflows/workflow-fabrikk-release.yaml`, `extensions/models/release_artifact.ts` |
-| `uat` | swamp workflow | Black-box suite against the deployed candidate. Not built yet: needs a UAT cluster. | (`fabrikk-uat`, to come) |
-| `promoting` | swamp workflow | Retags the UAT-passed digest from `candidate` to `current`. Not built yet. | (`fabrikk-promote`, to come) |
+| `releasing` | CI, then swamp workflow | CI builds the candidate on merge (`task release`). The workflow waits for it and verifies signature, provenance, `release.json`, digest-pinned images, and the `candidate` tag. Never builds. | `.forgejo/workflows/release.yaml`, `Taskfile.yml`, `scripts/`, `workflows/workflow-fabrikk-release.yaml`, `extensions/models/release_artifact.ts` |
+| `uat` | swamp workflow | Black-box suite against the deployed candidate. Not built: needs a UAT cluster. | (`fabrikk-uat`, to come) |
+| `promoting` | swamp workflow | Retags the UAT-passed digest from `candidate` to `current`. Not built. | (`fabrikk-promote`, to come) |
 
-The full path list is in [reference/code-map.md](../reference/code-map.md); the stage contracts (artifact and evidence
-schemas, gates, record names) are in [reference/factory-definition.md](../reference/factory-definition.md).
+Source standards has no reviewer. What it asks is either a check (the SPDX header in `task check`, AI attribution at
+verify preflight and in CI) or a protected-path change, which a human reviews in Forgejo whatever else is green.
 
 ## Where the steering comes from
 
@@ -144,24 +140,32 @@ flowchart LR
   subgraph steering [Protected steering files]
     SK[.agents/skills/<br/>architecture + 5 adversaries<br/>dev-environment, delivery]
     AC[agent-constraints/<br/>planning, implementation,<br/>adversarial dimensions]
+    DS[design/<br/>messaging, persistence,<br/>identity, products]
     DEF[fabrikk.yaml<br/>stages, schemas, gates,<br/>review prompts]
     WF[workflows/ + extensions/<br/>verify, attest, release]
   end
+  DM[(domain model<br/>pinned by commit)]
   SK --> A[Driving agent and reviewers]
   AC --> A
+  DS --> A
+  DM --> A
   DEF --> S[(swamp)]
   WF --> S
   A <--> S
 ```
 
-- Skills live in `.agents/skills/`, symlinked into `.claude/skills/`, so every enrolled agent loads them by name,
-  and `AGENTS.md` (imported by `CLAUDE.md`) carries the repository rules once. Stage `work` blocks list which
-  skills apply. The architecture skill is used everywhere: one pattern, its vocabulary, and small Go examples from an
-  unrelated domain (bike rental) so the agent copies the shape and not the domain. Each adversary is used twice, on the
-  plan and on the code.
-- `agent-constraints/` are the `constraints` file of a stage: what a plan must contain, how to implement, what to attack.
-- The definition's `systemPrompt` blocks are the review prompts. They bind run data (`${{ data.latest(...) }}`), so a
-  reviewer is told the branch and commit it reviews and fetches the rest itself.
+- **Skills** live in `.agents/skills/`, symlinked into `.claude/skills/`, so every enrolled agent loads them by name,
+  and `AGENTS.md` (imported by `CLAUDE.md`) carries the repository rules once. Stage `work` blocks list which skills
+  apply. The architecture skill gives the pattern words and small Go examples from an unrelated domain (bike rental),
+  so the agent copies the shape and not the domain.
+- **`agent-constraints/`** are the `constraints` file of a stage: what a plan must contain, how a change is handed
+  over, how a finding is written. They describe the stage's artifact, never the subject matter.
+- **`design/`** holds what is decided about the stack and the products. The skills point here instead of restating it.
+- **The domain model** is a reference repository, pinned by commit in
+  `models/@dataverket/reference-repos/references.yaml`. It is the only home of domain rules
+  ([products.md](products.md)).
+- **The definition's `systemPrompt` blocks** are the review prompts. They bind run data (`${{ data.latest(...) }}`),
+  so a reviewer is told the branch and commit it reviews and fetches the rest itself.
 
 ## The loop boundary
 
@@ -182,34 +186,41 @@ instance that would cross it is a change a human sees in Forgejo. Two consequenc
 ## State is data
 
 Nothing about a run lives in the agent's conversation. Every record is swamp data under the `fabrikk` model,
-namespaced by work item: `artifact-<workItem>-plan`, `evidence-<workItem>-change`,
-`approval-<workItem>-plan-approval`, `status-<workItem>`, and so on. A new session picks up where the last one
-stopped by asking:
+namespaced by work item. The envelope is the record's `attributes`; the schema-validated payload is
+`attributes.payload`.
 
-```sh
-swamp model method run fabrikk status --input workItem=<ref>
-swamp data query 'modelName == "fabrikk" && name == "status-<ref>"' \
-  --select 'attributes.transitions.filter(t, !t.satisfied).map(t, {"transition": t.name, "blockedBy": t.gates.filter(g, !g.pass).map(g, g.reasons)})' --json
-```
+| Record | Holds |
+|---|---|
+| `status-<workItem>` | The status packet: stage, cycle, resolved `work` spec, every transition with its gate results and reasons, pending approvals, dispatch counters, validations |
+| `status-_factory` | Overview of every run (`status` without a work item) |
+| `state-<workItem>`, `journal-<workItem>` | Program counter and the audit trail (dispatches, records, advances) |
+| `artifact-<workItem>-<name>` | Each artifact, versioned per record |
+| `evidence-<workItem>-<name>` | Each evidence record |
+| `approval-<workItem>-<gateId>` | Human decisions with actor, cycle, and note |
+| `validation-<name>` | A rejected payload and its schema errors, until a clean record replaces it |
 
-The first refreshes the status record; the second reads why the run is blocked. The workflows leave their own records
-too (`dev-env-<sha>`, `git-<sha>`, `attest-<sha>`, `release-<sha>`), always keyed by the commit they are about, so a
-result can never be mistaken for another commit's. [reference/cli.md](../reference/cli.md) lists the commands.
+The workflows leave their own records under other models (`git-<sha>`, `dev-env-<sha>`, `attest-<sha>`,
+`release-<sha>`), always keyed by the commit they are about, so a result can never be mistaken for another commit's.
+A new session picks up where the last one stopped by asking `status`;
+[contributing/driving.md](../contributing/driving.md) has the commands.
 
 ## Your role
 
-The talk fabrikk is built on puts it in three lines: define the outcomes, engineer the factory, and when the outcomes
-are bad, improve the factory. A work item is an outcome ("tenants can onboard and publish their first event, isolated
-from each other"), not an implementation; if it names an implementation, planning rewrites the outcome first. You
-talk about outcomes and architecture; the factory handles implementation. When what comes out is wrong, the fix is
-in a skill, a constraint, a gate, or a workflow, not in the code by hand, and the factory runs again.
+The talk fabrikk is built on (Adam Jacob, *How to build a software factory*) puts it in three lines: define the
+outcomes, engineer the factory, and when the outcomes are bad, improve the factory. A work item is an outcome, not
+an implementation; if it names an implementation, planning rewrites the outcome first. You talk about outcomes and
+architecture; the factory handles implementation. When what comes out is wrong, the fix is in a skill, a constraint,
+a design page, a gate, or a workflow, not in the code by hand, and the factory runs again.
 
 ## Why this shape
 
 - **Trust comes from the program, not from skills.** Skills are context; a frontier model follows them most of the
   time, which is not good enough for "did the tests run" or "was the plan approved". Those are gates, workflows, and
   signed records. A skill never describes a process; the definition does. See the split in
-  [docs/README.md](../README.md#program-skills-docs).
+  [README.md](README.md#where-each-kind-of-knowledge-lives).
+- **Few reviewers, one surface.** Findings grow with reviewers times rules times surfaces. A slice carries one
+  surface, a plan names only what the slice builds, and a rule that can be checked is a check. The first work item
+  ran eight reviewers over four surfaces and recorded 148 findings in six cycles without reaching code.
 - **CI validates, it does not execute.** The loop runs where the agent, the code, and the session stack are on one
   machine (dev-environment skill: never split one loop across a network). CI checks the record of that loop, the
   signed tag, and it builds the release, which a workbench must never do. Swamp's own factory works the same way.
@@ -218,4 +229,4 @@ in a skill, a constraint, a gate, or a workflow, not in the code by hand, and th
 - **Humans approve records.** The plan the human approves is the recorded artifact; the merge is done in Forgejo. The
   agent presents payloads fetched fresh, never summaries.
 - **Everything after the merge is about a digest.** The release artifact's digest is the release identity; UAT and
-  promotion take it and nothing else. See [release-model.md](release-model.md).
+  promotion take it and nothing else. See [release.md](release.md).

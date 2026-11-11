@@ -1,18 +1,9 @@
----
-title: "Drive a work item"
-type: guide
-project: fabrikk
-audience: operator
-description: "Take one work item through the factory, stage by stage."
-weight: 20
----
-
 # Drive a work item
 
-How to take one work item through the factory, from the operator's side. The driving agent (any enrolled coding tool with
-the `software-factory` skill, which says the same loop in the agent's terms) does most of this; the human's part is the
-outcome, two approvals, the YubiKey, and the merge. Everything below is the
-same loop, stage after stage: ask `status`, dispatch, do the work, record, ask again.
+How to take one work item through the factory, from the operator's side. The driving agent (any enrolled coding tool
+with the `software-factory` skill, which says the same loop in the agent's terms) does most of this; the human's part
+is the outcome, two approvals, the YubiKey, and the merge. `swamp help <command...>` prints the exact schema of any
+command; use it before guessing a flag. All commands run from the main checkout, not a work-item worktree.
 
 ## The loop, every stage
 
@@ -42,23 +33,23 @@ Resume an existing run with `status`, never `start`; `reset` destroys progress a
 
 ## 2. Plan (`planning`, interactive)
 
-Load the eight skills the stage lists and `agent-constraints/planning-conventions.md`. Planning is a conversation
-with the human until the plan is written; after that, changes come through findings. Record it:
+Load the skills the stage lists and `agent-constraints/planning-conventions.md`. Planning is a conversation with the
+human until the plan is written; after that, changes come through findings. Record it:
 
 ```sh
 swamp model method run fabrikk record_artifact --input workItem=<ref> --input name=plan --input payload="$(cat plan.json)"
 ```
 
-The payload must match the `plan` schema ([reference/factory-definition.md](../reference/factory-definition.md)); a
-rejected payload is stored as `validation-plan` with the errors. Advance `submit`.
+The payload must match the `plan` schema in the definition; a rejected payload is stored as `validation-plan` with
+the errors. Advance `submit`.
 
 ## 3. Plan review (`plan-review`, dispatch)
 
 Spawn one reviewer subagent per listed skill, in parallel, each with the `systemPrompt` from the status record's
 `work` field and no other context. Merge their findings into one `plan-review` artifact. Then:
 
-- Critical or high findings open: advance `rework`, fold them into the plan, record the new plan, submit again
-  (at most five rounds; then it parks for the human).
+- Critical or high findings open: advance `rework`, fold them into the plan, record the new plan, submit again. The
+  stage's cycle limit parks it for the human.
 - None open: present the plan payload to the human. They approve or reject:
 
 ```sh
@@ -75,7 +66,7 @@ tests at the plan's tiers, tier 0 green, signed commits (the human touches per c
 
 ```sh
 sha=$(git -C /abs/worktree rev-parse HEAD)
-swamp model method run fabrikk record_artifact --input workItem=<ref> --input name=change-summary --input payload='{"summary":"...","files":[{"path":"...","loc":0}],"totalLoc":0,"adrs":[]}'
+swamp model method run fabrikk record_artifact --input workItem=<ref> --input name=change-summary --input payload='{"summary":"...","files":[{"path":"...","loc":0}],"totalLoc":0}'
 swamp model method run fabrikk record_evidence --input workItem=<ref> --input name=change --input payload="{\"worktree\":\"/abs/worktree\",\"branch\":\"<ref>\",\"headSha\":\"$sha\"}"
 ```
 
@@ -152,7 +143,45 @@ Record `release-run` and `release` evidence, advance `released`. The run now sto
 ## When it parks
 
 - **Cycle limit.** A stage entered too often blocks; the human can grant one more entry:
-  `approve --input gateId=cycle-override:<stage>`, or take `abort`.
+  `approve --input gateId=cycle-override:<stage>`, or take `abort`. A slice that needs an override was too big.
 - **Runaway dispatch.** The same stage entry dispatched a third time is rejected. Something is not being recorded; look
   at `validations` and `unresolvedBindings` in the status record.
 - **Report a run.** `swamp model method run fabrikk summary --input workItem=<ref>` renders the journal.
+
+## Reading run data
+
+```sh
+# what exists for a work item
+swamp data query 'modelName == "fabrikk" && name.startsWith("artifact-<ref>-")' --select name
+
+# which transitions are open right now
+swamp data query 'modelName == "fabrikk" && name == "status-<ref>"' \
+  --select 'attributes.transitions.filter(t, t.satisfied).map(t, t.name)' --json
+
+# why the others are blocked (the reasons are the instructions)
+swamp data query 'modelName == "fabrikk" && name == "status-<ref>"' \
+  --select 'attributes.transitions.filter(t, !t.satisfied).map(t, {"transition": t.name, "blockedBy": t.gates.filter(g, !g.pass).map(g, g.reasons)})' --json
+
+# a field of a payload; the open findings of a review
+swamp data query 'modelName == "fabrikk" && name == "artifact-<ref>-plan"' --select 'attributes.payload.outcome' --json
+swamp data query 'modelName == "fabrikk" && name == "artifact-<ref>-code-review"' \
+  --select 'attributes.payload.findings.filter(f, !(has(f.resolved) && f.resolved)).map(f, {"sev": f.severity, "file": f.file, "title": f.title})' --json
+
+# what a workflow left behind for a commit
+swamp data query 'modelName == "dev-env-<sha>"' --select '{"target": attributes.target, "exit": attributes.exitCode}' --json
+```
+
+Predicates take catalog fields (`modelName`, `name`, `specName`, `version`, `isLatest`) and plain comparisons on
+`attributes`; macros (`filter`, `map`, `exists`) work only in `--select`. Only the latest version has parsed
+`attributes`.
+
+## Changing the factory
+
+1. Edit `models/@swamp/software-factory/fabrikk.yaml`. Keep the stage table and the diagram in
+   [design/factory.md](../design/factory.md) in step.
+2. `swamp model method run fabrikk validate` must print `Definition is valid`.
+3. `swamp model method run fabrikk describe` renders the Mermaid graph and the stage table; show it to a human.
+4. The file is a protected path: the change goes through a pull request and a human.
+
+Authoring rules (work modes, bindings, schemas, retry with feedback) are in the pulled skill,
+`.agents/skills/software-factory/references/authoring.md`.

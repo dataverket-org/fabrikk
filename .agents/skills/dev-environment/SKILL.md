@@ -1,6 +1,6 @@
 ---
 name: dev-environment
-description: How the Dataverket development environment works — the compose session stack and its profiles, make targets, the downstream fragment contract, the admission budget that decides what may join the loop, and the reference repositories of upstream code and docs. Use whenever running or testing services locally, reading upstream source or documentation (NATS, CloudEvents, Zitadel), adding a dependency or downstream system to development, writing compose files, or reviewing a plan that touches the dev loop.
+description: How the Dataverket development environment works — the compose session stack and its profiles, the tasks that drive it, the downstream fragment contract, the admission budget that decides what may join the loop, and the reference repositories of upstream code and docs. Use whenever running or testing services locally, reading upstream source or documentation (NATS, CloudEvents, Zitadel), adding a dependency or downstream system to development, writing compose files, or reviewing a plan that touches the dev loop.
 ---
 
 # Development environment
@@ -13,15 +13,15 @@ machine should be a server, move the whole workbench — agent, code, and depend
 One `compose.yaml` at the repository root, shared by every product; profiles select what runs. Boot once per session;
 iterate with `go test` many times.
 
-Two stacks exist on a workbench, and the Makefile names them; a worktree never names its own:
+Two stacks exist on a workbench, and `scripts/functions.sh` names them; a worktree never names its own:
 
 - **The shared stack** (`DEV_PROJECT`, compose project `dataverket`): tier 0 and 1. Every worktree on the machine joins
   the same `nats` and `postgres` on fixed, well-known host ports. Tests isolate themselves by name (below). Two work
   items in flight share it; a test that cannot share it embeds its own server.
 - **The verify stack** (`VERIFY_PROJECT`, compose project `verify-<commit>`): tier 2. The images built from one commit
-  under the `verify` profile, private to that commit and torn down when `make verify` ends. No service in it may
+  under the `verify` profile, private to that commit and torn down when `task verify` ends. No service in it may
   publish a fixed host port (leave the host side of `ports` empty, or `!reset` it in the verify profile); the suite asks
-  compose for the port. `make verify` refuses a profile that publishes one.
+  compose for the port. `task verify` refuses a profile that publishes one.
 
 Never shared between worktrees: a host port, an image tag (always the commit), the verify stack. Incus is one
 instance per workbench and cannot be duplicated; its isolation is the per-test Incus project, nothing else.
@@ -36,15 +36,19 @@ instance per workbench and cannot be duplicated; its isolation is the per-test I
 Zitadel is never in the default profile. Tier 0/1 tokens come from a fake JWKS issuer in tests. A single long-lived dev
 Zitadel may exist for interactive exploration; **no test may talk to it.**
 
-## Make targets
+## Tasks
+
+`Taskfile.yml` lists them and each calls the script in `scripts/` that does the work. A `NAME=value` argument reaches
+the script as an environment variable. `_bin/` holds the pinned tools (`task tools`) and is first on `PATH` inside
+every script.
 
 ```
-make dev.up [PROFILE=objekt]   compose up --wait for the profile; fails if not healthy
-make dev.down                  stop, keep volumes
-make dev.reset [PROFILE=...]   run every fragment's reset script; WIPE=1 also removes volumes
-make run                       start services as plain processes against the stack, seeded
-make check                     docs-check, gofmt, go vet, go test per module in go.work; golangci-lint joins with the first product (tier 0)
-make verify                    ko images tagged by commit, up the private `verify` stack, contract + black-box suites, teardown (tier 2)
+task dev.up [PROFILE=objekt]   compose up --wait for the profile; fails if not healthy
+task dev.down                  stop, keep volumes
+task dev.reset [WIPE=1]        run every fragment's reset script; WIPE=1 also removes volumes
+task run                       start services as plain processes against the stack, seeded (arrives with the first product)
+task check                     SPDX headers, gofmt, go vet, go test per module in go.work; golangci-lint joins with the first product (tier 0)
+task verify                    ko images tagged by commit, up the private `verify` stack, contract + black-box suites, teardown (tier 2)
 ```
 
 ## Downstream fragment contract
@@ -63,14 +67,20 @@ elsewhere, in `<product>/deploy/base/` (delivery skill). Each fragment declares:
 | `seed` | script that creates the fixtures tests assume |
 | `reset` | script that returns the service to seeded state without a restart |
 
-A fragment without `reset` or with an upstream tag is rejected in review. Adding a fragment requires an ADR.
+A fragment without `reset` or with an upstream tag is rejected in review. Adding a fragment adds its row to
+"Current fragments" below, in the same pull request.
+
+- A fragment owns only its own keys and writes no product credential; product credentials are minted by the tasks
+  on every run.
+- The verify profile is torn down on exit, with its logs captured to an evidence file first.
+- A test that embeds its own server renders its own copy of the stack's config and overrides every port.
 
 ## Admission budget
 
 - Default profile: cold `compose up` under 30 seconds, rootless, per-test state isolation available.
 - Opt-in profiles: session boot allowed to be slow; still needs healthcheck, seed, reset.
 - Any fragment that flakes twice is demoted: tests fall back to the in-memory fake, the real fragment runs only in
-  `make verify`. Demotion produces a finding.
+  `task verify`. Demotion produces a finding.
 - The agent will propose "just add X to compose" often. The budget is the answer.
 
 ## Current fragments
@@ -103,15 +113,16 @@ attestation, CI validation, release), and `domain-model` (the Dataverket domain 
 decisions and the designs of the control plane's contexts).
 
 `domain-model` is the one reference that is not untrusted input: it is the agreed model fabrikk implements, and
-plans and reviews cite its rules by page and heading. Like every reference it is read and never copied, and it is
-pinned by ref: a plan names the commit of the model it was written against.
+plans and reviews cite its rules by page and heading. Like every reference it is read and never copied. It is
+pinned by commit in the list, so the commit a branch was planned and built against is in the branch;
+`design/products.md` says how to read it and how a slice proposes a change to it.
 
 - Read them; never build, import, or copy from them. Go libraries are read from the module cache (`go env GOMODCACHE`)
   at the version `go.mod` pins, not from here.
 - Search the directory explicitly (`rg <pattern> _reference/zitadel`). A search from the repository root skips it,
   because it is gitignored.
 - Look up another version without moving the checkout: `git -C _reference/zitadel show v4.10.0:<path>`,
-  `git -C _reference/zitadel grep <pattern> v4.10.0`, `git -C _reference/zitadel log v4.0.0..v4.17.3 -- <path>`.
+  `git -C _reference/zitadel grep <pattern> v4.10.0`, `git -C _reference/zitadel log v4.0.0..v4.20.2 -- <path>`.
 - A work item's worktree has no `_reference/`. Read it from the main checkout: the first entry of `git worktree list`.
 - Refresh with `swamp model method run references sync`, never `git pull`: each checkout is detached at its listed
   ref. Adding a reference or moving its ref is a change to the list.
@@ -122,11 +133,11 @@ pinned by ref: a plan names the commit of the model it was written against.
 ## Workbench
 
 The workbench is the one machine that holds the agent, the code, the session stack, and swamp
-(`docs/explanation/how-fabrikk-works.md`, "The workbench"). Rules that follow from it:
+(`design/factory.md`, "The workbench"). Rules that follow from it:
 
 - One main checkout, one worktree per work item, one shared session stack, one private verify stack per commit.
-  A worktree never names its own stack; the Makefile does.
+  A worktree never names its own stack; `scripts/functions.sh` does.
 - Never split one loop across a network: dependencies run on the workbench, never on a shared remote.
 - Every workbench is identical, defined as code; until a bootstrap script or Nix flake exists, the workstation guide is
   that definition. Nothing in the repository names a home directory or a workbench.
-- A workbench never builds what ships; `make release` runs on CI only (delivery skill).
+- A workbench never builds what ships; `task release` runs on CI only (delivery skill).

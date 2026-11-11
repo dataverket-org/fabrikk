@@ -9,7 +9,8 @@ Simple and effective at low LOC. Every line is a liability the factory must keep
 
 ## Budgets
 
-Adjust in an ADR; until then these apply.
+A budget changes by changing this skill, which is a protected path; until then these apply. A ceiling is stated in
+the terms a check can measure, with the counted paths named.
 
 - A new service skeleton is hundreds of lines, not thousands. A package over ~1000 LOC (excluding tests) needs a
   reason in the plan or a split.
@@ -21,7 +22,10 @@ Adjust in an ADR; until then these apply.
 ## Rules
 
 - **No abstraction without a second caller.** Interfaces exist for ports and repositories; everything else is concrete
-  until a second implementation exists.
+  until a second implementation exists. Shared mechanism in `internal/platform` is extracted when a second slice
+  needs it, never built ahead.
+- **Name only what the slice builds.** A plan section, a type, a subject or a word for something this slice does not
+  make true is a finding.
 - **No frameworks.** No DI containers, ORMs, code generators, or plugin systems beyond what the repository already uses.
 - **No request/reply disguised as events.** If it needs an answer now, it is a service call; if it is a fact, it is an event.
 - **Config from environment only.** No config files parsed at startup, no feature-flag system unless the plan introduces one on purpose.
@@ -35,7 +39,7 @@ Adjust in an ADR; until then these apply.
 - Does every interface have two implementations or a port justification?
 - Does every new dependency replace more code than it adds?
 - Is there an event pair that is really a request/reply?
-- Did the dev environment, Makefile, or compose file grow? Did that pass admission?
+- Did the dev environment, the Taskfile, `scripts/`, or the compose file grow? Did that pass admission?
 - Would a reader new to the repo find this by following the architecture vocabulary alone?
 
 ## Severity guide

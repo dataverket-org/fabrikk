@@ -65,7 +65,7 @@ jobs:
           [ "$(j .attestation)" = "fabrikk/v1" ] || fail "attestation version is $(j .attestation), expected fabrikk/v1"
           if [ "$(j .headSha)" = "$HEAD_SHA" ]; then ok "document attests the PR head"; else fail "document attests $(j .headSha | cut -c1-8), not the PR head"; fi
           [ "$(j .verification.check.exitCode)" = 0 ] && [ "$(j .verification.verify.exitCode)" = 0 ] \
-            && ok "make check and make verify exited 0" || fail "verification did not pass: check=$(j .verification.check.exitCode) verify=$(j .verification.verify.exitCode)"
+            && ok "task check and task verify exited 0" || fail "verification did not pass: check=$(j .verification.check.exitCode) verify=$(j .verification.verify.exitCode)"
           [ "$(j '.codeReview.unresolved.critical + .codeReview.unresolved.high')" = 0 ] \
             && ok "no unresolved critical or high review findings" || fail "unresolved review findings: $(j -c .codeReview.unresolved)"
           echo "- work item: $(j .workItem); plan approved by $(j .planApproval.actor); attested $(j .attestedAt)" >> "$summary"

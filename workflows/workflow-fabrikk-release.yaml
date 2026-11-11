@@ -1,7 +1,7 @@
 id: b87dfaff-4027-4482-a549-b8b8ce6a3bb6
 name: fabrikk-release
 description: >-
-  fabrikk's releasing stage. CI builds the release candidate on shared infrastructure after merge (make release in
+  fabrikk's releasing stage. CI builds the release candidate on shared infrastructure after merge (task release in
   .forgejo/workflows/release.yaml); this workflow never builds. It waits for that product's config artifact for the
   merge commit and verifies it: cosign signature, Flux provenance, release.json, digest-pinned images, and that
   :candidate is this digest.

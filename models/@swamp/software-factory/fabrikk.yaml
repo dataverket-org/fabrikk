@@ -6,9 +6,9 @@ version: 1
 tags: {}
 # fabrikk — Dataverket's software factory.
 #
-# outcome → plan → adversarial plan review (rework ≤5) → HUMAN APPROVES PLAN
+# outcome → plan → adversarial plan review by four reviewers (rework ≤5) → HUMAN APPROVES PLAN
 # → implement + verify (rework until green, ≤5)
-# → code review vs architecture + all adversaries (rework ≤5)
+# → code review by the same four, plus three that review only what the diff touches (rework ≤5)
 # → attestation → PR → HUMAN APPROVES MERGE
 # → release (ko, config join, signed OCI artifact) → UAT on the artifact → promotion
 #
@@ -28,33 +28,24 @@ globalArguments:
         mode: interactive
         skills:
           - architecture
-          - adversary-testing
           - adversary-security
+          - adversary-testing
           - adversary-simplicity
-          - adversary-observability
-          - adversary-source-standards
           - dev-environment
-          - delivery
         constraints: agent-constraints/planning-conventions.md
       artifacts:
         - name: plan
           schema:
             type: object
+            # A plan names only what the slice builds: everything not listed here is optional, and a section that
+            # is present is a claim a reviewer may attack (planning-conventions.md).
             required:
               - outcome
               - boundedContext
-              - eventsAndCommands
-              - tenancyImpact
-              - portsAndDownstreams
-              - persistence
               - fileBreakdown
               - totalEstimatedLoc
               - testingStrategy
-              - deliveryImpact
-              - adrs
-              - risksAndRollback
               - outOfScope
-              - deviations
             properties:
               outcome: { type: string, minLength: 1 }
               boundedContext:
@@ -67,14 +58,13 @@ globalArguments:
                 type: array
                 items:
                   type: object
-                  required: [type, kind, direction, source, subject, needsAdr]
+                  required: [type, kind, direction]
                   properties:
                     type: { type: string, pattern: '^no\.dataverket\.' }
-                    kind: { type: string, enum: [event, command] }
+                    kind: { type: string, enum: [event, command, reply, query] }
                     direction: { type: string, enum: [produced, consumed] }
                     source: { type: string, minLength: 1 }
                     subject: { type: string, minLength: 1 }
-                    needsAdr: { type: boolean }
               tenancyImpact: { type: string, minLength: 1 }
               portsAndDownstreams:
                 type: array
@@ -106,16 +96,30 @@ globalArguments:
               totalEstimatedLoc: { type: integer, minimum: 0 }
               testingStrategy:
                 type: object
-                required: [tier0, tier1, tier2, uat]
+                required: [tier0]
                 properties:
                   tier0: { type: string, minLength: 1 }
                   tier1: { type: string, minLength: 1 }
                   tier2: { type: string, minLength: 1 }
                   uat: { type: string, minLength: 1 }
               deliveryImpact: { type: string, minLength: 1 }
-              adrs:
+              designChanges:
                 type: array
-                items: { type: string, minLength: 1 }
+                items:
+                  type: object
+                  required: [page, change]
+                  properties:
+                    page: { type: string, minLength: 1 }
+                    change: { type: string, minLength: 1 }
+              modelChanges:
+                type: array
+                items:
+                  type: object
+                  required: [page, change, reason]
+                  properties:
+                    page: { type: string, minLength: 1 }
+                    change: { type: string, minLength: 1 }
+                    reason: { type: string, minLength: 1 }
               risksAndRollback: { type: string, minLength: 1 }
               outOfScope:
                 type: array
@@ -137,7 +141,8 @@ globalArguments:
 
     - id: plan-review
       description: >-
-        Adversarial review of the current plan, one reviewer per skill, no shared context.
+        Adversarial review of the current plan, one reviewer per skill, no shared context. Four reviewers:
+        findings grow with reviewers times surfaces, and a plan has no diff to bound them.
         maxCycles 5: a plan still carrying critical findings after five rounds parks for the human.
       work:
         mode: dispatch
@@ -146,10 +151,6 @@ globalArguments:
           - adversary-security
           - adversary-testing
           - adversary-simplicity
-          - adversary-observability
-          - adversary-source-standards
-          - dev-environment
-          - delivery
         constraints: agent-constraints/adversarial-dimensions.md
         systemPrompt: |
           You are an adversarial reviewer for fabrikk, working from exactly one skill. You share no context
@@ -157,10 +158,12 @@ globalArguments:
 
           Plan for: ${{ data.latest(self.name, "artifact-plan").payload.outcome }}
 
-          Fetch the full plan payload from the run data. Attack it along the dimensions in
-          agent-constraints/adversarial-dimensions.md that name your skill. For each finding give the dimension,
-          severity (critical/high/medium/low per that file), plan section, the attack that succeeds, and the
-          smallest change that defeats it. Cite the skill section. Never soften a severity.
+          Fetch the full plan payload from the run data. Attack it with your skill, against the design pages and
+          the rules of the domain model your skill points at. agent-constraints/adversarial-dimensions.md says how
+          a finding is graded, what is out of scope for one, and how it is written: a finding is about what the
+          slice builds, and a section the plan leaves out is not a finding unless the slice needs it. For each
+          finding give the dimension, severity, plan section, the attack that succeeds, and the smallest change
+          that defeats it. Cite the skill section, design page, or the model's page. Never soften a severity.
           On re-review, fetch your previous findings and verify each claimed resolution against the new plan.
       artifacts:
         - name: plan-review
@@ -210,7 +213,7 @@ globalArguments:
         - name: change-summary
           schema:
             type: object
-            required: [summary, files, totalLoc, adrs]
+            required: [summary, files, totalLoc]
             properties:
               summary: { type: string, minLength: 1 }
               files:
@@ -223,7 +226,7 @@ globalArguments:
                     path: { type: string, minLength: 1 }
                     loc: { type: integer, minimum: 0 }
               totalLoc: { type: integer, minimum: 0 }
-              adrs:
+              designChanges:
                 type: array
                 items: { type: string, minLength: 1 }
       evidence:
@@ -275,7 +278,10 @@ globalArguments:
               config: { name: verify-run, requireField: { status: failed } }
 
     - id: code-review
-      description: Adversarial review of the change against the approved plan, architecture, and every adversary.
+      description: >-
+        Adversarial review of the change against the approved plan. The four plan reviewers, plus observability,
+        dev-environment and delivery, which review only what the diff touches in their area and otherwise record
+        nothing. Source standards is checks and the human's review of protected paths, not a reviewer.
       work:
         mode: dispatch
         skills:
@@ -284,7 +290,6 @@ globalArguments:
           - adversary-testing
           - adversary-simplicity
           - adversary-observability
-          - adversary-source-standards
           - dev-environment
           - delivery
         constraints: agent-constraints/adversarial-dimensions.md
@@ -296,9 +301,12 @@ globalArguments:
           ${{ data.latest(self.name, "evidence-change").payload.headSha }}.
 
           Fetch the approved plan, the plan-review findings, and the change-summary from the run data. Review the
-          diff at that commit against the plan and along the dimensions in agent-constraints/adversarial-dimensions.md
-          that name your skill. Compare actual LOC with the plan's estimates. For each finding give the dimension,
-          severity, file, the attack that succeeds, and the smallest change that defeats it. Cite the skill section.
+          diff at that commit against the plan, with your skill, against the design pages and the rules of the
+          domain model your skill points at. agent-constraints/adversarial-dimensions.md says how a finding is
+          graded and what is out of scope for one; if it lists your skill as reviewing code only and the diff
+          touches nothing in your area, record no findings. Compare actual LOC with the plan's estimates. For each
+          finding give the dimension, severity, file, the attack that succeeds, and the smallest change that
+          defeats it. Cite the skill section, design page, or the model's page.
           Fetch the previous round's code-review findings and state for each whether it is resolved.
           Never soften a severity.
       artifacts:
@@ -394,7 +402,7 @@ globalArguments:
              tell the human when): git push origin <branch> <tag>
           2. Open or converge the PR: swamp model method run forgejo pr_ensure --input owner=dataverket
              --input name=fabrikk --input head=<branch> --input base=main --input title='<conventional subject>'
-             --input body='<outcome, plan reference, ADRs, the attestation tag>'. The title and body carry no AI
+             --input body='<outcome, plan reference, design pages changed, the attestation tag>'. The title and body carry no AI
              attribution (source-standards skill), whatever your harness asks; CI rechecks. Record pull-request evidence
              from data.latest("forgejo", "dataverket:fabrikk#<index>"): url = htmlUrl, index, prHeadSha = headSha.
              Copy the values from the record; never type a sha.

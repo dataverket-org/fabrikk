@@ -12,7 +12,7 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 | Tier | What runs | Dependencies | When |
 |---|---|---|---|
 | 0 — test loop | `go test ./...` | Session stack (compose default profile: nats, postgres); embedded NATS for server-configuring tests; fake JWKS | Every edit |
-| 1 — run the slice | Services as plain processes via `make run`, seeded | Same session stack | Interactive checks |
+| 1 — run the slice | Services as plain processes via `task run`, seeded | Same session stack | Interactive checks |
 | 2 — verify artifacts | Scratch images under the `verify` compose profile (adds Zitadel); black-box suite from outside | Real everything, containerized | Before the PR |
 | UAT | Joined, signed release artifact on the UAT cluster; black-box suite | The real environment | After merge |
 
@@ -20,8 +20,9 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 
 **Tests that use the server share it; tests that configure the server embed it.**
 
-- Domain, application, and flow tests use the session stack. Isolation is per test: clone a throwaway PostgreSQL database
-  from the template; prefix subjects, streams, and consumers with `t.Name()`.
+- Domain, application, and flow tests use the session stack. Isolation is per test: prefix subjects, streams,
+  and consumers with `t.Name()`; a test of the second copy clones a throwaway PostgreSQL database from the
+  template.
 - Admission, account wiring, subject permission, and isolation tests own their server: `nats-server` embedded
   in-process on a random port, JetStream in `t.TempDir()`, memory resolver. They never touch the shared stack.
 - Zitadel is never in tier 0 or 1. Tokens come from an `httptest` JWKS issuer. Real Zitadel appears in tier 2 and UAT.
@@ -30,7 +31,7 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 
 - Table-driven unit tests for every aggregate method and value-object constructor touched.
 - For every downstream port touched: the contract suite still passes against the fake **and** the real fragment.
-- For any change to admission, subject mapping, the wiring Tenancy makes, or the CloudEvents envelope: a black-box
+- For any change to admission, subject mapping, the account wiring, or the CloudEvents envelope: a black-box
   acceptance test, not only a unit test.
 - For every rule the plan cites from the domain model's binding list (`for-implementors/README.md` in the
   `domain-model` reference): a test named for the rule, at the lowest tier that can show it broken.
@@ -48,12 +49,12 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 
 - Separate module. Talks only to the public surface: a NATS client with tenant credentials, S3/API endpoints where relevant.
   Never imports service internals.
-- The isolation trio must exist and pass for every release, in the domain model's terms:
-  1. **Nothing crosses that the wiring did not declare.** Organisation A publishes on its agreement's rows; its
-     provider receives, organisation B observes nothing, and a provider A has no agreement with observes nothing.
-     The front desk reaches its three commands and the catalogue entry and nothing else.
-  2. **Admission places a login only where it has a user.** A login with no user in organisation X is not placed in
-     X's account; a message naming X on any export but X's, or claiming an actor the connection was not bound to,
+- The isolation trio must exist and pass for every release. Each is written against the crossings and placements
+  the slice's rules in the domain model declare, and named for them:
+  1. **Nothing crosses that the wiring did not declare.** A message in tenant A's account is received where the
+     wiring declares and nowhere else; tenant B observes nothing.
+  2. **Admission places a connection only where its token entitles it.** A connection is not placed in an account
+     it has no standing in; a message naming another tenant, or claiming an actor the connection was not bound to,
      is refused before dispatch.
   3. **A message seen twice changes nothing.** The same message delivered again leaves every count, state and
      projection as the first delivery left it.

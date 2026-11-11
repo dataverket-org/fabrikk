@@ -1,5 +1,5 @@
 /**
- * Runs make targets in a worktree and captures the outcome.
+ * Runs the Taskfile's tasks in a worktree and captures the outcome.
  *
  * @module
  */
@@ -23,11 +23,27 @@ async function denoSpawn(
   const child = new Deno.Command(argv[0], {
     args: argv.slice(1),
     cwd: opts.cwd,
-    signal: opts.signal,
     stdin: "null",
     stdout: "piped",
     stderr: "piped",
   }).spawn();
+  // task does not exit on SIGTERM while a command of its is running, so an
+  // abort asks first and then kills. Not Deno.Command's own `signal`, which
+  // only ever sends SIGTERM.
+  let killTimer: ReturnType<typeof setTimeout> | undefined;
+  const signalChild = (sig: Deno.Signal) => {
+    try {
+      child.kill(sig);
+    } catch {
+      // already exited
+    }
+  };
+  const onAbort = () => {
+    signalChild("SIGTERM");
+    killTimer = setTimeout(() => signalChild("SIGKILL"), KILL_GRACE_MS);
+  };
+  if (opts.signal?.aborted) onAbort();
+  else opts.signal?.addEventListener("abort", onAbort, { once: true });
   const parts: string[] = [];
   const readers: ReadableStreamDefaultReader<Uint8Array>[] = [];
   const collect = async (stream: ReadableStream<Uint8Array>) => {
@@ -45,7 +61,9 @@ async function denoSpawn(
   };
   const drained = Promise.all([collect(child.stdout), collect(child.stderr)]);
   const status = await child.status;
-  // make can exit (or be killed) while a grandchild such as `docker compose`
+  clearTimeout(killTimer);
+  opts.signal?.removeEventListener("abort", onAbort);
+  // task can exit (or be killed) while a grandchild such as `docker compose`
   // still holds the pipes open; stop waiting for it after a grace period.
   let timer: ReturnType<typeof setTimeout> | undefined;
   const grace = new Promise((resolve) => {
@@ -58,8 +76,11 @@ async function denoSpawn(
   return { exitCode: status.code, output: parts.join("") };
 }
 
-/** How long to keep reading output after make has exited. */
+/** How long to keep reading output after task has exited. */
 const STREAM_GRACE_MS = 5000;
+
+/** How long an aborted task gets to exit on SIGTERM before SIGKILL. */
+const KILL_GRACE_MS = 2000;
 
 let spawn: Spawn = denoSpawn;
 
@@ -73,7 +94,7 @@ export function resetSpawn(): void {
   spawn = denoSpawn;
 }
 
-/** Outcome of one make target. */
+/** Outcome of one task. */
 export interface TargetResult {
   target: string;
   profile: string | null;
@@ -94,8 +115,10 @@ export interface TargetResult {
 export const LOG_TAIL_LINES = 40;
 
 /**
- * Run `make <target> [PROFILE=<profile>]` in the worktree, pinned to the
- * commit it ran against. Never throws on a failing target; the caller decides.
+ * Run `task -x <target> [PROFILE=<profile>]` in the worktree, pinned to the
+ * commit it ran against. `-x` makes task exit with the script's own exit
+ * code instead of its generic 201. Never throws on a failing target; the
+ * caller decides.
  */
 export async function runTarget(opts: {
   worktree: string;
@@ -114,7 +137,7 @@ export async function runTarget(opts: {
     );
   }
 
-  const argv = ["make", opts.target];
+  const argv = ["task", "-x", opts.target];
   const profile = opts.profile && opts.profile !== "default"
     ? opts.profile
     : null;

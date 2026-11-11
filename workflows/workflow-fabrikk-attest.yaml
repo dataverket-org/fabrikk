@@ -44,10 +44,9 @@ inputs:
         - models/
         - workflows/
         - extensions/
-        - tools/
-        - docs/decisions/
-        - docs/schema.yaml
-        - Makefile
+        - design/
+        - Taskfile.yml
+        - scripts/
         - compose.yaml
         - deploy/dev/
         - .forgejo/
@@ -173,8 +172,8 @@ jobs:
             && data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval") != null
           message: >-
             Nothing to attest for ${{ inputs.workItem }} at ${{ inputs.headSha }}. Recorded:
-            make check ${{ data.latest("dev-env-" + inputs.headSha, "check") != null }},
-            make verify ${{ data.latest("dev-env-" + inputs.headSha, "verify") != null }} (run fabrikk-verify at this commit);
+            task check ${{ data.latest("dev-env-" + inputs.headSha, "check") != null }},
+            task verify ${{ data.latest("dev-env-" + inputs.headSha, "verify") != null }} (run fabrikk-verify at this commit);
             code review ${{ data.latest(inputs.factory, "artifact-" + inputs.workItem + "-code-review") != null }},
             plan approval ${{ data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval") != null }}
             (in ${{ inputs.factory }}).

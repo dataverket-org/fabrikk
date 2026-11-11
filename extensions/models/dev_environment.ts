@@ -1,27 +1,27 @@
 /**
- * The Dataverket development environment, driven through its make targets
- * (see the dev-environment skill). One method per target; each records the
+ * The Dataverket development environment, driven through its Taskfile
+ * (see the dev-environment skill). One method per task; each records the
  * outcome pinned to the worktree's HEAD, plus the full log.
  *
  * @module
  */
 import { z } from "npm:zod@4";
-import { runTarget, type TargetResult } from "./_lib/make.ts";
+import { runTarget, type TargetResult } from "./_lib/task.ts";
 
 const GlobalArgsSchema = z.object({
   worktree: z.string().startsWith("/").describe(
-    "Absolute path to the repository worktree that holds the Makefile",
+    "Absolute path to the repository worktree that holds the Taskfile",
   ),
 });
 type GlobalArgs = z.infer<typeof GlobalArgsSchema>;
 
 const ProfileSchema = z.enum(["default", "objekt", "maskin"]).default(
   "default",
-).describe("Compose profile (verify is selected by make verify itself)");
+).describe("Compose profile (verify is selected by task verify itself)");
 
 const timeoutSeconds = (fallback: number) =>
   z.number().int().positive().default(fallback).describe(
-    "Kill make after this many seconds",
+    "Kill task after this many seconds",
   );
 
 const ProfileArgsSchema = z.object({
@@ -63,7 +63,7 @@ interface Context {
 }
 
 /**
- * Run the target, persist the result and log, then fail the method if make
+ * Run the task, persist the result and log, then fail the method if it
  * failed — the data is written first so a red run can be diagnosed.
  */
 async function record(
@@ -71,7 +71,7 @@ async function record(
   args: { profile?: string; timeoutSeconds: number },
   context: Context,
 ): Promise<{ dataHandles: Array<{ name: string }> }> {
-  context.logger.info("make {target} in {worktree}", {
+  context.logger.info("task {target} in {worktree}", {
     target,
     worktree: context.globalArgs.worktree,
   });
@@ -88,14 +88,14 @@ async function record(
     .writeText(output);
   const handle = await context.writeResource("run", context.methodName, run);
   context.logger.info(
-    "make {target} at {headSha}: exit {exitCode} in {durationMs}ms",
+    "task {target} at {headSha}: exit {exitCode} in {durationMs}ms",
     {
       ...run,
     },
   );
   if (!run.succeeded) {
     throw new Error(
-      `make ${target} ${
+      `task ${target} ${
         run.timedOut
           ? `timed out after ${args.timeoutSeconds}s`
           : `failed with exit ${run.exitCode}`
@@ -105,14 +105,14 @@ async function record(
   return { dataHandles: [handle, log] };
 }
 
-/** Model definition for the make-driven development environment. */
+/** Model definition for the task-driven development environment. */
 export const model = {
   type: "@dataverket/dev-environment",
   version: "2026.09.17.1",
   globalArguments: GlobalArgsSchema,
   resources: {
     run: {
-      description: "Outcome of one make target, pinned to the worktree HEAD",
+      description: "Outcome of one task, pinned to the worktree HEAD",
       schema: RunSchema,
       lifetime: "infinite",
       garbageCollection: 20,
@@ -120,7 +120,7 @@ export const model = {
   },
   files: {
     log: {
-      description: "Combined stdout and stderr of the make target",
+      description: "Combined stdout and stderr of the task",
       contentType: "text/plain",
       lifetime: "30d",
       garbageCollection: 20,
@@ -129,13 +129,13 @@ export const model = {
   methods: {
     up: {
       description:
-        "make dev.up: start the session stack and wait until healthy",
+        "task dev.up: start the session stack and wait until healthy",
       arguments: ProfileArgsSchema,
       execute: (args: z.infer<typeof ProfileArgsSchema>, context: Context) =>
         record("dev.up", args, context),
     },
     down: {
-      description: "make dev.down: stop the session stack, keep volumes",
+      description: "task dev.down: stop the session stack, keep volumes",
       arguments: PlainArgsSchema(300),
       execute: (
         args: z.infer<ReturnType<typeof PlainArgsSchema>>,
@@ -143,13 +143,13 @@ export const model = {
       ) => record("dev.down", args, context),
     },
     reset: {
-      description: "make dev.reset: return every fragment to its seeded state",
+      description: "task dev.reset: return every fragment to its seeded state",
       arguments: ProfileArgsSchema,
       execute: (args: z.infer<typeof ProfileArgsSchema>, context: Context) =>
         record("dev.reset", args, context),
     },
     check: {
-      description: "make check: gofmt, go vet, golangci-lint, go test (tier 0)",
+      description: "task check: SPDX headers, gofmt, go vet, go test (tier 0)",
       arguments: PlainArgsSchema(900),
       execute: (
         args: z.infer<ReturnType<typeof PlainArgsSchema>>,
@@ -158,7 +158,7 @@ export const model = {
     },
     verify: {
       description:
-        "make verify: ko images, verify profile, contract and black-box suites (tier 2)",
+        "task verify: ko images, verify profile, contract and black-box suites (tier 2)",
       arguments: PlainArgsSchema(3600),
       execute: (
         args: z.infer<ReturnType<typeof PlainArgsSchema>>,

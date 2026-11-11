@@ -14,7 +14,7 @@ const Digest = /^sha256:[0-9a-f]{64}$/;
 
 const GlobalArgsSchema = z.object({
   tools: z.string().default("_bin").describe(
-    "Directory with pinned crane and cosign (make tools), relative to the repository root",
+    "Directory with pinned crane and cosign (task tools), relative to the repository root",
   ),
 });
 type GlobalArgs = z.infer<typeof GlobalArgsSchema>;

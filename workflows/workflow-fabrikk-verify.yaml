@@ -1,7 +1,7 @@
 id: c848f6fc-46e7-4fd1-b122-7dd62009685b
 name: fabrikk-verify
 description: >-
-  fabrikk's verifying stage: tier 0 (make check) and tier 2 (make verify) in the implementer's worktree,
+  fabrikk's verifying stage: tier 0 (task check) and tier 2 (task verify) in the implementer's worktree,
   refusing to run unless the worktree is clean, HEAD is the commit under review, and no commit on the branch
   carries AI attribution: the cheapest point to refuse a message, before the stack, the suites, and review.
   The session stack is brought up if needed and left running; it belongs to the implementer's session.
@@ -126,7 +126,7 @@ jobs:
           type: assert
           expr: >-
             data.latest("dev-env-" + inputs.headSha, "check").attributes.headSha == inputs.headSha
-          message: HEAD moved while make check ran; the result is not about ${{ inputs.headSha }}
+          message: HEAD moved while task check ran; the result is not about ${{ inputs.headSha }}
         dependsOn:
           - step: check
             condition: { type: succeeded }
@@ -150,7 +150,7 @@ jobs:
           type: assert
           expr: >-
             data.latest("dev-env-" + inputs.headSha, "verify").attributes.headSha == inputs.headSha
-          message: HEAD moved while make verify ran; the result is not about ${{ inputs.headSha }}
+          message: HEAD moved while task verify ran; the result is not about ${{ inputs.headSha }}
         dependsOn:
           - step: verify
             condition: { type: succeeded }

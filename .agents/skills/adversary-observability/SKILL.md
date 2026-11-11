@@ -11,8 +11,8 @@ and without a shell on the node (there is none).
 ## Rules
 
 - **Logs:** `log/slog`, JSON handler, one logger injected at wiring. Every log line for a handled message carries
-  `tenant`, `msg_id`, `type`, and the resource ID; never a login or a person's identity, which are payload. Log an error once, at the boundary where it is handled — not at
-  every layer it passes through.
+  `tenant`, `msg_id`, `type`, and the resource ID; never anything from `data`, which is payload. Log an error once,
+  at the boundary where it is handled — not at every layer it passes through.
 - **Traces:** OpenTelemetry. Inbound adapters extract `traceparent` from the CloudEvents extension; outbound adapters
   inject it. One span per handler, child spans per downstream call and repository call.
 - **Metrics:** minimal and RED-shaped per handler: rate, errors, duration. No per-tenant cardinality in labels beyond

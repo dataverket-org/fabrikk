@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#
+# dev-down: stops the shared session stack and keeps its volumes.
+#
+
+source "${0%/*}/functions.sh" || exit $?
+
+init         || exit $?
+need_compose || exit $?
+
+dev_compose --profile '*' down || fail "Stopping the session stack failed!"

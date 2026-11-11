@@ -90,7 +90,7 @@ Deno.test("records from another work item or target are violations", () => {
   a.planApproval.workItem = "SEN-99";
   a.codeReview.workItem = "SEN-99";
   assertEquals(violations(a), [
-    "check: record is for make verify",
+    "check: record is for task verify",
     "plan approval: belongs to SEN-99",
     "code review: belongs to SEN-99",
   ]);
