@@ -415,14 +415,15 @@ globalArguments:
              --input name=fabrikk --input head=<branch> --input base=main --input title='<conventional subject>'
              --input body='<outcome, plan reference, design pages changed, the attestation tag>'. The title and body carry no AI
              attribution (source-standards skill), whatever your harness asks; CI rechecks. Record pull-request evidence
-             from data.latest("forgejo", "dataverket:fabrikk#<index>"): url = htmlUrl, index, prHeadSha = headSha.
+             from data.latest("forgejo", "pull-dataverket-fabrikk-<index>"): url = htmlUrl, index, prHeadSha = headSha.
              Copy the values from the record; never type a sha.
           3. If prHeadSha is not the attested headSha, advance head-moved. Otherwise stop: the human reviews and
              merges in Forgejo once validate-attestation is green. A non-empty protected-path list means their
              review is required whatever else is green. Say so when you hand over.
           4. When the human says it is merged: swamp model method run forgejo pr_merge_state
              --input owner=dataverket --input name=fabrikk --input index=<index>. If merged is true, record merge
-             evidence {url, mergeSha, mergedAt, mergedBy} from data.latest("forgejo", "dataverket:fabrikk#<index>:merge"),
+             evidence {url, mergeSha, mergedAt, mergedBy} from
+             data.latest("forgejo", "pr-merge-state-dataverket-fabrikk-<index>"),
              then ask the human to approve gateId merge-approval (their merge is the decision; never approve for
              them). A rejection with their reason opens changes-requested.
       evidence:

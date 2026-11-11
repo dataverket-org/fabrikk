@@ -102,7 +102,9 @@ The loop is built through `releasing` and stops at `uat`. No product code has go
 3. **Make `validate-attestation` a required check** on `main` after its first run on a real pull request
    ([contributing/forge.md](contributing/forge.md)).
 4. **The signing key, UAT and promotion** are designed and not built ([design/release.md](design/release.md)). UAT
-   needs a real environment, and none exists.
+   needs a real environment, and none exists. Before building them, compare with what the registry now holds:
+   `@dataverket/signed-images` has workflows for a signed release, verifying one and promoting one, which may
+   replace `extensions/models/release_artifact.ts` and the unwritten `fabrikk-promote`.
 
 Smaller, in no order:
 

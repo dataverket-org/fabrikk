@@ -1,9 +1,9 @@
 /**
  * Adds to `@dataverket/forgejo` what the factory needs that the upstream model
  * does not cover: a tag protection rule (who may push `attestation/*`, the
- * forge-side half of `.forgejo/attesters`) and the merge state of a pull
- * request (the merge commit, which upstream's `pr_get` drops) for the
- * factory's `merge` evidence.
+ * forge-side half of `.forgejo/attesters`). A pull request's merge state,
+ * which this file once added too, is upstream's `pr_merge_state` since
+ * 2026.11.09.1.
  *
  * Same conventions as upstream: find-or-create, nothing deleted, no secret
  * value recorded or logged. Forge operations that reach beyond this
@@ -171,81 +171,6 @@ export async function tagProtectionEnsure(
   };
 }
 
-// ─────────────────────────── Actions secrets ───────────────────────────
-
-const PrMergeStateArgs = z.object({
-  owner: z.string().min(1).describe("Owning org or user login."),
-  name: z.string().min(1).describe("Repository name."),
-  index: z.coerce.number().int().positive().describe(
-    "PR number within the repo.",
-  ),
-});
-
-const PrMergeStateInfo = z.object({
-  repo: z.string(),
-  index: z.number().int(),
-  url: z.string(),
-  state: z.string(),
-  merged: z.boolean(),
-  headSha: z.string(),
-  base: z.string(),
-  mergeSha: z.string().optional().describe(
-    "The commit on the base branch; present only once merged.",
-  ),
-  mergedAt: z.string().optional(),
-  mergedBy: z.string().optional(),
-  action: z.literal("observed"),
-  timestamp: z.string(),
-});
-
-/**
- * Read a pull request's merge state as the server reports it: the PR head, and
- * once merged, the merge commit, when, and by whom. The factory's `merge`
- * evidence copies these fields; nothing here comes from memory.
- */
-export async function prMergeState(
-  api: Caller,
-  a: z.infer<typeof PrMergeStateArgs>,
-): Promise<z.infer<typeof PrMergeStateInfo>> {
-  const pr = (await call(api, {
-    method: "GET",
-    path: `${repoPath(a.owner, a.name)}/pulls/${a.index}`,
-  })).body;
-  const head = (pr.head ?? {}) as Record<string, unknown>;
-  const base = (pr.base ?? {}) as Record<string, unknown>;
-  const mergedBy = (pr.merged_by ?? {}) as Record<string, unknown>;
-  const merged = pr.merged === true;
-  const mergeSha =
-    typeof pr.merge_commit_sha === "string" && pr.merge_commit_sha
-      ? pr.merge_commit_sha
-      : undefined;
-  if (merged && !mergeSha) {
-    throw new Error(
-      `${a.owner}/${a.name}#${a.index} is merged but reports no merge commit`,
-    );
-  }
-  return {
-    repo: `${a.owner}/${a.name}`,
-    index: a.index,
-    url: String(pr.html_url ?? ""),
-    state: String(pr.state ?? ""),
-    merged,
-    headSha: String(head.sha ?? ""),
-    base: String(base.ref ?? ""),
-    mergeSha: merged ? mergeSha : undefined,
-    mergedAt: merged && typeof pr.merged_at === "string"
-      ? pr.merged_at
-      : undefined,
-    mergedBy: merged && typeof mergedBy.login === "string"
-      ? mergedBy.login
-      : undefined,
-    action: "observed",
-    timestamp: new Date().toISOString(),
-  };
-}
-
-// ─────────────────────────── runner prune ───────────────────────────
-
 interface Ctx {
   globalArgs: GlobalArgs;
   signal: AbortSignal;
@@ -257,7 +182,7 @@ interface Ctx {
   ) => Promise<{ name: string }>;
 }
 
-/** Extension adding tag protection and merge state to @dataverket/forgejo. */
+/** Extension adding tag protection to @dataverket/forgejo. */
 export const extension = {
   type: "@dataverket/forgejo",
   resources: {
@@ -265,13 +190,6 @@ export const extension = {
       description:
         "A tag protection rule: the pattern and who may push matching tags.",
       schema: TagProtectionInfo,
-      lifetime: "infinite" as const,
-      garbageCollection: 20,
-    },
-    prMergeState: {
-      description:
-        "A pull request's head and, once merged, its merge commit, time, and merger.",
-      schema: PrMergeStateInfo,
       lifetime: "infinite" as const,
       garbageCollection: 20,
     },
@@ -302,31 +220,6 @@ export const extension = {
         const handle = await context.writeResource(
           "tagProtection",
           safeName(`${info.repo}:${info.namePattern}`),
-          info,
-        );
-        return { dataHandles: [handle] };
-      },
-    },
-    pr_merge_state: {
-      description:
-        "Read a pull request's merge state from the server: PR head, and once merged, the merge commit, time, and " +
-        "merger. Read-only; the factory's pull-request stage records its evidence from this, never from memory.",
-      arguments: PrMergeStateArgs,
-      execute: async (args: z.infer<typeof PrMergeStateArgs>, context: Ctx) => {
-        const a = PrMergeStateArgs.parse(args);
-        const info = await prMergeState(
-          fetchCaller(context.globalArgs, context.signal),
-          a,
-        );
-        context.logger.info("{repo}#{index}: {state}, merged {merged}", {
-          repo: info.repo,
-          index: info.index,
-          state: info.state,
-          merged: info.merged,
-        });
-        const handle = await context.writeResource(
-          "prMergeState",
-          safeName(`${info.repo}#${info.index}:merge`),
           info,
         );
         return { dataHandles: [handle] };

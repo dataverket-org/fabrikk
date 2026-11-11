@@ -21,9 +21,22 @@ TypeScript in `extensions/models/`, one file per concern, each with a `_test.ts`
 | `source_standards.ts` | `@dataverket/source-standards` | `commits`: no AI attribution in commit messages. Holds the pattern and the shell recipe CI copies literally; records the check before failing. | `fabrikk-verify`, `validate-attestation.yaml` |
 | `release_artifact.ts` | `@dataverket/release-artifact` | `verify`: signature (cosign), provenance, `release.json`, digest-pinned images, `:candidate` equals this digest. | `fabrikk-release` |
 | `reference_repos.ts` | `@dataverket/reference-repos` | `sync`: clones or refreshes each listed repository into `_reference/`, records the commit. | humans and agents |
-| `forgejo_actions.ts` | extends `@dataverket/forgejo` | `tag_protection_ensure` (who may push `attestation/*`), `pr_merge_state` (the merge commit for `merge` evidence). | attester setup, `pull-request` stage |
+| `forgejo_actions.ts` | extends `@dataverket/forgejo` | `tag_protection_ensure` (who may push `attestation/*`). Everything else on the forge model, `pr_ensure` and `pr_merge_state` among it, is upstream's. | attester setup |
 | `_lib/task.ts` | shared | Runs `task -x <name>` with a timeout and captures the result. An aborted task gets SIGTERM, then SIGKILL after two seconds, because task does not exit on SIGTERM while a command runs. | `dev_environment.ts` |
 | `upstream_extensions.json` | manifest | The pulled extensions and their pinned versions (swamp-managed). | swamp |
+
+### Pulled extensions
+
+`@swamp/software-factory`, `@swamp/git`, `@dataverket/sops` and `@dataverket/forgejo` are pulled from the swamp
+registry and pinned in `upstream_extensions.json`. Renovate does not move them; `swamp extension outdated` lists
+what is behind and `swamp extension update` moves it. After an update, check two things an update can change
+without failing any validation:
+
+- **A local method that upstream now ships.** Swamp prints a `swamp-warning` on every call and keeps the local one.
+  Remove the local copy, so there is one implementation.
+- **The names of the records a stage reads.** The pull-request stage's prompt in the definition and
+  `contributing/driving.md` name the forge model's records (`pull-<owner>-<repo>-<n>`,
+  `pr-merge-state-<owner>-<repo>-<n>`). An extension that renames its records leaves those reading old data.
 
 ## Model instances
 
