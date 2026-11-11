@@ -80,14 +80,16 @@ key for the same host. `.sops.yaml` carries the same recipients for the `sops` C
 `Taskfile.yml` is the menu; `scripts/` does the work. A task is one line that calls its script, so `task check` and
 `scripts/check` are the same thing. A `NAME=value` argument to `task` reaches the script as an environment variable.
 The scripts follow one style: an executable per action, shared functions in `scripts/functions.sh`, every failure
-returned to the caller, and `shellcheck -s bash -e SC2034,SC2154,SC1090,SC1091,SC2242 scripts/*` clean.
+returned to the caller. The shared functions are in `scripts/functions/`, one file per topic, loaded by
+`scripts/functions.sh`. All of it is clean under
+`find scripts -type f -exec shellcheck -s bash -e SC2034,SC2154,SC1090,SC1091,SC2242 {} +`.
 
 | Task | Script | Does |
 |---|---|---|
 | `task tools` | `scripts/tools` | Installs pinned task, ko, cosign, kustomize, crane, golangci-lint and flux into `_bin/`. Run the script directly on a machine that has no task yet. |
 | `task check` | `scripts/check` | Tier 0: SPDX header on every Go file, gofmt, `go vet`, golangci-lint with `.golangci.yml` (every `switch` over a closed set covers every case), `go test` per module in `go.work`. |
 | `task verify` | `scripts/verify` | Tier 2: ko images for the commit, the private verify stack, contract and black-box suites, teardown. |
-| `task dev.up`, `dev.down`, `dev.reset` | `scripts/dev-up`, `dev-down`, `dev-reset` | The shared session stack. They refuse to run until `compose.yaml` exists. |
+| `task dev.up`, `dev.down`, `dev.reset` | `scripts/dev-up`, `dev-down`, `dev-reset` | The shared session stack, played with `podman kube play`. They refuse to run until `deploy/dev/default/` exists. |
 | `task release PRODUCT=<p>` | `scripts/release` | CI only: build, join, push, sign, tag `candidate`. |
 
 `_bin/` holds the pinned binaries: ignored by git, skipped by `go ./...` because of the underscore, and first on
@@ -109,7 +111,7 @@ weekly window, as `chore(deps): …`, and never merges: every file it touches is
 | Renovate | flux | `scripts/tools`, the image by tag and digest, moved together. |
 | Renovate | Reference repositories pinned to a tag (Zitadel, the CloudEvents spec) | The reference list, a `# renovate:` comment between `url` and `ref`. |
 | Renovate | `jsr:` and `npm:` versions in extension import specifiers | `extensions/models/*.ts`, every file in one pull request. zod is left alone: swamp supplies it. |
-| Renovate, when they arrive | Go modules, compose images (pinned by digest), kustomize, CI actions | Their own files; Renovate's built-in managers need no rule here. |
+| Renovate, when they arrive | Go modules, images in pod manifests (pinned by digest), kustomize, CI actions | Their own files; Renovate's built-in managers need no rule here. |
 | `swamp` | Pulled extensions, model type versions, the pulled `software-factory` skill, the swamp version | `swamp extension` and `swamp repo upgrade`. A version bump alone is not an update there: swamp rewrites files. |
 | `references sync` | Reference repositories that follow a branch (the NATS ADRs, swamp) | They move to the branch's tip at every sync. |
 

@@ -11,9 +11,9 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 
 | Tier | What runs | Dependencies | When |
 |---|---|---|---|
-| 0 — test loop | `go test ./...` | Session stack (compose default profile: nats, postgres); embedded NATS for server-configuring tests; fake JWKS | Every edit |
+| 0 — test loop | `go test ./...` | Session stack (the default fragments: nats, postgres); embedded NATS for server-configuring tests; fake JWKS | Every edit |
 | 1 — run the slice | Services as plain processes via `task run`, seeded | Same session stack | Interactive checks |
-| 2 — verify artifacts | Scratch images under the `verify` compose profile (adds Zitadel); black-box suite from outside | Real everything, containerized | Before the PR |
+| 2 — verify artifacts | Each product's own manifests with scratch images built from the commit, in the verify stack (adds Zitadel); black-box suite from outside | Real everything, containerized | Before the PR |
 | UAT | Joined, signed release artifact on the UAT cluster; black-box suite | The real environment | After merge |
 
 ## The one isolation rule

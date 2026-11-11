@@ -17,7 +17,7 @@ type GlobalArgs = z.infer<typeof GlobalArgsSchema>;
 
 const ProfileSchema = z.enum(["default", "objekt", "maskin"]).default(
   "default",
-).describe("Compose profile (verify is selected by task verify itself)");
+).describe("Profile of fragments (verify is selected by task verify itself)");
 
 const timeoutSeconds = (fallback: number) =>
   z.number().int().positive().default(fallback).describe(

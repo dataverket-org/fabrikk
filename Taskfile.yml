@@ -4,8 +4,8 @@
 # same thing. A NAME=value argument is a template variable to task, not an environment variable, so each task
 # passes the ones its script reads through `env`.
 #
-# Dev-environment tasks need compose.yaml and the products' suites, which arrive with the first product; the stack
-# naming they enforce is decided in scripts/functions.sh (dev-environment skill, "Session stack").
+# Dev-environment tasks need the fragments under deploy/dev/ and the products' suites, which arrive with the first
+# product; the stack naming they enforce is decided in scripts/functions/stack.sh (dev-environment skill, "Stacks").
 version: '3'
 
 silent: true

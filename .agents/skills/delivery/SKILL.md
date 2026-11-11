@@ -35,7 +35,7 @@ this skill, in the same pull request.
 | Path | Contents |
 |---|---|
 | `<product>/deploy/base/` (monorepo) | L1 for that product: a kustomization whose images are `ko://<module>/cmd/<service>` references |
-| `deploy/dev/<system>/` (monorepo root) | Dev-environment fragments per downstream system, shared by every product (dev-environment skill). Not deployed. |
+| `deploy/dev/<profile>/<system>/` (monorepo root) | Dev-environment fragments per downstream system, shared by every product (dev-environment skill). Not deployed. |
 | `environments/<env>/<product>/` (`miljo`) | L2: a kustomization with `resources: [../base]` and the environment's patches |
 
 Nothing else goes under `deploy/`. Rendered output exists only inside the signed artifact; L0 belongs to the

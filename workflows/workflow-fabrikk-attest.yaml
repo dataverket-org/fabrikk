@@ -50,7 +50,6 @@ inputs:
         - scripts/
         - .golangci.yml
         - renovate.json
-        - compose.yaml
         - deploy/dev/
         - .forgejo/
         - cosign.pub
