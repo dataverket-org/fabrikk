@@ -3,6 +3,10 @@ name: fabrikk
 type: '@dataverket/sops'
 config:
   secretsDir: vaults/fabrikk
+  # The process key, by name: <sops key dir>/swamp-fabrikk.txt, used when the
+  # file is there (.sops.yaml). No path, no home. A host without it falls
+  # through to the operator's YubiKey.
+  ageKeyName: swamp-fabrikk
   agePublicKey: >-
-    age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v,age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+    age1remev74t6xc29ayslygul7l3mlhvtlggvlaxvewsapsqgegt3c5sf6kaea,age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
 createdAt: '2026-09-20T17:29:21.959Z'

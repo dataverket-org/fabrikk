@@ -1,14 +1,31 @@
-# SOPS recipients for files humans and the factory both read. Public keys only; safe to commit.
-# The swamp vault (vaults/fabrikk/<key>.enc.json, one file per secret, @dataverket/sops) carries the same list in
-# agePublicKey under vaults/@dataverket/sops/ and ignores this file; this file makes `sops vaults/fabrikk/...` from
-# a terminal encrypt to the same recipients.
+# Recipients for the encrypted files in this repository. Public keys only; safe to commit.
 #
-# - age1yubikey1...  beddari, YubiKey serial 19668198 (PIN once, touch always)
-# - age15d64...      fabrikk, soft key at ~/.config/sops/age/fabrikk.txt on the factory host; decrypts unattended
-# - age1yubikey1qwt.. Linus Johansen, YubiKey; since 2026-09-20
+# The convention is fabrikk-infra's: one key per decrypting process, and a host that runs swamp is a process.
+#
+# - swamp-fabrikk-<host>   ~/.config/sops/age/swamp-fabrikk.txt on each host that drives the factory, mode 0600, a
+#                          file of its own so that sops from a terminal never loads it. One key per host, generated
+#                          there and never copied; the file name is the same everywhere, since the vault config
+#                          names it (ageKeyName), and the entry here ends in the host name. Decrypts the swamp vault
+#                          unattended. It is not fabrikk-infra's key for the same host: neither store's process key
+#                          is on the other store's files.
+#     -mio     age1remev...        beddari's mio, since 2026-11-11
+# - beddari    age1yubikey1q0d8... YubiKey serial 19668198 (PIN once, touch always)
+# - linus      age1yubikey1qwt...  YubiKey, since 2026-09-20
+#
+# The two operators are recipients for recovery, re-keying and writes from a terminal.
+#
+# The swamp vault (vaults/fabrikk/<key>.enc.json, one file per secret, @dataverket/sops) carries the same list in
+# agePublicKey under vaults/@dataverket/sops/ and ignores this file; the rule below keeps `sops` from a terminal on
+# the same set. sops ignores `identities`. Adding a host: contributing/workstation.md, "A key for this host".
+identities:
+  swamp-fabrikk-mio: &swamp_fabrikk_mio age1remev74t6xc29ayslygul7l3mlhvtlggvlaxvewsapsqgegt3c5sf6kaea
+  beddari: &beddari age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx
+  linus: &linus age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+
 creation_rules:
   - path_regex: vaults/.*\.enc\.json(\.plain\.tmp)?$
-    age: >-
-      age1yubikey1q0d8krn6cy32uun9ygwvrd373sp04hnjfpdfazy9lhpz70h3hauf2kgjzmx,
-      age15d64a0gasc74qak0pep0d33ff34rx4uk6uamutqfnddqe3kehcms90n22v,
-      age1yubikey1qwtampyck0fvqdlcfwjk3yhcu2s3gvrn67wdvxyv8uty6v5zpkxq76kzrpw
+    key_groups:
+      - age:
+          - *swamp_fabrikk_mio
+          - *beddari
+          - *linus
