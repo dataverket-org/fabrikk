@@ -54,8 +54,8 @@ may attack it.
   skill, "A decision changes the page that states it"). A slice that needs an item a design page lists under
   **Open** proposes the answer here; approving the plan decides it, and the slice moves it into the page's body.
 - **Model changes** (`modelChanges`). Each word, rule or boundary the slice needs that the model lacks or states
-  differently: the page, the change, the reason. Approving the plan decides it; the change is made in the model's
-  repository and the slice's branch moves the pin (`design/products.md`).
+  differently: the page, the change, the reason. Approving the plan decides it, and the slice changes `domain/`
+  in the same pull request (`design/products.md`).
 - **Deviations** (`deviations`). Every design choice that is not the default in a skill or a design page, each
   justified in one sentence.
 

@@ -33,8 +33,8 @@ Fast, deterministic feedback is what makes the factory converge. Every rule here
 - For every downstream port touched: the contract suite still passes against the fake **and** the real fragment.
 - For any change to admission, subject mapping, the account wiring, or the CloudEvents envelope: a black-box
   acceptance test, not only a unit test.
-- For every rule the plan cites from the domain model's binding list (`for-implementors/README.md` in the
-  `domain-model` reference): a test named for the rule, at the lowest tier that can show it broken.
+- For every rule the plan cites from the domain model's binding list (`domain/README.md`): a test named
+  for the rule, at the lowest tier that can show it broken.
 - Fault paths tested through the fake (`FailNext`, timeouts, partial failure). Happy-path-only is a finding.
 
 ## Contract suites

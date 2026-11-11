@@ -77,6 +77,28 @@ returned to the caller, and `shellcheck -s bash -e SC2034,SC2154,SC1090,SC1091,S
 `_bin/` holds the pinned binaries: ignored by git, skipped by `go ./...` because of the underscore, and first on
 `PATH` inside every script. The verify extension runs `task` from the workbench's own `PATH`.
 
+## Updates
+
+Three things move the versions this repository pins. Renovate runs on the forge from its own repository
+(`dataverket/renovate`), once an hour, and acts here because `renovate.json` exists. It opens pull requests in one
+weekly window, as `chore(deps): …`, and never merges: every file it touches is a protected path, so a person does.
+
+| Moved by | What | Where the pin is |
+|---|---|---|
+| Renovate | task, ko, cosign, kustomize, crane | `scripts/tools`, a `# renovate:` comment above each version. A major version changes the module path and is done by hand. |
+| Renovate | flux | `scripts/tools`, the image by tag and digest, moved together. |
+| Renovate | Reference repositories pinned to a tag (Zitadel, the CloudEvents spec) | The reference list, a `# renovate:` comment between `url` and `ref`. |
+| Renovate | `jsr:` and `npm:` versions in extension import specifiers | `extensions/models/*.ts`, every file in one pull request. zod is left alone: swamp supplies it. |
+| Renovate, when they arrive | Go modules, compose images (pinned by digest), kustomize, CI actions | Their own files; Renovate's built-in managers need no rule here. |
+| `swamp` | Pulled extensions, model type versions, the pulled `software-factory` skill, the swamp version | `swamp extension` and `swamp repo upgrade`. A version bump alone is not an update there: swamp rewrites files. |
+| `references sync` | Reference repositories that follow a branch (the NATS ADRs, swamp) | They move to the branch's tip at every sync. |
+
+To see what Renovate would propose without changing anything, run `task local -- fabrikk` in the Renovate
+repository. It lists files through git, so a new file must be added to the index before it is seen.
+
+A Renovate pull request carries no attestation tag, so `validate-attestation` is red on it. That is harmless until
+the check is required on `main` ([trust.md](trust.md)).
+
 ## Agent files
 
 | Path | Role |

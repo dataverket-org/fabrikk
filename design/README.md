@@ -20,14 +20,14 @@ Everything that steers the work is one of five kinds. Each has one home, and not
 | **Program**: what must always happen, and proof that it did | `models/@swamp/software-factory/fabrikk.yaml`, `workflows/`, `extensions/`, `.forgejo/`, `Taskfile.yml`, `scripts/` | "Did the tests run" is never prose |
 | **Pattern**: tactical DDD words and Go shapes | `.agents/skills/architecture/` | Still true for bike rental on another broker |
 | **Stack**: how the pattern lands on PostgreSQL, JetStream, CloudEvents, Zitadel and the STS | `design/messaging.md`, `design/persistence.md`, `design/identity.md`; the mechanism is Go code in `internal/platform` | Names a technology and no domain noun |
-| **Domain**: words, contexts, aggregates, invariants | The domain model (`_reference/domain-model`), nowhere else | Names an organisation, an agreement, the front desk |
+| **Domain**: words, contexts, aggregates, invariants | The domain model, [`domain/`](../domain/README.md), nowhere else | Names an organisation, an agreement, the front desk |
 | **Stage conventions and review technique** | `agent-constraints/`, the `adversary-*` skills | Says what a plan, a change or a finding must look like |
 
 Three rules follow.
 
 - **Trust comes from the program and only from there.** A skill or a page may refer to a process; the definition
   enforces it. A rule that can be checked is a check in `task check` or a workflow, not a reviewer's job.
-- **The skills hold no domain rule.** They point at the model's binding list (`for-implementors/README.md`). A skill
+- **The skills hold no domain rule.** They point at the model's binding list (`domain/README.md`). A skill
   is clean when it would work unchanged for the next product.
 - **The stack is mostly code.** A rule every handler must follow is one function in `internal/platform` that no
   handler can bypass, extracted when a second slice needs it. The page here says what is decided; the code does it.
@@ -46,6 +46,7 @@ design/
   identity.md      Zitadel for humans, workload identity for machines, admission
   operations.md    one entry each for parts that get no design page
 contributing/      how a person sets up a workbench, drives a work item, operates the forge
+domain/            the domain model: what is being built, in the domain's own words
 ```
 
 Every page starts with a header:
@@ -68,7 +69,8 @@ describes bumps it. The stack pages carry none until the code they describe exis
   question is closed by the human, in a pull request that moves it into the page's body.
 - Diagrams are Mermaid in fenced blocks and show a mechanism. If a table says it better, use the table.
 - Commands are real and copy-pasteable. Do not copy flag lists that `swamp help <command>` already gives.
-- Documentation under `design/` and `contributing/` is CC-BY-SA-4.0 ([LICENSE](LICENSE)); code is AGPL-3.0.
+- Documentation under `design/`, `domain/` and `contributing/` is CC-BY-SA-4.0 ([LICENSE](LICENSE)); code is
+  AGPL-3.0.
 
 ## Index
 

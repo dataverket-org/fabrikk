@@ -116,7 +116,14 @@ snapshots, projector and permanent event versions that event sourcing brings.
 - **Reading an old state.** How the state's shape changes over time, given that the newest message of an idle
   aggregate may be years old.
 - **Streams.** One per aggregate type or one per context, and whether retention is unlimited or a count per subject.
-- **Views for readers.** Whether another context watches the stream or is given a derived key-value entry.
+- **Views for readers.** Whether another context watches the stream or is given a derived key-value entry. The
+  model's reads decision prefers a mirrored bucket for state a reader watches (`domain/open.md`, known tensions). A
+  mirror across accounts is a stream in the reading account per source, so a reader of many tenants should consume
+  the facts and not hold a mirror per tenant.
+- **Deleting a tenant.** Deleting an account deletes its streams. The account goes only when the second copy and the
+  audit record hold what it had; how that is signalled is not decided.
+- **The audit record.** How append-only is enforced on a record that another party writes, and how a tenant's view
+  of it is filtered into its own account.
 - **The second copy's layout**, and whether it is a schema or a database per tenant.
 - **The clock.** Whether a scheduled message (ADR-51) or a periodic sweep fires a date held on a record. Firing one
   twice changes nothing, since each is a state and not a count.

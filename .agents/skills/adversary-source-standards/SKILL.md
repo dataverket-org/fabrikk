@@ -23,7 +23,7 @@ the pull request.
 
 - Every Go source file starts with `// SPDX-License-Identifier: AGPL-3.0-or-later` and a copyright line naming
   Dataverket. `LICENSE` at the repo root is AGPL-3.0.
-- Documentation (`design/`, `contributing/`) is `CC-BY-SA-4.0`; `design/LICENSE` holds the text.
+- Documentation (`design/`, `domain/`, `contributing/`) is `CC-BY-SA-4.0`; `design/LICENSE` holds the text.
 - A dependency with a license incompatible with AGPL-3.0 network distribution is a critical finding.
 - Code in `_reference/` is read, never copied into Dataverket source. Reusing upstream code means a dependency or a
   reimplementation; copied upstream code is judged like a dependency with that code's license.
@@ -50,6 +50,7 @@ page that owns it, in the same pull request:
 | Where state lives, a stream layout or its retention, what the second copy holds | `design/persistence.md` |
 | An issuer, a token, an audience, what admission accepts | `design/identity.md` |
 | A new service, or which context a service holds | `design/products.md` |
+| A word, a rule or a boundary of the domain | `domain/`, in the page that owns it |
 | A new downstream port or compose fragment | the dev-environment skill's fragment table |
 | A new tunable field in an environment overlay | the delivery skill |
 | A budget | the adversary skill that states it |
@@ -70,9 +71,9 @@ A change of this kind without its page is not approved.
 Changes to these require human review in Forgejo regardless of who or what authored them, because they steer every
 agent or produce what ships:
 
-`.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `design/`, `models/` (the factory definition
-with its review prompts, and the reference list that pins the domain model), `workflows/`, `extensions/`, `Taskfile.yml`,
-`scripts/`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
+`.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `design/`, `domain/` (the domain model),
+`models/` (the factory definition with its review prompts, and the reference list), `workflows/`, `extensions/`,
+`Taskfile.yml`, `scripts/`, `renovate.json`, `compose.yaml`, `deploy/dev/`, `.forgejo/`, `cosign.pub`.
 
 `Taskfile.yml`, `scripts/`, `compose.yaml`, and `deploy/dev/` are protected because verification runs them from the
 branch under review: a weakened `task check`, a healthcheck that always passes, or a fragment that gains host privileges on the

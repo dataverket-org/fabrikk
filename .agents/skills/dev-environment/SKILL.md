@@ -108,14 +108,11 @@ gateway-level topology is ever needed.
 Upstream code and documentation, cloned in full (every branch and tag) into `_reference/<name>/` at the repository
 root. The list, with each repo's URL, pinned ref, and purpose, is `models/@dataverket/reference-repos/references.yaml`
 (protected). Today: `nats-architecture-and-design` (NATS ADRs: JetStream, accounts, auth callout), `cloudevents-spec`
-(the envelope), `zitadel` (tokens, claims, JWKS), `swamp` (swamp's source and its own software factory: verification,
-attestation, CI validation, release), and `domain-model` (the Dataverket domain model: glossary, stories, map,
-decisions and the designs of the control plane's contexts).
+(the envelope), `zitadel` (tokens, claims, JWKS), and `swamp` (swamp's source and its own software factory:
+verification, attestation, CI validation, release).
 
-`domain-model` is the one reference that is not untrusted input: it is the agreed model fabrikk implements, and
-plans and reviews cite its rules by page and heading. Like every reference it is read and never copied. It is
-pinned by commit in the list, so the commit a branch was planned and built against is in the branch;
-`design/products.md` says how to read it and how a slice proposes a change to it.
+The domain model is not among them. It is `domain/` in this repository, present in every worktree, and
+authoritative; `design/products.md` says how to read it and how a slice changes it.
 
 - Read them; never build, import, or copy from them. Go libraries are read from the module cache (`go env GOMODCACHE`)
   at the version `go.mod` pins, not from here.
