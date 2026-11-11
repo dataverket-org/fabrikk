@@ -2,7 +2,7 @@
 # verification runs it from the branch under review, and a weakened lint would still give a green attestation.
 #
 # Only what a reviewer should not have to find is here: a switch over a closed set (a sealed interface marked
-# //sumtype:decl, or a constant enum) covers every case. An import rule is added by the slice that first needs one.
+# //sumtype:decl, or a constant enum) covers every case, and only internal/platform imports the transport's client.
 version: "2"
 
 linters:
@@ -10,9 +10,19 @@ linters:
   enable:
     - gochecksumtype   # a switch over a sealed interface marked //sumtype:decl covers every case
     - exhaustive       # a switch or a map literal over a constant enum covers every constant
+    - depguard         # only a product's internal/platform imports the NATS client (design/messaging.md)
   settings:
     gochecksumtype:
       default-signifies-exhaustive: false
     exhaustive:
       check: [switch, mapliteral]
       default-signifies-exhaustive: false
+    depguard:
+      rules:
+        transport:
+          # Every Go file, tests included, except those under a product's internal/platform.
+          files:
+            - "!**/internal/platform/**"
+          deny:
+            - pkg: github.com/nats-io/nats.go
+              desc: only internal/platform imports the NATS client; a handler takes what that package gives it

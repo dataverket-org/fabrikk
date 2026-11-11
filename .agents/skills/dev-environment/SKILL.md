@@ -34,8 +34,11 @@ How a stack hangs together:
 - **Ports.** A manifest declares `containerPort` only. A `hostPort` is refused: which host port a container port
   gets is the stack's decision.
 - **Health.** Every container declares a `livenessProbe`. A stack is up when every container is healthy, and a
-  container without a probe is refused: ready has to mean ready. A scratch image has no shell, so a service's probe
-  runs the service's own binary.
+  container without a probe is refused. For a fragment, healthy has to mean ready. A product's manifest is the one
+  that ships, so its `livenessProbe` asks liveness and its `readinessProbe` readiness, and it has no
+  `startupProbe` that asks readiness: on a cluster either would restart the service whenever a dependency is away.
+  Podman reads only the `livenessProbe`, so in a stack a product is healthy once its process answers, and a suite
+  waits for readiness itself. An image with no shell is probed by the service's own binary.
 - **Where a suite finds things.** `task verify` gives the suite `STACK`, the stack's name, and one variable per
   published port, `STACK_<NAME>_<CONTAINER PORT>=127.0.0.1:<host port>`, where `<NAME>` is the fragment's or the
   product's directory name in capitals (`STACK_NATS_4222`, `STACK_SENTRAL_8080`). A tier 0 test defaults to the
@@ -46,7 +49,7 @@ workbench and cannot be duplicated; its isolation is the per-test Incus project,
 
 | Profile | Fragments | Purpose |
 |---|---|---|
-| `default` | `nats` (JetStream on), `postgres` | The session stack. Seconds to boot. |
+| `default` | `nats` (JetStream off until a slice stores); `postgres` when a slice needs it | The session stack. Seconds to boot. |
 | `verify` | + `zitadel` (with its database), + every product's `deploy/base` | Tier 2: black-box suite against built artifacts. |
 | `objekt` | + `ceph-aio` | Real Ceph (MON, MGR, OSD, RGW) for the Objekt downstream port. |
 | `maskin` | + `incus` | Real incusd for the Maskin downstream port. **Needs root and host privileges, so it is not supported yet.** |
@@ -107,11 +110,11 @@ A fragment without `reset.sh` or with an upstream tag is rejected in review. Add
 
 ## Current fragments
 
-None is written yet; the first slice that needs one brings it. What is known about each image:
+NATS is written; every other is brought by the first slice that needs it. What is known about each image:
 
 | System | Image (mirror and pin) | Notes |
 |---|---|---|
-| NATS | `nats` official | JetStream enabled, file store on a volume |
+| NATS | `deploy/dev/default/nats`: `registry.dataverket.org/mirror/docker.io/library/nats:2.15.0-alpine`, by digest | Written. JetStream off, so no state, no seed and no reset script; the slice that first stores turns it on, with a file store on a volume. Publishes no port: pods reach it as `nats:4222`, and the slice that first talks to it from the host declares the port. Probed inside the container through its monitoring endpoint. |
 | PostgreSQL | `postgres` official | Template database for per-test clones |
 | Zitadel | `ghcr.io/zitadel/zitadel` | `verify` only; seeded orgs |
 | Ceph | `quay.io/benjamin_holmes/ceph-aio:v19` | Single container MON+MGR+OSD+RGW, ~60 s to healthy; tags expire upstream — mirror. Admin-ops API is real Ceph. |

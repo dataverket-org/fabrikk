@@ -1,2 +1,7 @@
 // Every Go module in the monorepo. Products join here as they arrive, one module per product.
-go 1.25
+go 1.25.0
+
+use (
+	./sentral
+	./sentral/acceptance
+)

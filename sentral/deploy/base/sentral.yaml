@@ -1,0 +1,32 @@
+# Sentral, as it ships. Readiness asks /readyz and liveness asks only /healthz, and there is no startupProbe: a probe
+# that restarts on "not ready" would have a cluster kill Sentral whenever the server is away, when it should wait.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentral
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sentral
+  template:
+    metadata:
+      labels:
+        app: sentral
+    spec:
+      containers:
+        - name: sentral
+          image: ko://git.dataverket.org/dataverket/fabrikk/sentral/cmd/sentral
+          env:
+            - name: NATS_URL
+              value: nats://nats:4222
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            exec:
+              command: ["/ko-app/sentral", "probe"]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["/ko-app/sentral", "probe", "/healthz"]
+            periodSeconds: 5

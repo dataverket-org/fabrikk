@@ -77,7 +77,7 @@ The rules for what belongs in which tier are in the testing skill (`.agents/skil
 | `workflows/`, `extensions/` | The verify, attest and release workflows and the model types they use |
 | `Taskfile.yml`, `scripts/` | The tasks a person and the factory both run (`task check`, `task verify`), and the scripts that do the work |
 | `.forgejo/` | CI: attestation validation on every pull request, the release build after merge |
-| `<product>/` | One Go module per product, joined by `go.work`. None has code yet |
+| `<product>/` | One Go module per product, joined by `go.work`. `sentral/` is the first |
 | `_reference/` | Read-only clones of upstream code (ignored; `references sync`) |
 | `_bin/` | Pinned tool binaries (ignored; `task tools`) |
 
