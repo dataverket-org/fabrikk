@@ -54,10 +54,6 @@ Fabrikk's architecture skill uses *port* for the hexagonal port an adapter sits 
 
 Fabrikk builds seven services as Go modules, with event types named `no.dataverket.<context>.<aggregate>.<verb-ed>`. Each context on the map will need a service and a short id. The model has deliberately not assigned them; a slice's plan does, and `design/products.md` holds the result.
 
-### Where a reader's view lives
-
-[The reads decision](control-plane/decisions/reads.md) admits an engineering view: a key-value bucket mirrored across accounts is the preferred shape for state a reader watches. Fabrikk's `design/persistence.md` keeps the record in an append-only stream and lists the view given to readers as open. The decision's rule, a projection is a set keyed by identity, holds either way; the shape of the view is settled by the first slice that gives one context's state to another.
-
 ### Instance
 
 Zitadel's word for the whole as well as the model's word for a running copy of a context. Kept for now.

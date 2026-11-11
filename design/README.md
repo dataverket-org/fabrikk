@@ -42,7 +42,7 @@ design/
   release.md       build once after merge, the config join, promotion
   products.md      the seven services, and how fabrikk reads the domain model
   messaging.md     CloudEvents, commands and replies, subjects, the handler shape
-  persistence.md   JetStream as the working record, PostgreSQL as the complete second copy
+  persistence.md   a key-value bucket as the working record, its mirror, PostgreSQL as the second copy
   identity.md      Zitadel for humans, workload identity for machines, admission
   operations.md    one entry each for parts that get no design page
 contributing/      how a person sets up a workbench, drives a work item, operates the forge
@@ -67,6 +67,9 @@ describes bumps it. The stack pages carry none until the code they describe exis
 - Say each thing once, in the page that owns it. Link to the model by page and heading; never restate it.
 - A page that has open questions lists them under **Open**, with a recommendation where there is one. An open
   question is closed by the human, in a pull request that moves it into the page's body.
+- A page whose design reaches further than any slice has built says so. What a slice is held to stands first;
+  the rest goes under **Planned, not built**, each piece with the trigger that makes it due. A decided page is
+  something every review enforces, so what is not due yet must not read as decided.
 - Diagrams are Mermaid in fenced blocks and show a mechanism. If a table says it better, use the table.
 - Commands are real and copy-pasteable. Do not copy flag lists that `swamp help <command>` already gives.
 - Documentation under `design/`, `domain/` and `contributing/` is CC-BY-SA-4.0 ([LICENSE](LICENSE)); code is
@@ -89,5 +92,5 @@ describes bumps it. The stack pages carry none until the code they describe exis
 |---|---|
 | [products](products.md) | Service names; the domain model's pin; what the model leaves to fabrikk |
 | [messaging](messaging.md) | Subject taxonomy is open |
-| [persistence](persistence.md) | Untried in code until the first slice that stores an aggregate. A person's data and multi-fact saves are open |
+| [persistence](persistence.md) | A slice builds the bucket only. The mirror, the second copy and the operating rules are planned, each with its trigger |
 | [identity](identity.md) | The machine path is decided in outline only; most of it is open |

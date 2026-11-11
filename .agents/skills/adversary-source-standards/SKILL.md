@@ -47,7 +47,7 @@ page that owns it, in the same pull request:
 | Change | Page it changes |
 |---|---|
 | A new subject namespace, a change to the taxonomy, a new `type` family, a change to the envelope | `design/messaging.md` |
-| Where state lives, a stream layout or its retention, what the second copy holds | `design/persistence.md` |
+| Where state lives, a bucket or mirror layout, what the second copy holds | `design/persistence.md` |
 | An issuer, a token, an audience, what admission accepts | `design/identity.md` |
 | A new service, or which context a service holds | `design/products.md` |
 | A word, a rule or a boundary of the domain | `domain/`, in the page that owns it |

@@ -45,7 +45,7 @@ may attack it.
 - **Ports and downstreams** (`portsAndDownstreams`). For each external system: the port interface, the in-memory
   fake, the contract suite, the compose fragment and its profile, the tier at which the real system first appears,
   and the reference repos the fake's behavior was checked against, as `<name>@<commit>`.
-- **Persistence** (`persistence`). Streams, subjects and consumers, and what the second copy receives, per
+- **Persistence** (`persistence`). Buckets, mirrors and consumers, and what the second copy receives, per
   `design/persistence.md`.
 - **Delivery impact** (`deliveryImpact`). Changes to L1 manifests, new images, migration compatibility with the
   previous release.
