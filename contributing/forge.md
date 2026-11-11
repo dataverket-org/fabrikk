@@ -47,6 +47,10 @@ The attestation is a signed tag on one commit, so that commit is the one that ha
 - Never use **Update branch**, by rebase or by merge. Either moves the pull request's head off the attested commit.
   A branch that is behind `main` merges as it is; one that conflicts goes back through the factory, which takes
   `head-moved` to `implement` and attests the new commit.
+- If Update branch was pressed anyway, the attestation check on the pull request says so and names the attested
+  commit. Nothing needs attesting again: open a new pull request from that commit
+  (`git push origin <commit>:refs/heads/<branch>-attested`), close the old one, and have the work item's driver
+  record the new pull request.
 - A work item's branch starts from `main`. A branch stacked on another unmerged branch is behind `main` the moment
   that one merges, which is how the first slice's commit came to be rewritten.
 

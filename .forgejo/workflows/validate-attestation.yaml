@@ -39,8 +39,32 @@ jobs:
           git "${auth[@]}" fetch -q "$SERVER_URL/$REPOSITORY" "$HEAD_SHA" "refs/heads/$BASE_REF:refs/remotes/base/$BASE_REF"
           # The tag is fetched on its own so a missing tag is a finding, not a fetch failure.
           if ! git "${auth[@]}" fetch -q "$SERVER_URL/$REPOSITORY" "refs/tags/$tag:refs/tags/$tag" 2>/dev/null; then
-            fail "no tag $tag: run the factory's attesting stage at this commit and push the tag with the branch"
-            echo "attestation missing for ${HEAD_SHA:0:8}" >> "$summary"
+            # A head made by "Update branch" is a merge on top of the attested commit. That is not a missing
+            # attestation, and attesting again is the wrong advice: say what happened and how to get out of it.
+            attested="" commit="$HEAD_SHA"
+            for _ in 1 2 3 4 5; do
+              git rev-parse -q --verify "$commit^2" > /dev/null || break
+              commit=$(git rev-parse "$commit^1")
+              under="attestation/$commit"
+              if git "${auth[@]}" fetch -q "$SERVER_URL/$REPOSITORY" "refs/tags/$under:refs/tags/$under" 2>/dev/null; then
+                attested="$commit"; break
+              fi
+            done
+            if [ -n "$attested" ]; then
+              fail "the head ${HEAD_SHA:0:8} is a merge on top of the attested commit ${attested:0:8}: someone used Update branch, or merged $BASE_REF into the branch. An attestation is for one commit, so this head has none"
+              {
+                echo "The attested commit is \`$attested\`. Do not update the branch: one that is behind \`$BASE_REF\` merges as it is."
+                echo ""
+                echo "To get out of it, open a new pull request from the attested commit and close this one:"
+                echo '```'
+                echo "git push origin $attested:refs/heads/<branch>-attested"
+                echo '```'
+                echo "Its attestation tag is already on the forge. Tell whoever drives the work item, so the new pull request is the one it records."
+              } >> "$summary"
+            else
+              fail "no tag $tag: run the factory's attesting stage at this commit and push the tag with the branch"
+              echo "attestation missing for ${HEAD_SHA:0:8}" >> "$summary"
+            fi
             exit 1
           fi
           git checkout -q --detach "$HEAD_SHA"
