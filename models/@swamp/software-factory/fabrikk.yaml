@@ -54,6 +54,17 @@ globalArguments:
                 properties:
                   context: { type: string, minLength: 1 }
                   model: { type: string, minLength: 1 }
+              # Where each rule the slice introduces or touches is enforced: detail names the type and its
+              # constructing package, or gives the reason a rule stays a runtime check.
+              invariants:
+                type: array
+                items:
+                  type: object
+                  required: [rule, enforcedBy, detail]
+                  properties:
+                    rule: { type: string, minLength: 1 }
+                    enforcedBy: { type: string, enum: [type, lint, runtime] }
+                    detail: { type: string, minLength: 1 }
               eventsAndCommands:
                 type: array
                 items:

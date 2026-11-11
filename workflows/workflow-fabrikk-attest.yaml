@@ -48,6 +48,7 @@ inputs:
         - domain/
         - Taskfile.yml
         - scripts/
+        - .golangci.yml
         - renovate.json
         - compose.yaml
         - deploy/dev/

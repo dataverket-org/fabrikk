@@ -65,6 +65,7 @@ function teardown()
 
 init         || exit $?
 need_compose || exit $?
+need_tools   || exit $?
 load_modules || fail "Could not list the modules in go.work!"
 
 commit="$(git rev-parse HEAD)" || fail "Not a git repository!"

@@ -26,7 +26,10 @@ Always:
 1. **Outcome** (`outcome`). One paragraph. What will be true for a user when this ships.
 2. **Bounded context and model** (`boundedContext`). Which of the model's contexts; the aggregates, entities and
    invariants exactly as that context's design page names them, with the link; the pattern words from the
-   architecture skill.
+   architecture skill. With it, every invariant the slice introduces or touches (`invariants`): the rule, and
+   whether a type, the linter or a runtime check enforces it. For a type, name it and the package that constructs
+   it; for a runtime check, give the reason in one line (architecture skill, "Compile-time invariants"). Reviewers
+   compare the code with this list.
 3. **File-level breakdown** (`fileBreakdown`, `totalEstimatedLoc`). Every file created or changed, with an estimated
    LOC. Total against the simplicity budget.
 4. **Testing strategy** (`testingStrategy`). What is verified at tier 0, always. Tiers 1, 2 and UAT only where the

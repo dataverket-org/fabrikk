@@ -80,11 +80,18 @@ type Rental struct {
 	events  []Event
 }
 
+// Event is the closed set of things that can happen to a rental.
+//
+//sumtype:decl
+type Event interface{ isEvent() }
+
 type RentalEnded struct {
 	Rental  RentalID
 	Bike    BikeID
 	EndedAt time.Time
 }
+
+func (RentalEnded) isEvent() {}
 
 func (r *Rental) End(at time.Time) error {
 	if !r.endedAt.IsZero() {
@@ -179,6 +186,32 @@ The real implementation passes `RunContract` against the compose fragment; the f
 
 The inbound adapter's shape is in `design/messaging.md`, because it is where the pattern meets the transport.
 
+## Compile-time invariants
+
+A rule that lives in a type is a compile error the agent gets for free. A rule that lives in a function body is a
+prompt someone has to remember. Prefer the type whenever Go allows it.
+
+- **Identities are distinct types.** Every identity is its own named type with a validating constructor,
+  `ParseBikeID(s string) (BikeID, error)`, and an unexported field, so a value never exists unvalidated and cannot
+  be made by conversion outside its package. Passing a `BikeID` where a `RentalID` is expected must not compile. An
+  identity never crosses a package boundary as a `string`.
+- **A decision produces a type, not a bool.** A function that may act only after a decision takes a proof type whose
+  fields are unexported and whose only constructor is in the package that decides: `Unlock(ctx, PaidRental)`, never
+  `Unlock(ctx, rental, paid bool)`. Nothing outside that package can construct the proof, so the unauthorized call
+  cannot be written. The proof carries what the decision was about, so it cannot be reused for another act.
+- **Closed sets are sealed interfaces.** One struct per case, an unexported marker method, and `//sumtype:decl` on
+  the interface, as `Event` above. Every `switch` over one lists every case and has no `default`. A constant enum
+  is covered the same way; prefer the sealed interface when cases carry data.
+- **State is a type where the transition is a decision.** `DraftRental → PaidRental`, each produced only by the
+  function that performs the transition. Where a transition decides nothing, a status field on one struct is fine;
+  multiplying types for their own sake is a simplicity finding.
+- **What is open by design stays open.** Ports and repositories are never marked `//sumtype:decl`.
+
+These rules apply to code a slice writes or touches. A slice does not rewrite other code to meet them.
+
+Go has no REPL to try a domain model in before it is wired up. The tier-0 table-driven tests over the domain package
+are the substitute.
+
 ## Go idioms
 
 - Constructors return `(T, error)`; validate at the boundary once, trust inside.
@@ -189,9 +222,14 @@ The inbound adapter's shape is in `design/messaging.md`, because it is where the
 
 ## Checked, not reviewed
 
-These are lints in `task check` from the first product on, so a reviewer does not spend a finding on them: the
-dependency direction (`domain` imports no `adapters`, `app` imports no `adapters`), and which package may import the
-transport and the database drivers. Until the lint exists they are review findings.
+`task check` runs golangci-lint with the repository's `.golangci.yml`, so a reviewer does not spend a finding on
+what it decides:
+
+- **Today:** every `switch` over a sealed interface marked `//sumtype:decl`, and over a constant enum, covers every
+  case, and a `default` arm does not count as covering one. A missing case fails the loop like a compile error.
+- **From the first product on:** the dependency direction (`domain` imports no `adapters`, `app` imports no
+  `adapters`), and which package may import the transport and the database drivers. Until that lint exists they are
+  review findings.
 
 ## Reviewer checklist
 
@@ -201,3 +239,17 @@ transport and the database drivers. Until the lint exists they are review findin
   states differently? Is a model change in the code that the plan did not propose?
 - Does the change follow the design pages it touches, and does it change a page it contradicts?
 - Is a reply published as an event, or an event pair standing in for a reply?
+- For every rule the change introduces or touches: is it enforced by a type, by the linter, or by a function body?
+  A rule the compiler or the linter could own, held in a body instead, is a finding.
+- Does the code match the plan's `invariants`? Is a closed set left unmarked, so the linter cannot see it?
+
+## Severity guide
+
+For where a rule is enforced:
+
+- **High:** the rule guards isolation or authorization and is held in a body: a raw `string` identity crossing a
+  package boundary, a `bool` or a status check standing in for a proof type, a handler comparing message type
+  strings. Also a runtime check that the plan's `invariants` did not list as runtime.
+- **Medium:** any other rule kept in a body when a type or a sealed interface would hold it; an identity made by
+  conversion instead of its constructor.
+- **Not a finding:** a status field for a transition that decides nothing.

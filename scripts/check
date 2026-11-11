@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 #
-# check: tier 0. SPDX headers, gofmt, go vet and go test over every module
-# in go.work. golangci-lint joins with the first product. Rules a check can
-# decide are decided here, not by a reviewer (source-standards skill,
-# "Checked by the program").
+# check: tier 0. SPDX headers, gofmt, go vet, golangci-lint and go test over
+# every module in go.work. Rules a check can decide are decided here, not by
+# a reviewer (source-standards skill, "Checked by the program").
 #
 
 source "${0%/*}/functions.sh" || exit $?
@@ -47,14 +46,37 @@ function check_gofmt()
 }
 
 #
-# Runs go vet and go test in every module.
+# Runs go vet in every module.
 #
-function check_modules()
+function check_vet()
 {
 	local module
 
 	for module in "${modules[@]}"; do
-		go -C "$module" vet ./...  || return $?
+		go -C "$module" vet ./... || return $?
+	done
+}
+
+#
+# Runs golangci-lint once from the repository root over every module, which
+# go.work makes one workspace. It reads .golangci.yml at the root. With no
+# module there is nothing to name, and ./... matches nothing from the root.
+#
+function check_lint()
+{
+	[[ ${#modules[@]} -eq 0 ]] && return
+
+	golangci-lint run "${modules[@]/%//...}" || return $?
+}
+
+#
+# Runs go test in every module.
+#
+function check_test()
+{
+	local module
+
+	for module in "${modules[@]}"; do
 		go -C "$module" test ./... || return $?
 	done
 }
@@ -62,6 +84,11 @@ function check_modules()
 init         || exit $?
 load_modules || fail "Could not list the modules in go.work!"
 
-check_spdx    || fail "Go files are missing the SPDX header!"
-check_gofmt   || fail "Go files are not formatted!"
-check_modules || fail "go vet or go test failed!"
+# With no module there is nothing a tool is needed for.
+[[ ${#modules[@]} -eq 0 ]] || need_tools || exit $?
+
+check_spdx  || fail "Go files are missing the SPDX header!"
+check_gofmt || fail "Go files are not formatted!"
+check_vet   || fail "go vet failed!"
+check_lint  || fail "golangci-lint found problems!"
+check_test  || fail "go test failed!"

@@ -68,14 +68,18 @@ returned to the caller, and `shellcheck -s bash -e SC2034,SC2154,SC1090,SC1091,S
 
 | Task | Script | Does |
 |---|---|---|
-| `task tools` | `scripts/tools` | Installs pinned task, ko, cosign, kustomize, crane and flux into `_bin/`. Run the script directly on a machine that has no task yet. |
-| `task check` | `scripts/check` | Tier 0: SPDX header on every Go file, gofmt, `go vet`, `go test` per module in `go.work`. golangci-lint joins with the first product. |
+| `task tools` | `scripts/tools` | Installs pinned task, ko, cosign, kustomize, crane, golangci-lint and flux into `_bin/`. Run the script directly on a machine that has no task yet. |
+| `task check` | `scripts/check` | Tier 0: SPDX header on every Go file, gofmt, `go vet`, golangci-lint with `.golangci.yml` (every `switch` over a closed set covers every case), `go test` per module in `go.work`. |
 | `task verify` | `scripts/verify` | Tier 2: ko images for the commit, the private verify stack, contract and black-box suites, teardown. |
 | `task dev.up`, `dev.down`, `dev.reset` | `scripts/dev-up`, `dev-down`, `dev-reset` | The shared session stack. They refuse to run until `compose.yaml` exists. |
 | `task release PRODUCT=<p>` | `scripts/release` | CI only: build, join, push, sign, tag `candidate`. |
 
 `_bin/` holds the pinned binaries: ignored by git, skipped by `go ./...` because of the underscore, and first on
-`PATH` inside every script. The verify extension runs `task` from the workbench's own `PATH`.
+`PATH` inside every script. There is one, in the main checkout, and every worktree uses it; the scripts find the
+main checkout through git. `scripts/tools` leaves a stamp, `_bin/.pins`, of the pins it installed from. `task check`
+(when there is a module to check), `task verify` and `task release` stop when the stamp is not the pins of the
+checkout they run in, so a branch that moves a pin is never judged by tools another branch installed. The fix is
+`task tools`, which relinks from Go's build cache. The verify extension runs `task` from the workbench's own `PATH`.
 
 ## Updates
 

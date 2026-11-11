@@ -40,14 +40,15 @@ Zitadel may exist for interactive exploration; **no test may talk to it.**
 
 `Taskfile.yml` lists them and each calls the script in `scripts/` that does the work. A `NAME=value` argument reaches
 the script as an environment variable. `_bin/` holds the pinned tools (`task tools`) and is first on `PATH` inside
-every script.
+every script. It lives in the main checkout and every worktree uses it. A task that stops with "run task tools" has
+found tools installed from other pins than this checkout's: run it, do not work around it.
 
 ```
 task dev.up [PROFILE=objekt]   compose up --wait for the profile; fails if not healthy
 task dev.down                  stop, keep volumes
 task dev.reset [WIPE=1]        run every fragment's reset script; WIPE=1 also removes volumes
 task run                       start services as plain processes against the stack, seeded (arrives with the first product)
-task check                     SPDX headers, gofmt, go vet, go test per module in go.work; golangci-lint joins with the first product (tier 0)
+task check                     SPDX headers, gofmt, go vet, golangci-lint, go test per module in go.work (tier 0)
 task verify                    ko images tagged by commit, up the private `verify` stack, contract + black-box suites, teardown (tier 2)
 ```
 

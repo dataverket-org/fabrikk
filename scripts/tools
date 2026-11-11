@@ -21,6 +21,8 @@ cosign_version="v3.1.3"
 kustomize_version="v5.8.1"
 # renovate: datasource=go depName=github.com/google/go-containerregistry
 crane_version="v0.22.1"
+# renovate: datasource=go depName=github.com/golangci/golangci-lint/v2
+golangci_lint_version="v2.15.0"
 
 # flux cannot be go-installed (its go.mod has replace directives), so it is
 # taken from its image, pinned by tag and digest. One digest covers every
@@ -63,6 +65,10 @@ init || exit $?
 
 mkdir -p "$bin" || fail "Could not create $bin!"
 
+# The stamp says which pins _bin was installed from (need_tools). It is
+# emptied first, so a run that fails half way leaves no claim behind.
+: > "$bin/.pins" || fail "Could not write $bin/.pins!"
+
 log "Installing pinned tools into $bin ..."
 
 go_install "github.com/go-task/task/v3/cmd/task@$task_version"              || fail "Installing task failed!"
@@ -70,6 +76,10 @@ go_install "github.com/google/ko@$ko_version"                               || f
 go_install "github.com/sigstore/cosign/v3/cmd/cosign@$cosign_version"       || fail "Installing cosign failed!"
 go_install "sigs.k8s.io/kustomize/kustomize/v5@$kustomize_version"          || fail "Installing kustomize failed!"
 go_install "github.com/google/go-containerregistry/cmd/crane@$crane_version" || fail "Installing crane failed!"
+go_install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$golangci_lint_version" ||
+	fail "Installing golangci-lint failed!"
 install_flux                                                                || fail "Installing flux failed!"
+
+tool_pins > "$bin/.pins" || fail "Could not write $bin/.pins!"
 
 log "Tools are installed"
