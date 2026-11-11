@@ -38,6 +38,28 @@ swamp model method run forgejo branch_protection_ensure --input owner=dataverket
 Check the result with `branch_protection_list`. From then on a pull request without a valid attestation tag cannot
 merge.
 
+## Merge a work item's pull request
+
+The attestation is a signed tag on one commit, so that commit is the one that has to land on `main`.
+
+- Merge with a **merge commit**. It leaves the branch's commits as they are. Rebasing or squashing at merge makes
+  new commits: the attested one is then not on `main`, and what is there carries neither its signature nor its tag.
+- Never use **Update branch**, by rebase or by merge. Either moves the pull request's head off the attested commit.
+  A branch that is behind `main` merges as it is; one that conflicts goes back through the factory, which takes
+  `head-moved` to `implement` and attests the new commit.
+- A work item's branch starts from `main`. A branch stacked on another unmerged branch is behind `main` the moment
+  that one merges, which is how the first slice's commit came to be rewritten.
+
+The repository's settings can enforce the first two. In Forgejo they are under the repository's pull request
+settings, and by the API's names: `allow_merge_commits` on, `default_merge_style` `merge`, and `allow_rebase`,
+`allow_rebase_explicit`, `allow_squash_merge` and `allow_rebase_update` off. They are set from fabrikk-infra,
+whose token reaches a repository's settings; this repository's does not, and is not meant to
+([the loop boundary](../design/factory.md#the-loop-boundary)). Until the forge model there has a method for them,
+a repository administrator sets them by hand.
+
+The factory checks afterwards: it reads the head that was merged back from the forge, and a head that is not the
+attested commit stops the work item until a person accepts `unattested-merge` by name.
+
 ## What is not here
 
 Actions secrets, runner registration and pruning, repository renames, and the release runner itself are forge

@@ -5,7 +5,9 @@ verify, review and attest. The skills and `design/` say what good code looks lik
 
 ## Where the work happens
 
-- One work item, one worktree, one branch. From the main checkout: `git worktree add ../fabrikk-<key> -b <key>`.
+- One work item, one worktree, one branch, started from `main` whatever the main checkout has checked out:
+  `git worktree add ../fabrikk-<key> -b <key> main`. Never from another unmerged branch: what a work item needs
+  first is merged first, or the forge rewrites the attested commit when it merges (`contributing/forge.md`).
   Nothing is implemented on `main` or in the main checkout. A worktree has no `_reference/`; read reference
   repositories from the main checkout and cite them as `<name>@<commit>`.
 - The worktree is what `fabrikk-verify` and `fabrikk-attest` run in: they refuse a dirty tree or a HEAD that is not

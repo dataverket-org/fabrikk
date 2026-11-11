@@ -39,11 +39,14 @@ filed: `swamp behavior run board create --input id=<key> --input 'title=<title>'
 - **`attest`.** `swamp workflow run fabrikk-attest` with the packet's inputs. The tag needs the person's touch.
   Record `attest-run` the same way. What it signed is the record `attestation` of the model `attest-<commit>`.
 - **`pull-request`.** The stage's prompt spells it out: one push of branch and tag (a touch), the pull request
-  through the `forgejo` model, then the person reviews and merges in Forgejo.
+  through the `forgejo` model, then the person reviews and merges in Forgejo
+  ([how, so the attested commit is the one that lands](forge.md#merge-a-work-items-pull-request)). The head that
+  was merged is read back from the forge and recorded with the merge.
 
 ## Where the person decides
 
-`plan-approval`, `merge-approval`, and `abandon-confirmation`. Show them the recorded product, read fresh, and every
+`plan-approval`, `merge-approval`, `abandon-confirmation`, and `unattested-merge`, which is asked only when the
+head that was merged is not the attested commit. Show them the recorded product, read fresh, and every
 way out with its cost, as the stagecraft skill says, and run `approve` or `decline` only on their word for that
 decision, with `onBehalfOf` naming them. A manual way back (`revise` from plan review, `changes-requested` from the
 pull request) is theirs too.
