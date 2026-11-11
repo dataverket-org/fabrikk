@@ -86,7 +86,7 @@ and rejects anything unknown. Handlers switch on Go types; they never compare `t
 invariants").
 
 Steps 1 and 2 are one function in `internal/platform`, written once and used by every handler. A handler that
-reimplements them is a finding. With the first product, a lint allows only that package to import `nats.go`, so no
+reimplements them is a finding. A lint in `.golangci.yml` allows only that package to import `nats.go`, so no
 handler can subscribe around it.
 
 ## Subjects

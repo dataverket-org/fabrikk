@@ -100,7 +100,7 @@ today reads `COSIGN_PRIVATE_KEY` from Actions secrets, which contradicts this; n
 ### Smaller gaps
 
 Ring or wave promotion and the fleet ledger; the L2 tunable-field linter; SBOMs (`--sbom=none` today); signatures on
-individual images; a mirrored, digest-pinned base image per product (`<product>/.ko.yaml`); releases triggered by
+individual images; releases triggered by
 `miljo` changes (a `miljo` change re-released for the same app commit reuses `config-<env>:<commit>` with a new
 digest). `release.yaml` is tested only as an extracted script against a local registry. Every environment is tagged
 `candidate` until the customer release line exists.

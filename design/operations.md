@@ -112,7 +112,8 @@ weekly window, as `chore(deps): …`, and never merges: every file it touches is
 | Renovate | flux | `scripts/tools`, the image by tag and digest, moved together. |
 | Renovate | Reference repositories pinned to a tag (Zitadel, the CloudEvents spec) | The reference list, a `# renovate:` comment between `url` and `ref`. |
 | Renovate | `jsr:` and `npm:` versions in extension import specifiers | `extensions/models/*.ts`, every file in one pull request. zod is left alone: swamp supplies it. |
-| Renovate, when they arrive | Go modules, images in pod manifests (pinned by digest), kustomize, CI actions | Their own files; Renovate's built-in managers need no rule here. |
+| Renovate | Go modules, CI actions | Their own files; Renovate's built-in managers need no rule here. |
+| Nothing yet | Images in pod manifests (`deploy/dev/`, `<product>/deploy/base/`) and the ko base image (`<product>/.ko.yaml`), each written as tag and digest | No Renovate rule follows them: the manifests need a file pattern for Renovate's Kubernetes manager and `.ko.yaml` a rule of its own. Until those are written they are moved by hand. |
 | `swamp` | Pulled extensions, model type versions, the pulled `stagecraft` skill, the swamp version | `swamp extension` and `swamp repo upgrade`. A version bump alone is not an update there: swamp rewrites files. |
 | `references sync` | Reference repositories that follow a branch (the NATS ADRs, swamp) | They move to the branch's tip at every sync. |
 

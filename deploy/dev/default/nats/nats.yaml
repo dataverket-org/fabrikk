@@ -1,0 +1,16 @@
+# The NATS server every stack has. JetStream is off until a slice stores, so the server holds no state and the
+# fragment has no seed and no reset script. It publishes no port: pods in the stack reach it as nats:4222, and
+# nothing on the host talks to it yet.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nats
+spec:
+  hostname: nats
+  containers:
+    - name: nats
+      image: registry.dataverket.org/mirror/docker.io/library/nats:2.15.0-alpine@sha256:004796a89b7ad925027a01d69d175734403f5b3b98d49f4ed2c861e6f9aafec4
+      livenessProbe:
+        exec:
+          command: ["wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8222/healthz"]
+        periodSeconds: 2
