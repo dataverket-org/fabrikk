@@ -113,7 +113,7 @@ The stage's prompt spells this out. In short:
 ```sh
 git -C /abs/worktree push origin <ref> attestation/$sha                       # one push, one touch
 swamp model method run forgejo pr_ensure --input owner=dataverket --input name=fabrikk --input head=<ref> --input base=main --input title='feat(...): ...' --input body='...'
-swamp data query 'modelName == "forgejo" && name == "dataverket:fabrikk#<n>"' --select '{"url": attributes.htmlUrl, "index": attributes.index, "prHeadSha": attributes.headSha}' --json
+swamp data query 'modelName == "forgejo" && name == "pull-dataverket-fabrikk-<n>"' --select '{"url": attributes.htmlUrl, "index": attributes.index, "prHeadSha": attributes.headSha}' --json
 swamp model method run fabrikk record_evidence --input workItem=<ref> --input name=pull-request --input payload='{"url":"...","index":<n>,"prHeadSha":"..."}'
 ```
 
@@ -122,7 +122,7 @@ If `prHeadSha` is not the attested sha, advance `head-moved`. Otherwise stop: th
 
 ```sh
 swamp model method run forgejo pr_merge_state --input owner=dataverket --input name=fabrikk --input index=<n>
-swamp data query 'modelName == "forgejo" && name == "dataverket:fabrikk#<n>:merge"' --select '{"url": attributes.url, "mergeSha": attributes.mergeSha, "mergedAt": attributes.mergedAt, "mergedBy": attributes.mergedBy}' --json
+swamp data query 'modelName == "forgejo" && name == "pr-merge-state-dataverket-fabrikk-<n>"' --select '{"url": attributes.url, "mergeSha": attributes.mergeSha, "mergedAt": attributes.mergedAt, "mergedBy": attributes.mergedBy}' --json
 swamp model method run fabrikk record_evidence --input workItem=<ref> --input name=merge --input payload='{...that record...}'
 swamp model method run fabrikk approve --input workItem=<ref> --input gateId=merge-approval --input actor=<merger>   # on the human's say-so
 ```
