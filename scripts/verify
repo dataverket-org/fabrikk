@@ -8,7 +8,7 @@
 
 source "${0%/*}/functions.sh" || exit $?
 
-verify_suite="${VERIFY_SUITE:-go test -count=1 -tags verify ./...}"
+verify_suite="${VERIFY_SUITE:-}"
 
 #
 # Runs compose against this commit's private verify stack.
@@ -56,6 +56,29 @@ function build_images()
 }
 
 #
+# Runs the contract and black-box suites against the verify stack: the tests
+# under the verify build tag in every module, or VERIFY_SUITE when it is set.
+# go.work has no root module, so ./... from the root matches nothing; the
+# suite runs in each module instead. A test finds the stack by its project
+# name.
+#
+function run_suite()
+{
+	local module
+
+	export COMPOSE_PROJECT_NAME="$verify_project"
+
+	if [[ -n "$verify_suite" ]]; then
+		bash -c "$verify_suite" || return $?
+		return
+	fi
+
+	for module in "${modules[@]}"; do
+		go -C "$module" test -count=1 -tags verify ./... || return $?
+	done
+}
+
+#
 # Removes the verify stack with its volumes.
 #
 function teardown()
@@ -82,5 +105,4 @@ build_images || fail "Building the images for $commit failed!"
 COMMIT="$commit" verify_compose up --wait ||
 	fail "The verify stack did not become healthy!"
 
-COMPOSE_PROJECT_NAME="$verify_project" bash -c "$verify_suite" ||
-	fail "The verify suite failed at $commit!"
+run_suite || fail "The verify suite failed at $commit!"

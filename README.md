@@ -50,6 +50,19 @@ where its code is. [design/README.md](design/README.md) indexes the rest and say
 - **Attestation**: a signed tag on the verified commit. CI validates it; CI never runs the loop.
 - **Workbench**: the one machine that holds the agent, the code, the session stack and swamp.
 
+## Test tiers
+
+Where a test runs. The factory's `verifying` stage runs tiers 0 and 2 and pins the result to the commit.
+
+| Tier | Run with | What runs | When |
+|---|---|---|---|
+| 0 | `task check` | SPDX headers, gofmt, `go vet`, the linter, and `go test` in every module, against the shared session stack | Every edit |
+| 1 | `task run`, with the first product | The services as plain processes on the same stack | By hand |
+| 2 | `task verify` | The images built from the commit in a private stack, tested from outside | Before the pull request |
+| UAT | Not built | The released artifact on a real environment | After the merge |
+
+The rules for what belongs in which tier are in the testing skill (`.agents/skills/adversary-testing/`).
+
 ## Layout
 
 | Path | Holds |

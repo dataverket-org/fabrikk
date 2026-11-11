@@ -43,9 +43,12 @@ are not in `models/`.
 
 ## Secrets
 
-The `fabrikk` vault is `@dataverket/sops`: one SOPS-encrypted file per secret under `vaults/fabrikk/`, encrypted to
-the factory host's age key (decrypts unattended) and each attester's YubiKey. `.sops.yaml` carries the same recipients
-for the `sops` CLI.
+The `fabrikk` vault is `@dataverket/sops`: one SOPS-encrypted file per secret under `vaults/fabrikk/`. Its
+recipients are one process key per host that drives the factory (`swamp-fabrikk-<host>`, the file
+`swamp-fabrikk.txt` beside sops's `keys.txt`, which the vault config names as `ageKeyName`) and each operator's
+YubiKey. A host's key decrypts unattended; it is generated on the host, never copied, and is not fabrikk-infra's
+key for the same host. `.sops.yaml` carries the same recipients for the `sops` CLI.
+[contributing/workstation.md](../contributing/workstation.md) says how a host gets its key.
 
 | Key | Used by |
 |---|---|

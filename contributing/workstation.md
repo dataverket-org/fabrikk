@@ -44,14 +44,40 @@ reference: it is `domain/`, in every checkout and worktree.
   needs a touch, so run those commands one at a time.
 - Your key must be in `.forgejo/attesters` and in Forgejo's tag protection for `attestation/*` before CI accepts tags
   you sign ([forge.md](forge.md)).
-- The `fabrikk` vault (one SOPS file per secret under `vaults/fabrikk/`) decrypts with the factory host's age key
-  from the default SOPS age keys file, or with an attester's YubiKey (PIN and touch). The YubiKey path cannot serve
-  unattended runs; that is what the factory key is for. Nothing in the repository names a home directory.
+- The `fabrikk` vault (one SOPS file per secret under `vaults/fabrikk/`) decrypts unattended with this host's own
+  key, or with an operator's YubiKey (PIN and touch). The YubiKey path cannot serve an unattended run, and the
+  factory's pull-request stage is one: without a host key the forge model stops at the token.
 
 ```sh
 swamp vault get fabrikk --json | jq .config          # recipients
 echo -n '<value>' | swamp vault put fabrikk <group>/<key>    # add a secret (all recipients re-encrypted)
 ```
+
+### A key for this host
+
+One key per host, generated on it and never copied, under the same file name everywhere. The convention and its
+reasons are fabrikk-infra's (`docs/runbooks/swamp-host-key.md` there).
+
+1. Generate it, as the user that runs swamp. Do not append it to `keys.txt`, which holds only YubiKey identities.
+
+   ```sh
+   age-keygen -o ~/.config/sops/age/swamp-fabrikk.txt
+   chmod 0600 ~/.config/sops/age/swamp-fabrikk.txt
+   age-keygen -y ~/.config/sops/age/swamp-fabrikk.txt     # the public key, age1...
+   ```
+
+2. Add the public key as `swamp-fabrikk-<host>` in `.sops.yaml` (the `identities` block, the header comment, the
+   rule) and in `agePublicKey` of the vault config under `vaults/@dataverket/sops/`. Both are public.
+3. Re-encrypt every secret to the new set, with a YubiKey that is already a recipient:
+
+   ```sh
+   sops updatekeys vaults/fabrikk/forgejo/api_token.enc.json
+   ```
+
+4. Check that swamp reads the vault without a touch: `swamp model method run forgejo health`.
+
+Removing a host is the same edits in reverse and the same re-encryption. Git history stays readable by the removed
+key, so a key that may be in the wrong hands means rotating the secret at its origin too.
 
 Homebrew `ykman` and `age-plugin-yubikey` on Linux need `PCSCLITE_CSOCK_NAME=/run/pcscd/pcscd.comm` to reach the
 system pcscd.
