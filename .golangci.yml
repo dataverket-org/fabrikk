@@ -1,9 +1,8 @@
 # golangci-lint for every Go module in the monorepo, run by scripts/check (task check, tier 0). Protected path:
 # verification runs it from the branch under review, and a weakened lint would still give a green attestation.
 #
-# Only what a reviewer should not have to find is here (architecture skill, "Checked, not reviewed"). The first
-# product adds the import rules: the dependency direction, and which package may import the transport and the
-# database drivers.
+# Only what a reviewer should not have to find is here: a switch over a closed set (a sealed interface marked
+# //sumtype:decl, or a constant enum) covers every case. An import rule is added by the slice that first needs one.
 version: "2"
 
 linters:

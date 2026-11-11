@@ -42,7 +42,7 @@ systemctl --user enable --now podman.socket
 git clone ssh://git@git.dataverket.org/dataverket/fabrikk.git ~/kode/fabrikk
 git clone ssh://git@git.dataverket.org/dataverket/miljo.git   ~/kode/miljo      # L2 overlays, next to the monorepo
 cd ~/kode/fabrikk
-swamp model search --json | jq '.results[].name'       # fabrikk, forgejo, references, source-standards
+swamp model search --json | jq '.results[].name'       # board, forgejo, references, slice, source-standards
 task tools                                              # the pinned tools into _bin (scripts/tools lists them)
 swamp model method run references sync                  # read-only reference clones into _reference/
 ```
@@ -105,6 +105,6 @@ system pcscd.
 
 ```sh
 swamp model method run forgejo health                  # the forge answers with its version
-swamp model method run fabrikk validate                # Definition is valid
+swamp behavior run slice validate                      # the factory is valid, its scenarios pass
 swamp run doctor                                       # no stale runs
 ```

@@ -33,28 +33,41 @@ const MakeRunSchema = z.object({
   finishedAt: z.string(),
 });
 
+// The work item's records are stagecraft's: each artifact's record holds its
+// payload, and the run record indexes the current version of every product
+// and keeps every decision a person made.
 const CodeReviewSchema = z.object({
-  workItem: z.string(),
+  findings: z.array(z.object({
+    id: z.string(),
+    severity: z.enum(["critical", "high", "medium", "low"]),
+    resolved: z.boolean().optional(),
+  })),
+});
+
+const ChangeSummarySchema = z.object({ commit: z.string() });
+
+const ProductRefSchema = z.object({
+  version: z.number().int(),
   cycle: z.number().int(),
-  subjectVersion: z.number().int().optional(),
-  recordedAt: z.string(),
-  payload: z.object({
-    findings: z.array(z.object({
-      id: z.string(),
-      severity: z.enum(["critical", "high", "medium", "low"]),
-      resolved: z.boolean().optional(),
-    })),
-  }),
+  at: z.string(),
+  subject: z.object({ name: z.string(), version: z.number().int() }).optional(),
 });
 
 const ApprovalSchema = z.object({
-  workItem: z.string(),
   gateId: z.string(),
-  decision: z.enum(["approved", "rejected"]),
-  actor: z.string(),
+  decision: z.enum(["approve", "decline"]),
+  era: z.string(),
   cycle: z.number().int(),
-  decidedAt: z.string(),
+  at: z.string(),
+  actor: z.object({
+    principal: z.string().nullable(),
+    asserted: z.string().optional(),
+  }),
+  products: z.object({
+    artifacts: z.record(z.string(), z.object({ version: z.number().int() })),
+  }),
 });
+type Approval = z.infer<typeof ApprovalSchema>;
 
 const PathsDigestSchema = z.object({
   commitSha: z.string(),
@@ -72,8 +85,13 @@ const WriteArgsSchema = z.object({
   base: z.string().min(1).describe("Ref the branch merges into"),
   check: MakeRunSchema,
   verify: MakeRunSchema,
+  era: z.string().describe("The run's current era; a reset starts a new one"),
+  approvals: z.array(ApprovalSchema).describe("The run's decisions"),
+  products: z.record(z.string(), ProductRefSchema).describe(
+    "The run's index of its artifacts, by name",
+  ),
+  changeSummary: ChangeSummarySchema,
   codeReview: CodeReviewSchema,
-  planApproval: ApprovalSchema,
   protectedPaths: PathsDigestSchema,
   protectedPathsChanged: z.array(z.string()),
 });
@@ -122,6 +140,17 @@ export const AttestationSchema = z.object({
 });
 type Attestation = z.infer<typeof AttestationSchema>;
 
+/** The latest decision on the plan in the run's current era, if any. */
+function planApproval(args: WriteArgs): Approval | undefined {
+  return args.approvals.filter((a) =>
+    a.gateId === "plan-approval" && a.era === args.era
+  ).at(-1);
+}
+
+/** Who decided: the person the driver named, else the platform's caller. */
+const decidedBy = (a: Approval): string =>
+  a.actor.asserted ?? a.actor.principal ?? "unknown";
+
 /** Every reason the inputs do not attest headSha; empty when they do. */
 export function violations(args: WriteArgs): string[] {
   const problems: string[] = [];
@@ -146,18 +175,34 @@ export function violations(args: WriteArgs): string[] {
       `protected paths: digest is of ${args.protectedPaths.commitSha}, not ${args.headSha}`,
     );
   }
-  if (args.planApproval.workItem !== args.workItem) {
-    problems.push(`plan approval: belongs to ${args.planApproval.workItem}`);
-  }
-  if (args.planApproval.decision !== "approved") {
+  if (args.changeSummary.commit !== args.headSha) {
     problems.push(
-      `plan approval: ${args.planApproval.decision} by ${args.planApproval.actor}`,
+      `change summary: names ${args.changeSummary.commit}, not ${args.headSha}`,
     );
   }
-  if (args.codeReview.workItem !== args.workItem) {
-    problems.push(`code review: belongs to ${args.codeReview.workItem}`);
+  const approval = planApproval(args);
+  const plan = args.products["plan"]?.version;
+  if (approval === undefined) {
+    problems.push("plan approval: none recorded");
+  } else if (approval.decision !== "approve") {
+    problems.push(`plan approval: declined by ${decidedBy(approval)}`);
+  } else if (approval.products.artifacts["plan"]?.version !== plan) {
+    problems.push(
+      `plan approval: covers plan version ${
+        approval.products.artifacts["plan"]?.version
+      }, not the current ${plan}`,
+    );
   }
-  const blocking = args.codeReview.payload.findings.filter((f) =>
+  const review = args.products["code-review"];
+  if (review === undefined) {
+    problems.push("code review: none recorded");
+  } else if (
+    review.subject?.name !== "change-summary" ||
+    review.subject.version !== args.products["change-summary"]?.version
+  ) {
+    problems.push("code review: is not of the current change summary");
+  }
+  const blocking = args.codeReview.findings.filter((f) =>
     !f.resolved && (f.severity === "critical" || f.severity === "high")
   );
   if (blocking.length > 0) {
@@ -175,11 +220,15 @@ export function buildAttestation(
   args: WriteArgs,
   attestedAt: Date,
 ): Attestation {
+  const approval = planApproval(args);
+  const review = args.products["code-review"];
+  if (approval === undefined || review === undefined) {
+    throw new Error("no plan approval or code review to attest");
+  }
   const unresolved = Object.fromEntries(Severities.map((s) => [
     s,
-    args.codeReview.payload.findings.filter((f) =>
-      f.severity === s && !f.resolved
-    ).length,
+    args.codeReview.findings.filter((f) => f.severity === s && !f.resolved)
+      .length,
   ])) as Record<(typeof Severities)[number], number>;
   const summary = (r: z.infer<typeof MakeRunSchema>) => ({
     exitCode: r.exitCode,
@@ -194,13 +243,13 @@ export function buildAttestation(
     attestedAt: attestedAt.toISOString(),
     verification: { check: summary(args.check), verify: summary(args.verify) },
     planApproval: {
-      actor: args.planApproval.actor,
-      cycle: args.planApproval.cycle,
-      decidedAt: args.planApproval.decidedAt,
+      actor: decidedBy(approval),
+      cycle: approval.cycle,
+      decidedAt: approval.at,
     },
     codeReview: {
-      cycle: args.codeReview.cycle,
-      recordedAt: args.codeReview.recordedAt,
+      cycle: review.cycle,
+      recordedAt: review.at,
       unresolved,
     },
     protectedPaths: {
@@ -285,7 +334,7 @@ const RecordedSchema = z.object({
 /** Model definition for fabrikk attestations. */
 export const model = {
   type: "@dataverket/attestation",
-  version: "2026.09.17.1",
+  version: "2026.11.11.1",
   globalArguments: GlobalArgsSchema,
   resources: {
     attestation: {

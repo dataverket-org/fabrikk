@@ -57,9 +57,13 @@ domain rule: they cite the model.
 
 ## Skills and agents
 
-Skills live in `.agents/skills/`, one directory per skill: fabrikk's eight and the pulled `software-factory` skill,
-which says how to drive a run. Codex, OpenCode, Copilot, Amp, Pi, and Antigravity read that directory; Claude Code
+Skills live in `.agents/skills/`, one directory per skill: fabrikk's eight and the pulled `stagecraft` skill,
+which says how to drive a work item. Codex, OpenCode, Copilot, Amp, Pi, and Antigravity read that directory; Claude Code
 reads `.claude/skills/`, whose entries are symlinks into it, so every enrolled agent loads the same skill by the same
 name. Enrolled tools are listed in `.swamp.yaml`; enrol another with `swamp repo upgrade --tool <tool>` (repeat the
 flag for every tool to keep) and, if it reads another directory, symlink it the same way. Stage `work` blocks in the
 factory definition name skills, never paths, and the `dispatch` work mode means one reviewer per skill with no shared context, however your harness spawns them.
+
+A dispatched reviewer is not a new conversation and does not drive the work item: it skips Getting Started above,
+loads the skill its prompt names, and reads and writes only what that prompt says. The agent that does drive needs
+only the names from Getting Started: `swamp model search --json | jq -r '.results[].name'`.
