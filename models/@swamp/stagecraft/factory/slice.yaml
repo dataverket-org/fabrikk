@@ -335,9 +335,9 @@ globalArguments:
           the forgejo model, and wait for a person to review and merge it in
           Forgejo. CI checks the tag on every push. The pull request's head must
           be the attested commit; anything pushed after attesting goes back
-          through implement. What was merged is read back from the forge: if
-          its head is not the attested commit, the work item is done only once
-          a person has accepted that by name.
+          through implement. What was merged is read back from the forge, and
+          the work item is done only if the head that was merged is the
+          attested commit.
         work:
           mode: interactive
           systemPrompt: |
@@ -368,11 +368,12 @@ globalArguments:
                forgejo record pr-merge-state-dataverket-fabrikk-<index>: url,
                mergeSha, mergedAt, mergedBy, and headSha, the head that was
                merged. If headSha is not {{commit}}, what is on main is not
-               what was attested: compare the two commits' trees (git rev-parse
-               '<sha>^{tree}'), tell the person plainly whether the content is
-               the same, and that the status now asks them for unattested-merge
-               as well. Then ask the person to approve merge-approval. Their
-               merge is the decision; never approve for them.
+               what was attested and the merged exit stays closed: compare the
+               two commits' trees (git rev-parse '<sha>^{tree}'), tell the
+               person plainly whether the content is the same, and lay out the
+               ways on, which are theirs. Otherwise ask the person to approve
+               merge-approval. Their merge is the decision; never approve for
+               them.
           let:
             branch: artifacts["change-summary"].payload.branch
             commit: artifacts["change-summary"].payload.commit
@@ -417,17 +418,12 @@ globalArguments:
                 config: { id: merge-approval }
               - type: evidence-recorded
                 config: { name: merge }
-              - type: human-approval
-                description: >-
-                  Asked only when the head that was merged is not the attested
-                  commit: the forge rewrote it, or something was pushed between
-                  the attestation and the merge. A person accepts, by name,
-                  that what is on main carries no attestation.
+              - type: cel
                 config:
-                  id: unattested-merge
-                  when: >-
-                    "merge" in evidence && evidence["merge"].payload.headSha !=
+                  expr: >-
+                    evidence["merge"].payload.headSha ==
                     artifacts["change-summary"].payload.commit
+                  message: the merge must land the attested commit
           - name: head-moved
             to: implement
             description: >-
@@ -509,7 +505,8 @@ globalArguments:
         high plan finding sends the plan back and holds approval; a low one
         blocks nothing; a failed verification, a critical code-review finding, a
         refused attestation and a moved head each send the work back to
-        implement; the merge waits for the person.
+        implement; the merge waits for the person, and a merge of another
+        head than the attested commit does not count.
       steps:
         - record: { artifact: plan }
           payload:
@@ -623,62 +620,20 @@ globalArguments:
         - move: merged
           expect: { refused: "awaiting approval 'merge-approval'" }
         - record: { evidence: merge }
-          note: The head that was merged is the attested commit, so no one is asked about it
+          note: A head the forge rewrote before it merged is not the attested commit
           payload:
             url: https://git.example.org/pulls/1
             mergeSha: e7ccc054be1e0d6fdf2726c10aa7f7a774ace0bf
-            headSha: d6bbbe43ad0dfc5fce1615b09ff6e6f6639bd9ae
+            headSha: c5aaad329c9ceb4edc0504a98ff5d6e5528ac8fd
         - approve: merge-approval
         - move: merged
-        - expect: { stage: done }
-    - scenario: merged-head-differs
-      description: >-
-        The forge rewrote the commit before it merged it, so what is on main is
-        not the attested commit. The merge approval alone does not finish the
-        work item: a person has to accept the unattested merge by name.
-      steps:
-        - record: { artifact: plan }
-          payload:
-            summary: Add list
-            steps: [{ description: Add list, files: [x.go] }]
-            testingStrategy: Unit tests
-        - move: submit
-        - record: { artifact: plan-review }
-          payload: { findings: [] }
-        - approve: plan-approval
-        - move: approve
-        - record: { artifact: change-summary }
-          payload:
-            summary: Added list
-            commit: c5aaad329c9ceb4edc0504a98ff5d6e5528ac8fd
-            branch: slice-1
-            worktree: /work/fabrikk-slice-1
-            files: [x.go]
-        - move: submit
-        - record: { evidence: verify-run }
-          payload: { status: succeeded, runId: run-1 }
-        - move: passed
-        - record: { artifact: code-review }
-          payload: { findings: [] }
-        - move: accept
-        - record: { evidence: attest-run }
-          payload: { status: succeeded, runId: run-2 }
-        - move: attested
-        - record: { evidence: pull-request }
-          payload:
-            url: https://git.example.org/pulls/1
-            index: 1
-            prHeadSha: c5aaad329c9ceb4edc0504a98ff5d6e5528ac8fd
+          expect: { refused: "the merge must land the attested commit" }
         - record: { evidence: merge }
-          note: The forge rebased the branch, so the head it merged is another commit
           payload:
             url: https://git.example.org/pulls/1
             mergeSha: e7ccc054be1e0d6fdf2726c10aa7f7a774ace0bf
             headSha: d6bbbe43ad0dfc5fce1615b09ff6e6f6639bd9ae
         - approve: merge-approval
-        - move: merged
-          expect: { refused: "awaiting approval 'unattested-merge'" }
-        - approve: unattested-merge
         - move: merged
         - expect: { stage: done }
 methods: {}

@@ -45,8 +45,7 @@ filed: `swamp behavior run board create --input id=<key> --input 'title=<title>'
 
 ## Where the person decides
 
-`plan-approval`, `merge-approval`, `abandon-confirmation`, and `unattested-merge`, which is asked only when the
-head that was merged is not the attested commit. Show them the recorded product, read fresh, and every
+`plan-approval`, `merge-approval`, and `abandon-confirmation`. Show them the recorded product, read fresh, and every
 way out with its cost, as the stagecraft skill says, and run `approve` or `decline` only on their word for that
 decision, with `onBehalfOf` naming them. A manual way back (`revise` from plan review, `changes-requested` from the
 pull request) is theirs too.

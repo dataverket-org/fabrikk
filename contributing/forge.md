@@ -58,7 +58,8 @@ whose token reaches a repository's settings; this repository's does not, and is 
 a repository administrator sets them by hand.
 
 The factory checks afterwards: it reads the head that was merged back from the forge, and a head that is not the
-attested commit stops the work item until a person accepts `unattested-merge` by name.
+attested commit keeps the work item from `done`. The ways on are then the person's: `changes-requested`, which
+takes the work back through the factory, or `abandon`.
 
 ## What is not here
 

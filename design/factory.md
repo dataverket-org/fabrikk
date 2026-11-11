@@ -105,9 +105,9 @@ way and why. `plan` and `implement` may each be entered five times; past that a 
 abandons the work.
 
 Two approvals are human and nowhere else: `plan-approval` at `plan-review` and `merge-approval` at `pull-request`.
-A third, `abandon-confirmation`, is the way out of any stage. A fourth is asked only when it applies:
-`unattested-merge`, when the head the forge merged is not the attested commit, because the forge rewrote it or
-something was pushed in between. The agent never gives one on its own, and the journal records who decided.
+A third, `abandon-confirmation`, is the way out of any stage. The agent never gives one on its own, and the journal
+records who decided. An approval is not enough where a fact is required: the work item is done only if the head the
+forge merged is the attested commit.
 
 Release, UAT and promotion are not stages. CI builds the candidate after a merge and `fabrikk-release` can verify
 it ([release.md](release.md)); they join the factory when a UAT environment exists.
@@ -122,7 +122,7 @@ it ([release.md](release.md)); they join the factory when a UAT environment exis
 | `verify` | swamp workflow | In that worktree, refuses a dirty tree, a moved HEAD, or a commit message carrying AI attribution, then `task check` (tier 0) and `task verify` (tier 2). Results are pinned to the commit. No LLM. | `workflows/workflow-fabrikk-verify.yaml`, `extensions/models/dev_environment.ts`, `extensions/models/git_commit_messages.ts`, `extensions/models/source_standards.ts`, `Taskfile.yml`, `scripts/` |
 | `code-review` | one reviewer | A reviewer reviews the commit against the plan, by the same rubric. A critical or high finding sends the change back; the rest go into the pull request's body. | the stage's prompt in the definition, the architecture skill |
 | `attest` | swamp workflow | Digests the protected paths, lists which the branch changed, checks that verification, the change summary, its code review and the approval of the current plan all concern the commit, and signs the annotated tag `attestation/<commit>`. | `workflows/workflow-fabrikk-attest.yaml`, `extensions/models/attestation.ts`, `extensions/models/git_paths_digest.ts` |
-| `pull-request` | agent + human | Pushes branch and tag, opens the PR through the `forgejo` model, records the PR head from the API. The human reviews and merges in Forgejo; the merge commit and the head that was merged are read back from the API, and a head that is not the attested commit is the human's to accept by name. | `models/@dataverket/forgejo/forgejo.yaml`, `.forgejo/workflows/validate-attestation.yaml` |
+| `pull-request` | agent + human | Pushes branch and tag, opens the PR through the `forgejo` model, records the PR head from the API. The human reviews and merges in Forgejo; the merge commit and the head that was merged are read back from the API, and a head that is not the attested commit keeps the work item from done. | `models/@dataverket/forgejo/forgejo.yaml`, `.forgejo/workflows/validate-attestation.yaml` |
 
 Source standards has no reviewer. What it asks is either a check (the SPDX header in `task check`, AI attribution at
 verify preflight and in CI) or a protected-path change, which a human reviews in Forgejo whatever else is green.
