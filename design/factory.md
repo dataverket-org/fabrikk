@@ -147,15 +147,16 @@ needs a human in Forgejo, and the attestation carries a checksum of them.
 
 ## The loop boundary
 
-The program reaches two things outside the workbench: the forge, through the `forgejo` model with a repository-scoped
-token, and the registry, anonymously with `cosign.pub`. It reaches nothing fabrikk-infra deploys and holds no
+The program reaches two things outside the workbench: the forge, through the `forgejo` model with a token that
+covers this repository's pull requests and its issues and nothing else, and the registry, anonymously with
+`cosign.pub`. It reaches nothing fabrikk-infra deploys and holds no
 credential for any of it: no kube context, no fleet key, no registry push credential exists in this repository.
 Models for operating that infrastructure (the cluster, the Talos fleet through Omni, the registry's push side, the
 release runner, forge-wide settings) live in fabrikk-infra's own swamp, with their own vault, and are used by a human
 from that checkout.
 
 **Why.** A workbench runs an agent, and the boundary bounds what an agent that goes wrong can reach: a pull request,
-and a read of the registry. The mirror rule already holds on the other side, where the UAT environment holds no git
+this repository's issues, and a read of the registry. Issues are inside it because a work item's ticket is one. The mirror rule already holds on the other side, where the UAT environment holds no git
 credential. The boundary is structural rather than checked: `models/` and `workflows/` are protected paths, so an
 instance that would cross it is a change a human sees in Forgejo.
 

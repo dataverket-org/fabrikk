@@ -113,7 +113,8 @@ Smaller, in no order:
 - Release, UAT and promotion as stages of the factory, once a UAT environment exists; `fabrikk-release` is written
   and no stage calls it.
 - A tracker for Forgejo issues, as its own extension behind stagecraft's publisher; work items are tickets on the
-  built-in tracker until then.
+  built-in tracker until then. It is planned in the swamp-extensions repository
+  (`forgejo-stagecraft-tracker/PLAN.md` there), and this repository's token already reaches its issues.
 - Archive the old `domain-model` repository read-only: the model moved to `domain/` without its history, and that
   repository holds the history and the tag `v0.5.0-parked`.
 - A line of its own for model and steering changes, once `validate-attestation` is a required check on `main`:

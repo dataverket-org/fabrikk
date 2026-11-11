@@ -11,6 +11,7 @@ swamp model method run forgejo health
 swamp model method run forgejo repo_list                 # no owner: the token has neither read:organization nor read:user
 swamp model method run forgejo branch_protection_list --input owner=dataverket --input name=fabrikk
 swamp model method run forgejo pr_list --input owner=dataverket --input name=fabrikk
+swamp model method run forgejo issue_list --input owner=dataverket --input name=fabrikk --input state=open
 ```
 
 ## Allow a new attester
@@ -69,5 +70,5 @@ takes the work back through the factory, or `abandon`.
 
 Actions secrets, runner registration and pruning, repository renames, and the release runner itself are forge
 operations that reach beyond this repository. They live in fabrikk-infra's swamp with their own token and vault; this
-repository's token is scoped to `dataverket/fabrikk` and the factory holds nothing more
+repository's token covers the pull requests and the issues of `dataverket/fabrikk`, and the factory holds nothing more
 ([the loop boundary](../design/factory.md#the-loop-boundary)).
