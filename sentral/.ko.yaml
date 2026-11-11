@@ -1,0 +1,3 @@
+# The base image ko builds Sentral on: the registry's mirror of Chainguard's static image, by tag and digest.
+# ko has no empty base, and without this line it would pull cgr.dev/chainguard/static:latest.
+defaultBaseImage: registry.dataverket.org/mirror/static:2026-09-17@sha256:bf639cba19ba56329e6907ac26a7afcdde57a80b6aa66d5100da6883196e6b82
