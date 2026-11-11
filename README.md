@@ -18,8 +18,8 @@ this repository, so one commit pins both the code and the steering it was built 
 
 ```sh
 swamp model search --json | jq '.results[].name'                       # the model instances
-swamp model method run fabrikk describe                                # the machine, as Mermaid and a table
-swamp model method run fabrikk status --input workItem=<ref>           # what a run needs next
+swamp behavior run slice validate                                      # the factory and its saved scenarios
+swamp behavior run @swamp/stagecraft/work-item status <key>            # what a work item needs next
 ```
 
 Start your coding agent in the repository and give it an outcome, not an implementation:
@@ -28,7 +28,7 @@ Start your coding agent in the repository and give it an outcome, not an impleme
 - _"A message delivered twice leaves an organisation's users as the first delivery left them."_
 
 The agent plans it with you, the factory has the plan attacked, and you approve it. From there
-[contributing/driving.md](contributing/driving.md) is the loop, stage by stage.
+[contributing/driving.md](contributing/driving.md) says what each stage needs.
 
 ## Learn more
 
@@ -37,13 +37,14 @@ where its code is. [design/README.md](design/README.md) indexes the rest and say
 
 ## Core concepts
 
-- **Work item**: an outcome, taken through the factory as one run. Its state is swamp data, never the agent's memory.
-- **Stage**: a step of the loop with a `work` block: the agent does it, reviewers are dispatched, or a swamp workflow
-  runs. The definition is `models/@swamp/software-factory/fabrikk.yaml`.
-- **Gate**: a fact the factory checks before a run may advance: an artifact exists, a workflow succeeded, findings
-  are clear, a human approved.
-- **Skills**: what good looks like. The `architecture` skill is the tactical DDD pattern; the `adversary-*` skills
-  are how reviewers attack.
+- **Work item**: an outcome, taken through the factory under one key. Its state is swamp data, never the agent's
+  memory.
+- **Stage**: a step of the loop with a `work` block: the agent does it, a reviewer is dispatched, or a swamp workflow
+  runs. The definition is `models/@swamp/stagecraft/factory/slice.yaml`.
+- **Gate**: a fact the factory checks before a work item may advance: an artifact exists, a review has no blocking
+  finding, evidence was recorded, a human approved.
+- **Skills**: what good looks like. The `architecture` skill is the tactical DDD pattern, and the one a reviewer
+  works from; the `stagecraft` skill says how a work item is driven.
 - **Design pages**: what is decided about the stack and how the factory works. The skills point at them.
 - **The domain model**: what is being built, in the domain's own words. It lives in `domain/` and is the only home
   of domain rules.
@@ -71,7 +72,7 @@ The rules for what belongs in which tier are in the testing skill (`.agents/skil
 | `domain/` | The domain model: the glossary, the context map, the domain's decisions, the designs of the contexts, and the stories behind them |
 | `contributing/` | How a person sets up a workbench, drives a work item, and operates the forge |
 | `.agents/skills/` | The skills, one directory each; `.claude/skills/` symlinks to them |
-| `agent-constraints/` | Per-stage conventions: what a plan contains, how a change is handed over, how a finding is written |
+| `agent-constraints/` | Per-stage conventions: what fabrikk asks of a plan, and how a change is handed over |
 | `models/` | The factory definition and the other model instances, the reference list among them |
 | `workflows/`, `extensions/` | The verify, attest and release workflows and the model types they use |
 | `Taskfile.yml`, `scripts/` | The tasks a person and the factory both run (`task check`, `task verify`), and the scripts that do the work |
@@ -91,11 +92,12 @@ the skills are in `.agents/skills/`. Enrol another tool with `swamp repo upgrade
 
 ## Follow-up work
 
-The loop is built through `releasing` and stops at `uat`. No product code has gone through it yet.
+The loop is built through `pull-request`: a work item is done when its pull request is merged. No product code has
+gone through it yet.
 
-1. **Drive one small slice to a merge.** The first product code brings the module, its fragments, and the lints,
-   which makes `verifying` real, and is the first run of `validate-attestation` and `release.yaml` on the real
-   runners. Nothing else in the factory changes until this has happened.
+1. **Drive one small slice to a merge.** The first product code brings the module and its fragments, which makes
+   `verify` real, and is the first run of `validate-attestation` and `release.yaml` on the real runners. Nothing
+   else in the factory changes until this has happened.
 2. **Close the design questions the slice needs.** Each stack page lists its own under **Open**: the subject
    taxonomy ([messaging](design/messaging.md)), how a person's data is erased and multi-fact saves
    ([persistence](design/persistence.md)), and most of the machine path ([identity](design/identity.md)).
@@ -108,14 +110,15 @@ The loop is built through `releasing` and stops at `uat`. No product code has go
 
 Smaller, in no order:
 
-- Run the review stages as a swamp workflow: one reviewer step per skill, an assertion on the output shape, a merge
-  step that writes the findings artifact. Today the agent dispatches and merges from the skill's instructions.
+- Release, UAT and promotion as stages of the factory, once a UAT environment exists; `fabrikk-release` is written
+  and no stage calls it.
+- A tracker for Forgejo issues, as its own extension behind stagecraft's publisher; work items are tickets on the
+  built-in tracker until then.
 - Archive the old `domain-model` repository read-only: the model moved to `domain/` without its history, and that
   repository holds the history and the tag `v0.5.0-parked`.
 - A line of its own for model and steering changes, once `validate-attestation` is a required check on `main`:
   until then a change to `domain/`, `design/` or a skill is a pull request a person reviews.
 - A fast lane for a fix with a reproduction and no protected-path change. Every work item takes the full loop today.
-- The `releasing` stage defaults to `sentral`/`uat`; the product should come from the plan or `change` evidence.
 - Move the Zitadel reference to the pinned Zitadel image once one is chosen.
 - A timed-out task is killed, but the script it started and that script's children keep running.
 - Lint `scripts/` with shellcheck in `task check`; today it is run by hand.

@@ -27,7 +27,7 @@ TypeScript in `extensions/models/`, one file per concern, each with a `_test.ts`
 
 ### Pulled extensions
 
-`@swamp/software-factory`, `@swamp/git`, `@dataverket/sops` and `@dataverket/forgejo` are pulled from the swamp
+`@swamp/stagecraft`, `@swamp/git`, `@dataverket/sops` and `@dataverket/forgejo` are pulled from the swamp
 registry and pinned in `upstream_extensions.json`. Renovate does not move them; `swamp extension outdated` lists
 what is behind and `swamp extension update` moves it. After an update, check two things an update can change
 without failing any validation:
@@ -46,7 +46,8 @@ push side live in fabrikk-infra's swamp.
 
 | Instance | Definition | Points at | Credential |
 |---|---|---|---|
-| `fabrikk` | `models/@swamp/software-factory/fabrikk.yaml` | the factory itself | none |
+| `slice` | `models/@swamp/stagecraft/factory/slice.yaml` | the factory itself: its definition and saved scenarios | none |
+| `board` | `models/@swamp/stagecraft/tracker/board.yaml` | the built-in tracker: work items' tickets, kept in swamp data | none |
 | `forgejo` | `models/@dataverket/forgejo/forgejo.yaml` | `https://git.dataverket.org` | `forgejo/api_token` |
 | `references` | `models/@dataverket/reference-repos/references.yaml` | the reference-repository list | none |
 | `source-standards` | `models/@dataverket/source-standards/source-standards.yaml` | nothing external: checks over data | none |
@@ -112,7 +113,7 @@ weekly window, as `chore(deps): …`, and never merges: every file it touches is
 | Renovate | Reference repositories pinned to a tag (Zitadel, the CloudEvents spec) | The reference list, a `# renovate:` comment between `url` and `ref`. |
 | Renovate | `jsr:` and `npm:` versions in extension import specifiers | `extensions/models/*.ts`, every file in one pull request. zod is left alone: swamp supplies it. |
 | Renovate, when they arrive | Go modules, images in pod manifests (pinned by digest), kustomize, CI actions | Their own files; Renovate's built-in managers need no rule here. |
-| `swamp` | Pulled extensions, model type versions, the pulled `software-factory` skill, the swamp version | `swamp extension` and `swamp repo upgrade`. A version bump alone is not an update there: swamp rewrites files. |
+| `swamp` | Pulled extensions, model type versions, the pulled `stagecraft` skill, the swamp version | `swamp extension` and `swamp repo upgrade`. A version bump alone is not an update there: swamp rewrites files. |
 | `references sync` | Reference repositories that follow a branch (the NATS ADRs, swamp) | They move to the branch's tip at every sync. |
 
 To see what Renovate would propose without changing anything, run `task local -- fabrikk` in the Renovate

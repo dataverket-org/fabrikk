@@ -1,0 +1,609 @@
+type: '@swamp/stagecraft/factory'
+typeVersion: 2026.11.05.2
+id: 922df570-c893-4256-b4c7-7bfcd38b712f
+name: slice
+version: 1
+tags: {}
+globalArguments:
+  tracker: board
+  definition:
+    schemaVersion: 5
+    description: |-
+      One slice of a Dataverket product, from plan to a merged pull request:
+      plan, review the plan, implement, verify, review the change, attest,
+      pull request.
+
+      For: changes to the products in this repository and to fabrikk itself. A
+      person approves the plan and the merge, and confirms abandoning the
+      work; nowhere else. A review with a blocking finding, a failed
+      verification or a refused attestation sends the work back. Verification,
+      review and attestation are bound to the commit named in change-summary.
+      Release, UAT and promotion are not stages yet: a work item is done when
+      its pull request is merged (design/release.md).
+
+      Written from stagecraft's starter example. Its review prompts, its
+      severity rubric and its loop limits are kept as they were.
+
+    stages:
+      - id: plan
+        initial: true
+        maxCycles: 5
+        tracker: { status: open }
+        description: Plan the slice.
+        work:
+          mode: interactive
+          skills: [architecture, dev-environment]
+          constraints: agent-constraints/planning-conventions.md
+          systemPrompt: |
+            Plan the change with the person. Read the code it touches first.
+            Record plan with a summary, the steps in order (each naming the files
+            it touches) and the testing strategy.
+
+            On a later plan, read the injected plan (the last one), plan-review
+            (its review) and plan-feedback (the person's latest feedback); the
+            first plan has none of them. After a review sends the plan back,
+            address its findings. After revise, address the feedback. Record
+            feedbackIncorporated as the last plan's list, adding the feedback word
+            for word unless it is already the list's last entry: after rework,
+            plan-feedback is the feedback the last plan already answered.
+          context:
+            inject: [plan, plan-review, plan-feedback]
+        artifacts:
+          - name: plan
+            schema:
+              type: object
+              required: [summary, steps, testingStrategy]
+              properties:
+                summary: { type: string, minLength: 1 }
+                steps:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [description, files]
+                    additionalProperties: false
+                    properties:
+                      description: { type: string, minLength: 1 }
+                      files: {
+                        type: array,
+                        items: { type: string, minLength: 1 },
+                      }
+                testingStrategy: { type: string, minLength: 1 }
+                feedbackIncorporated:
+                  description: >-
+                    Every round of a person's plan feedback this plan answers,
+                    oldest first.
+                  type: array
+                  items: { type: string, minLength: 1 }
+        transitions:
+          - name: submit
+            to: plan-review
+            gates:
+              - type: artifact-exists
+                config: { artifact: plan }
+
+      - id: plan-review
+        tracker: { status: open }
+        description: >-
+          Adversarial review of the current plan. Open blocking findings send it
+          back; none lets it through. With nothing blocking, approving carries the
+          open medium and low findings into implement, which receives
+          plan-review; revise is for when the person wants the plan itself
+          changed and reviewed again.
+        work:
+          mode: dispatch
+          skills: [architecture]
+          systemPrompt: |
+            You are an adversarial reviewer. Try to refute this plan:
+            {{planSummary}}
+            Check its steps against the code and its testing strategy against the
+            risks.
+            Rate a finding critical or high only if the plan would ship a
+            defect, lose data, break a stated rule, or make the declared checks
+            meaningless. Gaps in process, logistics or manual verification that
+            the automated checks already cover are medium at most. Judge the
+            plan against the size of the change: do not ask for verification
+            machinery bigger than the change, and give the smallest adequate fix
+            for each finding. Report findings with severities, and do not soften
+            the severity of a real defect.
+          let:
+            planSummary: artifacts["plan"].payload.summary
+          context:
+            inject: [plan]
+        artifacts:
+          - name: plan-review
+            kind: findings
+            reviews: plan
+        evidence:
+          - name: plan-feedback
+            description: >-
+              A person's feedback on the plan, in their words; revise needs it.
+              The round is the cycle it was recorded in.
+            recordedBy: person
+            schema:
+              type: object
+              required: [feedback]
+              additionalProperties: false
+              properties:
+                feedback: { type: string, minLength: 1 }
+        transitions:
+          - name: approve
+            to: implement
+            gates:
+              - type: artifact-fresh
+                config: { artifact: plan-review, recordedThisCycle: true }
+              - type: findings-clear
+                config: { artifact: plan-review, blocking: [critical, high] }
+              - type: human-approval
+                config: { id: plan-approval }
+          - name: rework
+            to: plan
+            description: >-
+              The fresh plan review has an open critical or high finding, so the
+              plan goes back to be fixed.
+            gates:
+              - type: artifact-fresh
+                config: { artifact: plan-review, recordedThisCycle: true }
+              - type: findings-open
+                config: { artifact: plan-review, blocking: [critical, high] }
+          - name: revise
+            to: plan
+            manual: true
+            description: >-
+              A person sent the plan back without a blocking finding, to change
+              the plan itself and have it reviewed again. To act on non-blocking
+              findings during implement, approve instead. Manual, so it never
+              fires on its own, and the person's feedback is recorded first, so
+              every revision carries its reason to the next plan.
+            gates:
+              - type: evidence-recorded
+                description: The person's feedback on this plan is recorded.
+                config: { name: plan-feedback }
+
+      - id: implement
+        maxCycles: 5
+        tracker: { status: in_progress }
+        description: >-
+          Implement the plan in the work item's own worktree and commit it,
+          tier 0 green.
+        work:
+          mode: interactive
+          skills: [architecture, dev-environment]
+          constraints: agent-constraints/implementation-conventions.md
+          systemPrompt: |
+            Implement the plan in the work item's worktree. Commit the work, then
+            record change-summary with the full 40-character SHA of the commit to
+            check and review, its branch and the worktree's absolute path. Do not
+            open a pull request. After a check, a review or an attestation sends
+            the work back, fix it, commit, and record change-summary again for
+            the new commit.
+          context:
+            inject: [plan, plan-review, code-review]
+            optional: [code-review]
+        artifacts:
+          - name: change-summary
+            schema:
+              type: object
+              required: [summary, commit, branch, worktree, files]
+              properties:
+                summary: { type: string, minLength: 1 }
+                commit: { type: string, pattern: "^[0-9a-f]{40}$" }
+                branch: { type: string, minLength: 1 }
+                worktree: { type: string, pattern: "^/" }
+                files: { type: array, minItems: 1, items: { type: string } }
+        transitions:
+          - name: submit
+            to: verify
+            gates:
+              - type: artifact-exists
+                config: { artifact: change-summary }
+
+      - id: verify
+        tracker: { status: in_progress }
+        description: >-
+          Tier 0 (task check) and tier 2 (task verify) in the worktree, at the
+          change-summary commit. The fabrikk-verify workflow refuses a dirty
+          tree, a moved HEAD, and a commit message that carries AI attribution,
+          and leaves its results under dev-env-<commit>. No LLM.
+        work:
+          mode: workflow
+          workflow:
+            name: fabrikk-verify
+            passAsInputs: [worktree, headSha]
+          let:
+            worktree: artifacts["change-summary"].payload.worktree
+            headSha: artifacts["change-summary"].payload.commit
+          inputsSchema:
+            type: object
+            required: [worktree, headSha]
+            properties:
+              worktree: { type: string, pattern: "^/" }
+              headSha: { type: string, pattern: "^[0-9a-f]{40}$" }
+          resultEvidence: verify-run
+        transitions:
+          - name: passed
+            to: code-review
+            gates:
+              - type: evidence-recorded
+                config: { name: verify-run, requireField: { status: succeeded } }
+          - name: failed
+            to: implement
+            description: >-
+              Verification failed, so the change goes back to be fixed.
+            gates:
+              - type: evidence-recorded
+                config: { name: verify-run, requireField: { status: failed } }
+
+      - id: code-review
+        tracker: { status: in_progress }
+        description: >-
+          Adversarial review of the change. Open blocking findings send it back;
+          none lets it through to attestation. The open medium and low findings
+          go into the pull request's body, where the person who merges sees them.
+        work:
+          mode: dispatch
+          skills: [architecture]
+          systemPrompt: |
+            You are an adversarial reviewer. Review commit {{commit}}, checked
+            out in {{worktree}}:
+            {{changeSummary}}
+            Check it against the plan.
+            Rate a finding critical or high only if the change would ship a
+            defect, lose data, break a stated rule, or make the declared checks
+            meaningless. Gaps in process, logistics or manual verification that
+            the automated checks already cover are medium at most. Judge the
+            change against the size of the change: do not ask for verification
+            machinery bigger than the change, and give the smallest adequate fix
+            for each finding. Report findings with severities, and do not soften
+            the severity of a real defect.
+          let:
+            commit: artifacts["change-summary"].payload.commit
+            worktree: artifacts["change-summary"].payload.worktree
+            changeSummary: artifacts["change-summary"].payload.summary
+          context:
+            inject: [plan, change-summary]
+        artifacts:
+          - name: code-review
+            kind: findings
+            reviews: change-summary
+        transitions:
+          - name: accept
+            to: attest
+            gates:
+              - type: artifact-fresh
+                config: { artifact: code-review, recordedThisCycle: true }
+              - type: findings-clear
+                config: { artifact: code-review, blocking: [critical, high] }
+          - name: rework
+            to: implement
+            description: >-
+              The fresh code review has an open critical or high finding, so the
+              change goes back to be fixed.
+            gates:
+              - type: artifact-fresh
+                config: { artifact: code-review, recordedThisCycle: true }
+              - type: findings-open
+                config: { artifact: code-review, blocking: [critical, high] }
+
+      - id: attest
+        tracker: { status: in_progress }
+        description: >-
+          Sign the attestation as the annotated tag attestation/<commit> on the
+          verified commit. The fabrikk-attest workflow refuses unless the
+          verification records, the code review and the plan approval all
+          concern that commit, and digests the protected paths. Nothing is
+          committed, so the commit stays the pull request's head. The tag needs
+          the attester's YubiKey. No LLM.
+        work:
+          mode: workflow
+          workflow:
+            name: fabrikk-attest
+            passAsInputs: [workItem, worktree, branch, headSha]
+          let:
+            workItem: item.key
+            worktree: artifacts["change-summary"].payload.worktree
+            branch: artifacts["change-summary"].payload.branch
+            headSha: artifacts["change-summary"].payload.commit
+          inputsSchema:
+            type: object
+            required: [workItem, worktree, branch, headSha]
+            properties:
+              workItem: { type: string, minLength: 1 }
+              worktree: { type: string, pattern: "^/" }
+              branch: { type: string, minLength: 1 }
+              headSha: { type: string, pattern: "^[0-9a-f]{40}$" }
+          resultEvidence: attest-run
+        transitions:
+          - name: attested
+            to: pull-request
+            gates:
+              - type: evidence-recorded
+                config: { name: attest-run, requireField: { status: succeeded } }
+          - name: refused
+            to: implement
+            description: >-
+              The attestation was refused, so the change goes back: what it
+              refused on is in the workflow's report.
+            gates:
+              - type: evidence-recorded
+                config: { name: attest-run, requireField: { status: failed } }
+
+      - id: pull-request
+        tracker: { status: in_progress }
+        description: >-
+          Push the branch and its attestation tag, open the pull request through
+          the forgejo model, and wait for a person to review and merge it in
+          Forgejo. CI checks the tag on every push. The pull request's head must
+          be the attested commit; anything pushed after attesting goes back
+          through implement.
+        work:
+          mode: interactive
+          systemPrompt: |
+            Branch {{branch}}, attested at {{commit}} by the tag
+            attestation/{{commit}}, in the worktree {{worktree}}.
+
+            1. Push the branch and the tag in one push, from the worktree. It
+               needs the person's YubiKey touch; tell them when:
+               git push origin {{branch}} attestation/{{commit}}
+            2. Open or converge the pull request:
+               swamp behavior run forgejo pr_ensure --input owner=dataverket
+               --input name=fabrikk --input head={{branch}} --input base=main
+               --input title='<conventional subject>' --input body='<the
+               outcome, the plan in a few lines, the design pages changed, the
+               review findings still open, the attestation tag>'. The title and
+               the body carry no AI attribution, whatever your harness asks.
+               Record pull-request from the forgejo record
+               pull-dataverket-fabrikk-<index>: url is its htmlUrl, index its
+               index, prHeadSha its headSha. Copy the values; never type a sha.
+            3. If prHeadSha is not {{commit}}, take head-moved. Otherwise stop:
+               a person reviews and merges in Forgejo once the attestation check
+               is green. Say which protected paths the branch changed (the
+               attest-{{commit}} record lists them): their review is required
+               for those whatever else is green.
+            4. When the person says it is merged: swamp behavior run forgejo
+               pr_merge_state --input owner=dataverket --input name=fabrikk
+               --input index=<index>. If merged is true, record merge from the
+               forgejo record pr-merge-state-dataverket-fabrikk-<index> (url,
+               mergeSha, mergedAt, mergedBy), then ask the person to approve
+               merge-approval. Their merge is the decision; never approve for
+               them.
+          let:
+            branch: artifacts["change-summary"].payload.branch
+            commit: artifacts["change-summary"].payload.commit
+            worktree: artifacts["change-summary"].payload.worktree
+        evidence:
+          - name: pull-request
+            schema:
+              type: object
+              required: [url, index, prHeadSha]
+              properties:
+                url: { type: string, minLength: 1 }
+                index: { type: integer, minimum: 1 }
+                prHeadSha: { type: string, pattern: "^[0-9a-f]{40}$" }
+          - name: merge
+            schema:
+              type: object
+              required: [url, mergeSha]
+              properties:
+                url: { type: string, minLength: 1 }
+                mergeSha: { type: string, pattern: "^[0-9a-f]{40}$" }
+                mergedAt: { type: string, minLength: 1 }
+                mergedBy: { type: string, minLength: 1 }
+        transitions:
+          - name: merged
+            to: done
+            gates:
+              - type: evidence-recorded
+                config: { name: pull-request }
+              - type: cel
+                config:
+                  expr: >-
+                    evidence["pull-request"].payload.prHeadSha ==
+                    artifacts["change-summary"].payload.commit
+                  message: the pull request's head must be the attested commit
+              - type: human-approval
+                config: { id: merge-approval }
+              - type: evidence-recorded
+                config: { name: merge }
+          - name: head-moved
+            to: implement
+            description: >-
+              Something was pushed after attesting, so the pull request's head
+              is no longer the attested commit: the change goes back through
+              implement, verify, review and a new attestation.
+            gates:
+              - type: evidence-recorded
+                config: { name: pull-request }
+              - type: cel
+                config:
+                  expr: >-
+                    evidence["pull-request"].payload.prHeadSha !=
+                    artifacts["change-summary"].payload.commit
+                  message: >-
+                    head-moved opens only when the pull request's head is not
+                    the attested commit
+          - name: changes-requested
+            to: implement
+            manual: true
+            description: >-
+              The person reviewing the pull request asked for changes. Manual,
+              so it never fires on its own.
+
+      - id: done
+        terminal: true
+        tracker: { status: shipped }
+
+      - id: abandoned
+        terminal: true
+        tracker: { status: closed }
+
+    globalTransitions:
+      - name: abandon
+        to: abandoned
+        gates:
+          - type: human-approval
+            config: { id: abandon-confirmation }
+  scenarios:
+    - scenario: plan-feedback
+      description: >-
+        A person declines the plan without a blocking finding and sends it back with
+        feedback. revise is refused until the feedback is recorded, and the next plan
+        lists the feedback it answers.
+      steps:
+        - record: { artifact: plan }
+          payload:
+            summary: Add list
+            steps: [{ description: Add list, files: [x.go] }]
+            testingStrategy: Unit tests
+        - move: submit
+        - record: { artifact: plan-review }
+          payload: { findings: [] }
+        - decline: plan-approval
+          note: The person wants the plan split before any code is written
+        - move: revise
+          manual: true
+          expect: { refused: "evidence 'plan-feedback' has not been recorded" }
+        - record: { evidence: plan-feedback }
+          payload: { feedback: Split the list method from the pagination change }
+        - move: revise
+          manual: true
+        - expect: { stage: plan }
+        - record: { artifact: plan }
+          payload:
+            summary: Add list, then pagination
+            steps:
+              - { description: Add list, files: [x.go] }
+              - { description: Add pagination, files: [x.go] }
+            testingStrategy: Unit tests
+            feedbackIncorporated:
+              - Split the list method from the pagination change
+        - move: submit
+        - expect: { stage: plan-review }
+    - scenario: plan-to-done
+      description: >-
+        A slice walks from plan to done through the real gates, with a way back
+        from each review, from verify, from attest and from the pull request. A
+        high plan finding sends the plan back and holds approval; a low one
+        blocks nothing; a failed verification, a critical code-review finding, a
+        refused attestation and a moved head each send the work back to
+        implement; the merge waits for the person.
+      steps:
+        - record: { artifact: plan }
+          payload:
+            summary: Add list
+            steps: [{ description: Add list, files: [x.go] }]
+            testingStrategy: Unit tests
+        - move: submit
+        - record: { artifact: plan-review }
+          payload: {
+            findings: [{ id: F1, severity: high, description: No tests }],
+          }
+        - approve: plan-approval
+        - move: approve
+          expect: { refused: "unresolved blocking finding" }
+        - move: rework
+        - expect: { stage: plan }
+        - record: { artifact: plan }
+          payload:
+            summary: Add list
+            steps: [{ description: Add list, files: [x.go] }]
+            testingStrategy: Tests
+        - move: submit
+        - record: { artifact: plan-review }
+          payload: { findings: [{ id: F2, severity: low, description: Naming }] }
+        - move: rework
+          expect: { refused: "no unresolved finding at a blocking severity" }
+        - move: approve
+          expect: { refused: "awaiting approval 'plan-approval'" }
+        - approve: plan-approval
+        - move: approve
+        - record: { artifact: change-summary }
+          payload:
+            summary: Added list
+            commit: c5aaad329c9ceb4edc0504a98ff5d6e5528ac8fd
+            branch: slice-1
+            worktree: /work/fabrikk-slice-1
+            files: [x.go]
+        - move: submit
+        - record: { evidence: verify-run }
+          payload: { status: failed, runId: run-1 }
+        - move: passed
+          expect: { refused: "field 'status' is \"failed\"" }
+        - move: failed
+        - expect: { stage: implement }
+        - record: { artifact: change-summary }
+          payload:
+            summary: Added list, fixed
+            commit: d6bbbe43ad0dfc5fce1615b09ff6e6f6639bd9ae
+            branch: slice-1
+            worktree: /work/fabrikk-slice-1
+            files: [x.go]
+        - move: submit
+        - record: { evidence: verify-run }
+          payload: { status: succeeded, runId: run-2 }
+        - move: passed
+        - record: { artifact: code-review }
+          payload: {
+            findings: [{ id: C1, severity: critical, description: Leak }],
+          }
+        - move: accept
+          expect: { refused: "unresolved blocking finding" }
+        - move: rework
+        - expect: { stage: implement }
+        - move: submit
+        - record: { evidence: verify-run }
+          payload: { status: succeeded, runId: run-3 }
+        - move: passed
+        - record: { artifact: code-review }
+          payload: { findings: [] }
+        - move: accept
+        - expect: { stage: attest }
+        - record: { evidence: attest-run }
+          payload: { status: failed, runId: run-4 }
+        - move: refused
+        - expect: { stage: implement }
+        - move: submit
+        - record: { evidence: verify-run }
+          payload: { status: succeeded, runId: run-5 }
+        - move: passed
+        - record: { artifact: code-review }
+          payload: { findings: [] }
+        - move: accept
+        - record: { evidence: attest-run }
+          payload: { status: succeeded, runId: run-6 }
+        - move: attested
+        - expect: { stage: pull-request }
+        - record: { evidence: pull-request }
+          payload:
+            url: https://git.example.org/pulls/1
+            index: 1
+            prHeadSha: c5aaad329c9ceb4edc0504a98ff5d6e5528ac8fd
+        - move: merged
+          expect: { refused: "must be the attested commit" }
+        - move: head-moved
+        - expect: { stage: implement }
+        - move: submit
+        - record: { evidence: verify-run }
+          payload: { status: succeeded, runId: run-7 }
+        - move: passed
+        - record: { artifact: code-review }
+          payload: { findings: [] }
+        - move: accept
+        - record: { evidence: attest-run }
+          payload: { status: succeeded, runId: run-8 }
+        - move: attested
+        - record: { evidence: pull-request }
+          payload:
+            url: https://git.example.org/pulls/1
+            index: 1
+            prHeadSha: d6bbbe43ad0dfc5fce1615b09ff6e6f6639bd9ae
+        - move: merged
+          expect: { refused: "awaiting approval 'merge-approval'" }
+        - record: { evidence: merge }
+          payload:
+            url: https://git.example.org/pulls/1
+            mergeSha: e7ccc054be1e0d6fdf2726c10aa7f7a774ace0bf
+        - approve: merge-approval
+        - move: merged
+        - expect: { stage: done }
+methods: {}

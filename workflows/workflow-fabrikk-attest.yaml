@@ -2,8 +2,9 @@ id: 7c1f522e-f54e-4a9f-ad09-090546416471
 name: fabrikk-attest
 description: >-
   fabrikk's attesting stage: in the implementer's clean worktree at headSha, digest the protected paths,
-  list those changed since the merge base, check that verification, code review, and plan approval all
-  concern headSha, then sign the attestation as the annotated tag attestation/<headSha>. Nothing is committed:
+  list those changed since the merge base, check that verification, the change summary, the code review of it,
+  and the approval of the current plan all concern headSha (read from the work item's own stagecraft records),
+  then sign the attestation as the annotated tag attestation/<headSha>. Nothing is committed:
   the verified commit is the attested commit and must be the PR head. CI validates the tag on every push; it
   does not re-run the loop.
 tags:
@@ -28,10 +29,6 @@ inputs:
       type: string
       default: main
       description: Ref the branch merges into; protected-path changes are listed against its merge base
-    factory:
-      type: string
-      default: fabrikk
-      description: Factory model whose run data holds the code review and plan approval
     paths:
       type: array
       items: { type: string }
@@ -170,15 +167,16 @@ jobs:
           expr: >-
             data.latest("dev-env-" + inputs.headSha, "check") != null
             && data.latest("dev-env-" + inputs.headSha, "verify") != null
-            && data.latest(inputs.factory, "artifact-" + inputs.workItem + "-code-review") != null
-            && data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval") != null
+            && data.latest(inputs.workItem, "run") != null
+            && data.latest(inputs.workItem, "artifact-change-summary") != null
+            && data.latest(inputs.workItem, "artifact-code-review") != null
           message: >-
             Nothing to attest for ${{ inputs.workItem }} at ${{ inputs.headSha }}. Recorded:
             task check ${{ data.latest("dev-env-" + inputs.headSha, "check") != null }},
             task verify ${{ data.latest("dev-env-" + inputs.headSha, "verify") != null }} (run fabrikk-verify at this commit);
-            code review ${{ data.latest(inputs.factory, "artifact-" + inputs.workItem + "-code-review") != null }},
-            plan approval ${{ data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval") != null }}
-            (in ${{ inputs.factory }}).
+            the work item's run ${{ data.latest(inputs.workItem, "run") != null }},
+            change summary ${{ data.latest(inputs.workItem, "artifact-change-summary") != null }},
+            code review ${{ data.latest(inputs.workItem, "artifact-code-review") != null }}.
       - name: tag
         dependsOn:
           - step: records-exist
@@ -196,7 +194,10 @@ jobs:
             base: ${{ inputs.base }}
             check: ${{ data.latest("dev-env-" + inputs.headSha, "check").attributes }}
             verify: ${{ data.latest("dev-env-" + inputs.headSha, "verify").attributes }}
-            codeReview: ${{ data.latest(inputs.factory, "artifact-" + inputs.workItem + "-code-review").attributes }}
-            planApproval: ${{ data.latest(inputs.factory, "approval-" + inputs.workItem + "-plan-approval").attributes }}
+            era: ${{ data.latest(inputs.workItem, "run").attributes.era }}
+            approvals: ${{ data.latest(inputs.workItem, "run").attributes.approvals }}
+            products: ${{ data.latest(inputs.workItem, "run").attributes.products.artifacts }}
+            changeSummary: ${{ data.latest(inputs.workItem, "artifact-change-summary").attributes }}
+            codeReview: ${{ data.latest(inputs.workItem, "artifact-code-review").attributes }}
             protectedPaths: ${{ data.latest("git-" + inputs.headSha, "paths-digest").attributes }}
             protectedPathsChanged: ${{ data.latest("git-" + inputs.headSha, "diff").attributes.files }}

@@ -1,0 +1,108 @@
+definition:
+  schemaVersion: 5
+  description: |-
+    A factory that respects its ticket's dependencies: work starts only once
+    what the ticket is blocked by is finished, or a person says to go on.
+
+    For: a team whose tickets wait on other tickets, in this tracker or another
+    repository's. stagecraft records relations and reports their status; it
+    applies no rule of its own, so this factory's first stage is where the rule
+    lives. See "Respect a ticket's dependencies" in references/driving.md.
+
+    Change first: the check stage's description (which statuses count as
+    finished, and what to do about a tracker that cannot be read), and go-anyway
+    (delete it for a factory that never overrides).
+  stages:
+    - id: check
+      initial: true
+      description: >-
+        Read the ticket's dependencies now, not from memory. Run the
+        fetch-issue workflow for the ticket, then read its relations-<id>
+        record. Every outgoing blocked_by entry must be resolved with status
+        shipped or closed for clear to be true; anything else, an unresolved
+        entry included, goes in blockers with its status or reason. Record
+        dependencies, then take start-work if clear is true. If it is false,
+        stop and tell a person what is blocking the ticket.
+      work:
+        mode: interactive
+      evidence:
+        - name: dependencies
+          schema:
+            type: object
+            required: [clear, checkedAt, blockers]
+            additionalProperties: false
+            properties:
+              clear: { type: boolean }
+              checkedAt: { type: string, minLength: 1 }
+              blockers:
+                type: array
+                items: { type: string, minLength: 1 }
+      transitions:
+        - name: start-work
+          to: work
+          gates:
+            - type: evidence-recorded
+              config: { name: dependencies, requireField: { clear: true } }
+        - name: go-anyway
+          to: work
+          manual: true
+          description: >-
+            A person decides the work goes ahead with its blockers open.
+          gates:
+            - type: evidence-recorded
+              config: { name: dependencies, requireField: { clear: false } }
+            - type: human-approval
+              config: { id: start-while-blocked }
+    - id: work
+      description: Do the work and summarize it.
+      work:
+        mode: interactive
+      artifacts:
+        - name: summary
+          schema:
+            type: object
+            required: [text]
+            properties:
+              text: { type: string, minLength: 1 }
+      transitions:
+        - name: finish
+          to: done
+          gates:
+            - type: artifact-exists
+              config: { artifact: summary }
+    - id: done
+      terminal: true
+scenarios:
+  - scenario: nothing-blocks-it
+    description: >-
+      Every blocker is finished, so the work starts with no one asked.
+    steps:
+      - record: { evidence: dependencies }
+        payload:
+          clear: true
+          checkedAt: "2026-11-05T00:00:00.000Z"
+          blockers: []
+      - move: start-work
+      - record: { artifact: summary }
+        payload: { text: Done }
+      - move: finish
+      - expect: { stage: done }
+  - scenario: a-person-goes-on-anyway
+    description: >-
+      A blocker is open, so start-work stays shut until a person approves going
+      on anyway.
+    steps:
+      - record: { evidence: dependencies }
+        payload:
+          clear: false
+          checkedAt: "2026-11-05T00:00:00.000Z"
+          blockers: ["devswamp:devswamp-25: in_progress"]
+      - move: start-work
+        expect: { refused: "" }
+      - approve: start-while-blocked
+      - move: go-anyway
+        manual: true
+      - record: { artifact: summary }
+        payload: { text: Done }
+      - move: finish
+      - expect: { stage: done }

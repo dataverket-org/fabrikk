@@ -31,25 +31,37 @@ function args(): WriteArgs {
     base: "main",
     check: run("check"),
     verify: run("verify"),
-    codeReview: {
-      workItem: "SEN-12",
-      cycle: 2,
-      recordedAt: "2026-09-17T07:50:00.000Z",
-      payload: {
-        findings: [
-          { id: "SEC-1", severity: "high" as const, resolved: true },
-          { id: "OBS-2", severity: "medium" as const },
-          { id: "SIM-3", severity: "low" as const },
-        ],
-      },
-    },
-    planApproval: {
-      workItem: "SEN-12",
+    era: "era-1",
+    approvals: [{
       gateId: "plan-approval",
-      decision: "approved" as const,
-      actor: "beddari",
+      decision: "approve" as "approve" | "decline",
+      era: "era-1",
       cycle: 1,
-      decidedAt: "2026-09-16T12:00:00.000Z",
+      at: "2026-09-16T12:00:00.000Z",
+      actor: { principal: "user:someone", asserted: "beddari" },
+      products: { artifacts: { plan: { version: 2 } } },
+    }],
+    products: {
+      plan: { version: 2, cycle: 2, at: "2026-09-16T11:00:00.000Z" },
+      "change-summary": {
+        version: 3,
+        cycle: 2,
+        at: "2026-09-17T07:40:00.000Z",
+      },
+      "code-review": {
+        version: 2,
+        cycle: 2,
+        at: "2026-09-17T07:50:00.000Z",
+        subject: { name: "change-summary", version: 3 },
+      },
+    } as WriteArgs["products"],
+    changeSummary: { commit: HEAD },
+    codeReview: {
+      findings: [
+        { id: "1-1", severity: "high" as const, resolved: true },
+        { id: "1-2", severity: "medium" as const },
+        { id: "1-3", severity: "low" as const },
+      ] as WriteArgs["codeReview"]["findings"],
     },
     protectedPaths: {
       commitSha: HEAD,
@@ -73,27 +85,45 @@ Deno.test("every record that is not about headSha, or not green, is a violation"
   a.verify.succeeded = false;
   a.verify.exitCode = 2;
   a.protectedPaths.commitSha = OTHER;
-  a.planApproval.decision = "rejected";
-  a.codeReview.payload.findings.push({ id: "SEC-4", severity: "critical" });
+  a.changeSummary.commit = OTHER;
+  a.approvals[0].decision = "decline";
+  a.codeReview.findings.push({ id: "1-4", severity: "critical" });
   assertEquals(violations(a), [
     `check: ran at ${OTHER}, not ${HEAD}`,
     "verify: did not succeed (exit 2)",
     `protected paths: digest is of ${OTHER}, not ${HEAD}`,
-    "plan approval: rejected by beddari",
-    "code review: unresolved SEC-4 (critical)",
+    `change summary: names ${OTHER}, not ${HEAD}`,
+    "plan approval: declined by beddari",
+    "code review: unresolved 1-4 (critical)",
   ]);
 });
 
-Deno.test("records from another work item or target are violations", () => {
+Deno.test("a record for another task, plan, change or era is a violation", () => {
   const a = args();
   a.check.target = "verify";
-  a.planApproval.workItem = "SEN-99";
-  a.codeReview.workItem = "SEN-99";
+  a.products["plan"].version = 3;
+  a.products["change-summary"].version = 4;
   assertEquals(violations(a), [
     "check: record is for task verify",
-    "plan approval: belongs to SEN-99",
-    "code review: belongs to SEN-99",
+    "plan approval: covers plan version 2, not the current 3",
+    "code review: is not of the current change summary",
   ]);
+
+  const b = args();
+  b.era = "era-2";
+  delete b.products["code-review"];
+  assertEquals(violations(b), [
+    "plan approval: none recorded",
+    "code review: none recorded",
+  ]);
+});
+
+Deno.test("the latest decision on the plan is the one that counts", () => {
+  const a = args();
+  a.approvals.unshift({ ...a.approvals[0], decision: "decline" });
+  assertEquals(violations(a), []);
+  a.approvals.push({ ...a.approvals[1], decision: "decline" });
+  assertEquals(violations(a), ["plan approval: declined by beddari"]);
 });
 
 Deno.test("the document counts unresolved findings and records changed protected paths", () => {
@@ -106,6 +136,13 @@ Deno.test("the document counts unresolved findings and records changed protected
     medium: 1,
     low: 1,
   });
+  assertEquals(doc.planApproval, {
+    actor: "beddari",
+    cycle: 1,
+    decidedAt: "2026-09-16T12:00:00.000Z",
+  });
+  assertEquals(doc.codeReview.cycle, 2);
+  assertEquals(doc.codeReview.recordedAt, "2026-09-17T07:50:00.000Z");
   assertEquals(doc.protectedPaths.changed, ["skills/architecture/SKILL.md"]);
   assertEquals(doc.protectedPaths.unmatched, ["docs/adr/"]);
   assertEquals(doc.attestedAt, "2026-09-17T08:05:00.000Z");
@@ -187,6 +224,7 @@ Deno.test("tag refuses before creating anything", async () => {
     a.check.headSha = head;
     a.verify.headSha = OTHER;
     a.protectedPaths.commitSha = head;
+    a.changeSummary.commit = head;
     const written: string[] = [];
     try {
       await assertRejects(
@@ -219,6 +257,7 @@ Deno.test("tag signs attestation/<headSha> on headSha; CI can verify it and read
     a.check.headSha = head;
     a.verify.headSha = head;
     a.protectedPaths.commitSha = head;
+    a.changeSummary.commit = head;
     const written: Record<string, Record<string, unknown>> = {};
     try {
       await model.methods.tag.execute(a, {
@@ -262,6 +301,7 @@ Deno.test("a tag signed by a key that is not an allowed attester fails verificat
     a.check.headSha = head;
     a.verify.headSha = head;
     a.protectedPaths.commitSha = head;
+    a.changeSummary.commit = head;
     try {
       await model.methods.tag.execute(a, {
         globalArgs: { worktree: repo },

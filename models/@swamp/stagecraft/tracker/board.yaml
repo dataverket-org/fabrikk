@@ -1,0 +1,9 @@
+type: '@swamp/stagecraft/tracker'
+typeVersion: 2026.11.05.1
+id: 42a01f14-3ea7-4dd4-aa4e-dcf369b0b2e5
+name: board
+version: 1
+tags: {}
+globalArguments:
+  prefix: slice
+methods: {}
