@@ -27,17 +27,14 @@ swamp model method run forgejo tag_protection_ensure --input owner=dataverket --
 
 Keep the two lists equal: CI verifies against the file, Forgejo enforces the push.
 
-## Make `validate-attestation` a required check
+## `validate-attestation` is not a required check
 
-After the workflow has reported once on a real pull request, read the context name Forgejo shows on the PR and:
+A change to the factory itself is not a work item and carries no attestation, so a required check would refuse
+every such pull request. Until that is settled the check reports and does not block: a red check on a work item's
+pull request is for the person who merges to act on.
 
-```sh
-swamp model method run forgejo branch_protection_ensure --input owner=dataverket --input name=fabrikk \
-  --input rule=main --input enableStatusCheck=true --input 'statusCheckContexts=["<context as shown>"]'
-```
-
-Check the result with `branch_protection_list`. From then on a pull request without a valid attestation tag cannot
-merge.
+Making it required is a branch-protection change, which this repository's token cannot make. It is fabrikk-infra's
+to run, and its `apps/forgejo/README.md` says where that stands.
 
 ## Merge a work item's pull request
 

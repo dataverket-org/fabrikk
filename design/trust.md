@@ -93,5 +93,7 @@ changes one pin is hard to tell from one that was steered to a wrong source.
 - Forgejo runs the **PR head's copy of the workflow**, so a pull request that edits `.forgejo/` can weaken the check
   for itself. `.forgejo/` is protected: check 4 reports the change, and a human reviews it. Swamp adds an LLM
   review-integrity check on such trust-root changes; fabrikk does not have one.
-- The check is not required on `main` until it has run once on a real pull request; then it is made required with
-  `branch_protection_ensure` ([contributing/forge.md](../contributing/forge.md)).
+- The check is **not a required check** on `main`: a change to the factory itself is not a work item and carries
+  no attestation, so a required check would refuse it. Until that is settled, a pull request can merge with the
+  check red, and the person who merges is what stands between a missing attestation and `main`
+  ([contributing/forge.md](../contributing/forge.md)).
