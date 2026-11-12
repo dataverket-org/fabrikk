@@ -13,8 +13,9 @@ in them. The skills and `design/` say what good looks like.
 - **Steps name files.** Each step says what it does and which files it touches, tests included, in the order the
   work is done. A change to a page under `design/`, to `domain/` or to a skill is a step like any other: approving
   the plan decides it, and it lands in the same pull request as the code that needs it.
-- **Testing strategy by tier.** What tier 0 shows, always. Tier 2 only where the slice has something to show from
-  outside (dev-environment skill).
+- **Testing strategy.** Which decisions get a unit test, and which clause of the outcome each system test shows.
+  There are those two kinds and nothing in between (`implementation-conventions.md`, "Tests are part of the
+  change"). A clause that is not tested is named, with the reason.
 - **Say what is not the default.** A choice that departs from a skill or a design page is named in the step that
   makes it, with its reason in a sentence.
 - **Short.** A plan longer than a screen is a slice that is too big.

@@ -45,7 +45,7 @@ tasks:
       - scripts/check
 
   verify:
-    desc: 'Tier 2: ko images for this commit, private verify stack, contract and black-box suites, teardown'
+    desc: 'Tier 2: ko images for this commit, private verify stack, the system tests from outside, teardown'
     cmds:
       - scripts/verify
 

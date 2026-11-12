@@ -19,9 +19,9 @@ ships. Nothing describes a service a second time for development.
 
 Two stacks exist on a workbench, and `scripts/functions/stack.sh` names them; a worktree never names its own:
 
-- **The session stack** (`dataverket`): tier 0 and 1. One per workbench, shared by every worktree, each port on the
-  same host port, on loopback. Tests isolate themselves by name (below). Two work items in flight share it; a test
-  that cannot share it embeds its own server. Boot once per session; iterate with `go test` many times.
+- **The session stack** (`dataverket`): tier 1, for running the services by hand. One per workbench, shared by
+  every worktree, each port on the same host port, on loopback. No test uses it: a unit test needs no stack, and
+  a system test runs in the verify stack.
 - **The verify stack** (`verify-<commit>`): tier 2. The default and verify fragments and every product, with images
   `ko` builds from that commit, private to the commit and torn down when `task verify` ends. Each port is on a host
   port Podman picks, so two commits verify at once.
@@ -41,8 +41,10 @@ How a stack hangs together:
   waits for readiness itself. An image with no shell is probed by the service's own binary.
 - **Where a suite finds things.** `task verify` gives the suite `STACK`, the stack's name, and one variable per
   published port, `STACK_<NAME>_<CONTAINER PORT>=127.0.0.1:<host port>`, where `<NAME>` is the fragment's or the
-  product's directory name in capitals (`STACK_NATS_4222`, `STACK_SENTRAL_8080`). A tier 0 test defaults to the
-  well-known port when the variable is not set.
+  product's directory name in capitals (`STACK_NATS_4222`, `STACK_SENTRAL_8080`).
+- **Taking a dependency away.** A system test may stop and start the pods of its own stack, to show what a
+  service does when a dependency is gone: `podman pod stop "$STACK-nats"`, then `podman pod start`. A fragment's
+  pod is `<stack>-<its name>`. It touches no pod outside that stack.
 
 Never shared between worktrees: an image tag (always the commit), the verify stack. Incus is one instance per
 workbench and cannot be duplicated; its isolation is the per-test Incus project, nothing else.
@@ -54,8 +56,8 @@ workbench and cannot be duplicated; its isolation is the per-test Incus project,
 | `objekt` | + `ceph-aio` | Real Ceph (MON, MGR, OSD, RGW) for the Objekt downstream port. |
 | `maskin` | + `incus` | Real incusd for the Maskin downstream port. **Needs root and host privileges, so it is not supported yet.** |
 
-Zitadel is never in the default profile. Tier 0/1 tokens come from a fake JWKS issuer in tests. A single long-lived dev
-Zitadel may exist for interactive exploration; **no test may talk to it.**
+Zitadel is never in the default profile. A single long-lived dev Zitadel may exist for interactive exploration;
+**no test may talk to it.**
 
 ## Tasks
 
@@ -70,7 +72,7 @@ task dev.down                  remove the session stack's pods, keep volumes
 task dev.reset [WIPE=1]        run every fragment's reset script; WIPE=1 also removes the stack and its volumes
 task run                       start services as plain processes against the stack, seeded (arrives with the first product)
 task check                     SPDX headers, gofmt, go vet, golangci-lint, go test per module in go.work (tier 0)
-task verify                    the verify stack for this commit, contract + black-box suites, teardown (tier 2)
+task verify                    the verify stack for this commit, the system tests from outside, teardown (tier 2)
 task fabrikk.test              fabrikk itself, not a tier: extension tests, factory definitions, workflows
 ```
 
@@ -99,14 +101,12 @@ A fragment without `reset.sh` or with an upstream tag is rejected in review. Add
 - A fragment owns only its own keys and writes no product credential; product credentials are minted by the tasks
   on every run.
 - When `task verify` fails, the end of every container's log is printed before the stack is torn down.
-- A test that embeds its own server renders its own copy of the stack's config and overrides every port.
 
 ## Admission budget
 
-- Default profile: cold `task dev.up` under 30 seconds, rootless, per-test state isolation available.
+- Default profile: cold `task dev.up` under 30 seconds, rootless. It is in every verify stack, so its boot time is
+  paid by every system test run.
 - Opt-in profiles: session boot allowed to be slow; still needs a probe, seed, reset.
-- Any fragment that flakes twice is demoted: tests fall back to the in-memory fake, the real fragment runs only in
-  `task verify`. Demotion produces a finding.
 - The agent will propose "just add X to the stack" often. The budget is the answer.
 
 ## Current fragments
@@ -123,13 +123,6 @@ NATS is written; every other is brought by the first slice that needs it. What i
 
 `pr0ton11/radosgw` is a gateway-only image and needs a RADOS backend; use it only in front of `ceph-aio` if
 gateway-level topology is ever needed.
-
-## Per-test isolation on the session stack
-
-- PostgreSQL: `CREATE DATABASE t_<name> TEMPLATE dataverket_template`; drop on cleanup.
-- NATS: prefix subjects, streams, consumers with the test name. Tests that configure the server embed their own.
-- Ceph: per-test user/tenant/bucket names; `reset.sh` sweeps them.
-- Incus: per-test project; `reset.sh` deletes projects.
 
 ## Reference repositories
 

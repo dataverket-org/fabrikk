@@ -57,9 +57,9 @@ Where a test runs. The factory's `verifying` stage runs tiers 0 and 2 and pins t
 
 | Tier | Run with | What runs | When |
 |---|---|---|---|
-| 0 | `task check` | SPDX headers, gofmt, `go vet`, the linter, and `go test` in every module, against the shared session stack | Every edit |
-| 1 | `task run`, with the first product | The services as plain processes on the same stack | By hand |
-| 2 | `task verify` | The images built from the commit in a private stack, tested from outside | Before the pull request |
+| 0 | `task check` | SPDX headers, gofmt, `go vet`, the linter, and the unit tests of every module: in-process, no stack | Every edit |
+| 1 | `task run`, with the first product | The services as plain processes on the session stack | By hand |
+| 2 | `task verify` | The system tests: the images built from the commit, with their real dependencies in a private stack, driven from outside | Before the pull request |
 | UAT | Not built | The released artifact on a real environment | After the merge |
 
 ## Layout

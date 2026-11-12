@@ -2,8 +2,8 @@
 #
 # verify: tier 2. Plays the default and verify fragments and every product's
 # own manifests, with images ko builds from this commit, into a stack private
-# to the commit; runs the contract and black-box suites from outside; and
-# tears the stack down. The result is pinned to the commit, so the tree must
+# to the commit; runs the system tests from outside; and tears the stack
+# down. The result is pinned to the commit, so the tree must
 # be clean.
 #
 
@@ -76,7 +76,7 @@ function play_products()
 }
 
 #
-# Runs the contract and black-box suites against the stack: the tests under
+# Runs the system tests against the stack: the tests under
 # the verify build tag in every module, or VERIFY_SUITE when it is set.
 # go.work has no root module, so ./... from the root matches nothing; the
 # suite runs in each module instead. STACK names the stack, and the STACK_*

@@ -88,8 +88,8 @@ returned to the caller. The shared functions are in `scripts/functions/`, one fi
 | Task | Script | Does |
 |---|---|---|
 | `task tools` | `scripts/tools` | Installs pinned task, ko, cosign, kustomize, crane, golangci-lint and flux into `_bin/`. Run the script directly on a machine that has no task yet. |
-| `task check` | `scripts/check` | Tier 0: SPDX header on every Go file, gofmt, `go vet`, golangci-lint with `.golangci.yml` (every `switch` over a closed set covers every case), `go test` per module in `go.work`. |
-| `task verify` | `scripts/verify` | Tier 2: ko images for the commit, the private verify stack, contract and black-box suites, teardown. |
+| `task check` | `scripts/check` | Tier 0: SPDX header on every Go file, gofmt, `go vet`, golangci-lint with `.golangci.yml` (every `switch` over a closed set covers every case), and the unit tests of every module in `go.work`. Needs no stack. |
+| `task verify` | `scripts/verify` | Tier 2: ko images for the commit, the private verify stack, the system tests from outside, teardown. |
 | `task dev.up`, `dev.down`, `dev.reset` | `scripts/dev-up`, `dev-down`, `dev-reset` | The shared session stack, played with `podman kube play`. They refuse to run until `deploy/dev/default/` exists. |
 | `task release PRODUCT=<p>` | `scripts/release` | CI only: build, join, push, sign, tag `candidate`. |
 | `task fabrikk.test` | `scripts/fabrikk-test` | fabrikk itself, not what it builds: the extensions' tests, every factory definition with its saved scenarios, every workflow. No tier: a work item's verification does not run it, because that loads the extensions from the main checkout and not from the work item's worktree. Run in the main checkout before a change to the factory goes into a pull request. |

@@ -28,10 +28,23 @@ verify, review and attest. The skills and `design/` say what good code looks lik
 
 ## Tests are part of the change
 
-- The plan's testing strategy is implemented with the code, in the same commits. Tier 0 (`task check`) is green in
-  the worktree before the change summary is recorded; `fabrikk-verify` runs tiers 0 and 2, it does not debug them.
-- For a bug: reproduce it first, as a failing test at the lowest tier that shows it; then fix it; the test stays.
-- No sleeps, no test that reaches the network, no test that configures the shared session stack.
+There are two kinds of test, and nothing in between.
+
+- **A unit test** pins a decision in our own code. It runs in-process, with no network, no file and no waiting, so
+  `task check` needs no stack. It is the implementer's tool: written where there is a decision worth pinning or a
+  bug to reproduce, and rewritten or deleted with the code it pins.
+- **A system test** shows what an operator or a client can observe. It drives the image built from the commit, with
+  its real dependencies, from outside, in the verify stack: `task verify` runs it. There is one for each clause of
+  the outcome. To show what happens when a dependency goes away it may stop and start the pods of its own stack,
+  the one `STACK` names, and nothing else on the workbench.
+- **Nothing in between.** No stand-in or fake of a system we do not own, no embedded server, no test against the
+  session stack, no suite that keeps a fake honest.
+- A clause that only a long or contrived system test could show is not tested, and the plan says so with the
+  reason. A product gets no timing knob or hook for a test's sake.
+- The plan's testing strategy is implemented with the code, in the same commits. `task check` is green in the
+  worktree before the change summary is recorded; `fabrikk-verify` runs both kinds, it does not debug them.
+- For a bug: reproduce it first as a failing test of the kind that shows it; then fix it; the test stays.
+- No sleeps: a wait polls with a deadline.
 
 ## Source standards
 

@@ -57,7 +57,7 @@ One workbench serves many work items at once, and git worktrees are how:
   implements there; `fabrikk-verify` and `fabrikk-attest` run there and refuse a dirty tree or a moved HEAD, so a
   green result is about exactly one commit. When the work item is merged, the worktree goes.
 - **One shared session stack** for every worktree: the pods of the `dataverket` stack, each port on the same host
-  port. Tests isolate themselves by name, so two work items share it without seeing each other.
+  port, for running the services by hand. No test uses it.
 - **One private verify stack per commit**: `task verify` plays every product's own manifests, with images built
   from the commit, into the stack `verify-<commit>` and tears it down, so two work items can verify at the same time.
 
