@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -38,6 +39,13 @@ func TestRun(t *testing.T) {
 			}
 			if !strings.Contains(stderr.String(), test.says) {
 				t.Errorf("stderr does not say %q:\n%s", test.says, stderr.String())
+			}
+			// Whatever Sentral writes is one JSON object per line, a refusal too.
+			for _, line := range strings.Split(strings.TrimSpace(stderr.String()), "\n") {
+				var fields map[string]any
+				if err := json.Unmarshal([]byte(line), &fields); err != nil {
+					t.Errorf("a line on stderr is not one JSON object: %q", line)
+				}
 			}
 		})
 	}
