@@ -24,18 +24,22 @@ func TestSentralSaysItIsReady(t *testing.T) {
 }
 
 // While the server is gone Sentral says it is not ready and stays up, and it
-// is ready again when the server is back.
+// is ready again when the server is back. Its log says both, the first with
+// the reason.
 func TestSentralIsNotReadyWhileTheServerIsGone(t *testing.T) {
 	answers(t, "/readyz", http.StatusOK)
+	before := len(written(t))
 
 	stop(t, serverPod(t))
 	answers(t, "/readyz", http.StatusServiceUnavailable)
 	if got := status(t, "/healthz"); got != http.StatusOK {
 		t.Fatalf("/healthz while the server is gone: got %d, want 200", got)
 	}
+	saysWhy(t, before, "WARN", "disconnected")
 
 	start(t, serverPod(t))
 	answers(t, "/readyz", http.StatusOK)
+	says(t, before, "INFO", "reconnected")
 }
 
 // A cluster does not ask the health port: it runs the probe commands the
@@ -74,8 +78,8 @@ func TestSentralStopsCleanly(t *testing.T) {
 }
 
 // Sentral does not need the server to be there first. Started while the
-// server is away it stays up, not ready, and becomes ready when the server
-// comes; and it stops as cleanly then as when connected.
+// server is away it stays up, not ready, and its log says why; it becomes
+// ready when the server comes; and it stops as cleanly then as when connected.
 func TestSentralStartsAndStopsWhileTheServerIsAway(t *testing.T) {
 	answers(t, "/readyz", http.StatusOK)
 	stop(t, serverPod(t))
@@ -86,11 +90,16 @@ func TestSentralStartsAndStopsWhileTheServerIsAway(t *testing.T) {
 		t.Fatalf("Sentral's container after a stop while the server is away: %s, want exited 0", got)
 	}
 
+	// Counted here, between the stop and the start: the Sentral that was
+	// stopped had lost its server too, and what it wrote is not what this
+	// shows. The one started now has never reached the server.
+	before := len(written(t))
 	start(t, sentralPod(t))
 	answers(t, "/healthz", http.StatusOK)
 	if got := status(t, "/readyz"); got != http.StatusServiceUnavailable {
 		t.Fatalf("/readyz of a Sentral started while the server is away: got %d, want 503", got)
 	}
+	saysWhy(t, before, "WARN", "cannot reach the server")
 
 	start(t, serverPod(t))
 	answers(t, "/readyz", http.StatusOK)

@@ -51,9 +51,11 @@ How a stack hangs together:
 - **What a system test may do to its stack.** What a cluster's runtime does to a pod, and nothing else: stop and
   start a pod, to show what a service does when a dependency is gone or when it is itself asked to stop
   (`podman pod stop "$STACK-nats"`, then `podman pod start`); run the probe commands a product's manifest declares
-  in its container, since Podman runs only the `livenessProbe` and a cluster acts on both (`podman exec`); and read
-  a container's state and exit code (`podman inspect`). A pod it stopped is started again when the test ends,
-  however it ends. A fragment's pod is `<stack>-<its name>`. A product ships a Deployment, whose pod Podman names
+  in its container, since Podman runs only the `livenessProbe` and a cluster acts on both (`podman exec`); read
+  a container's state and exit code (`podman inspect`); and read what a container has written, which is what a
+  cluster collects and an operator reads (`podman logs`). The log outlives a stop and a start and is shared by the
+  tests, so a test counts the lines before it acts and looks only at those after. A pod it stopped is started
+  again when the test ends, however it ends. A fragment's pod is `<stack>-<its name>`. A product ships a Deployment, whose pod Podman names
   `<stack>-<name>-pod`, and a container in it `<pod>-<container>`: `$STACK-sentral-pod` and
   `$STACK-sentral-pod-sentral`. It touches no pod outside that stack.
 
