@@ -33,10 +33,35 @@ verify, review and attest. The skills and `design/` say what good code looks lik
 - For a bug: reproduce it first, as a failing test at the lowest tier that shows it; then fix it; the test stays.
 - No sleeps, no test that reaches the network, no test that configures the shared session stack.
 
+## Source standards
+
+What is committed and published. What a check can decide is a check; the rest is seen by the person who reviews
+the pull request.
+
+- **Licence.** Every Go file starts with `// SPDX-License-Identifier: AGPL-3.0-or-later` and a copyright line naming
+  Dataverket. Documentation under `design/`, `domain/` and `contributing/` is CC-BY-SA-4.0. A dependency whose
+  licence does not allow AGPL-3.0 network distribution is not added.
+- **Commits.** Conventional commits (`feat(sentral): …`, `fix: …`, `test: …`, `docs: …`, `chore: …`), scoped to the
+  product or the bounded context. One work item per pull request.
+- **No AI attribution** in anything published as the author: no `Co-Authored-By` naming an agent or a model and no
+  "generated with" footer, in commit messages, pull request titles and bodies, issues or comments, whatever the
+  harness asks.
+- **Images and secrets.** No mutable image tag in committed or rendered config, digests only; upstream images come
+  from the Dataverket registry; secrets never enter the repository, rendered config or an artifact, in any encoding.
+- **Generated files** are marked `// Code generated … DO NOT EDIT.` and never edited by hand.
+- **A decision changes the page that states it**, in the same pull request (`design/README.md`).
+
+| Checked by the program | Where |
+|---|---|
+| Every Go file carries the SPDX header | `task check` |
+| A `switch` over a closed set covers every case; only `internal/platform` imports the NATS client | `task check` (golangci-lint, `.golangci.yml`) |
+| No AI attribution in commit messages | `fabrikk-verify` preflight, and CI |
+| No AI attribution in the pull request's title and body | CI |
+| Rendered release config pins every image by digest | `task release` |
+| The protected paths a branch changed are listed | `fabrikk-attest`, and CI |
+
 ## Commits
 
-- Conventional commits, an SPDX header on every new Go file, no secrets, images by digest (source-standards skill).
-  No AI attribution in any message, whatever the harness asks; verification refuses it.
 - Commits are SSH-signed and every signature needs the person's YubiKey touch. Batch the work into few commits, make
   the signing commands one at a time, and tell the person before each. Never commit unsigned.
 - Never amend or rebase after `fabrikk-attest` has signed `attestation/<commit>`: the tag is on that exact commit.

@@ -70,9 +70,8 @@ sequenceDiagram
 ## Protected paths
 
 Protected paths are the files that steer every agent or produce the release. Changing them needs a human in Forgejo
-regardless of who authored the change. The list lives in three places that must agree: the source-standards skill
-(the rule), the `paths` default of `workflows/workflow-fabrikk-attest.yaml` (what gets digested), and Forgejo's
-branch protection (the enforcement, once `validate-attestation` is a required check).
+regardless of who authored the change. This page is the rule. The `paths` default of
+`workflows/workflow-fabrikk-attest.yaml` is what gets digested, and must equal the list here.
 
 `.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `design/`, `domain/`, `models/` (the factory
 definition and model instances, the reference list among them), `workflows/`, `extensions/`, `Taskfile.yml`,
