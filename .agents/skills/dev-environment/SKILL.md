@@ -79,7 +79,7 @@ task fabrikk.test              fabrikk itself, not a tier: extension tests, fact
 Every downstream system a service uses ships a fragment under `deploy/dev/<profile>/<system>/` at the repository
 root, per downstream system rather than per product, because one session stack serves every product. A fragment is a
 kustomization (`kustomization.yaml` and the pod manifests it lists). Product manifests live elsewhere, in
-`<product>/deploy/base/` (delivery skill). Each fragment has:
+`<product>/deploy/base/` (`design/release.md`). Each fragment has:
 
 | Part | Meaning |
 |---|---|
@@ -165,4 +165,4 @@ The workbench is the one machine that holds the agent, the code, the session sta
 - Never split one loop across a network: dependencies run on the workbench, never on a shared remote.
 - Every workbench is identical, defined as code; until a bootstrap script or Nix flake exists, the workstation guide is
   that definition. Nothing in the repository names a home directory or a workbench.
-- A workbench never builds what ships; `task release` runs on CI only (delivery skill).
+- A workbench never builds what ships; `task release` runs on CI only (`design/release.md`).

@@ -7,8 +7,29 @@ last-verified: 2026-09-17 @ 7b38cae
 
 Git is where releases are authored. The registry is where they travel. The candidate is built once, by CI on shared
 infrastructure, after the merge. UAT tests that digest and promotion retags it. Nothing after UAT rebuilds, and a
-workbench never builds what ships. The delivery skill (`.agents/skills/delivery/SKILL.md`) is the rule; this page is the
-mechanism.
+workbench never builds what ships. This page holds the rules and the mechanism.
+
+## What holds for every image and manifest
+
+- **Images.** A service is built with `ko`, one image per `<product>/cmd/<service>`, addressed by digest. ko has no
+  empty base, so the base is the registry's mirror of a static image, pinned by tag and digest in
+  `<product>/.ko.yaml`, and ko is run from the product's directory. Everything upstream is mirrored into the
+  Dataverket registry and pinned by digest there. A reference in rendered config is a digest, never a tag.
+- **Three layers of config.**
+
+  | Layer | Contents | Owner | Changes |
+  |---|---|---|---|
+  | L0, platform baseline | Storage classes, CSI, backup operator, Flux, monitoring | Environment line | With the cluster |
+  | L1, app base | Environment-agnostic manifests with defaults, in `<product>/deploy/base/` | This factory | With the code |
+  | L2, environment overlay | Replicas, volume sizes and classes, backup policy, resources, placement, in `miljo` | Environment line | With the environment |
+
+  L2 may touch only the fields L1 declares tunable.
+- **Where it lives.** `<product>/deploy/base/` is L1, a kustomization whose images are `ko://<module>/cmd/<service>`
+  references. `deploy/dev/<profile>/<system>/` holds the dev-environment fragments, which are never deployed.
+  Nothing else goes under `deploy/`. Rendered output exists only inside the signed artifact, and secrets never
+  enter git.
+- **The join.** `release = render(L1 at a commit, L2 at a version)` is a pure function, run in CI after the merge.
+  Nothing is joined, templated or substituted in the cluster.
 
 ## From merge to candidate
 
