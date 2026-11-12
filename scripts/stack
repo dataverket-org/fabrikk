@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+#
+# stack: what the system tests run against, to work in by hand. Plays the
+# default fragments into a stack of its own, from the tree as it is, and
+# opens a shell that knows where they are: STACK names the stack and the
+# STACK_* variables say where each port is. No product is played: run it
+# from source, against them. The stack is removed when the shell ends.
+# PROFILE adds a profile's fragments (verify, objekt). Arguments are run as
+# a command in place of the shell.
+#
+
+source "${0%/*}/functions.sh" || exit $?
+
+profiles=(default)
+[[ -n "$PROFILE" && "$PROFILE" != "default" ]] && profiles+=("$PROFILE")
+
+#
+# Prints the end of every container's log when the stack never came up,
+# then removes the stack and the work directory.
+#
+function teardown()
+{
+	[[ -n "$stack_up" ]] || stack_logs "$stack"
+
+	stack_down "$stack"
+	rm -rf "$stack_work"
+}
+
+#
+# Runs the command, or a shell when there is none, where the stack is known.
+#
+function run_inside()
+{
+	export STACK="$stack"
+
+	if (( $# > 0 )); then
+		"$@" || return $?
+		return
+	fi
+
+	log "$stack is up; it is removed when this shell ends:"
+	env | grep '^STACK' | sort
+	"${SHELL:-bash}"
+
+	# How the shell's last command went says nothing about the stack.
+	return 0
+}
+
+init        || exit $?
+need_stack  || exit $?
+need_podman || exit $?
+need_tools  || exit $?
+
+stack="stack-$$"
+stack_up=""
+
+stack_prepare "$stack" || fail "Could not prepare the stack!"
+trap teardown EXIT
+
+play_fragments "$stack" "${profiles[@]}" || fail "A fragment did not start!"
+wait_healthy "$stack" || fail "The stack did not become healthy!"
+stack_up=1
+
+run_inside "$@"

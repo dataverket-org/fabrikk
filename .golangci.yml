@@ -1,4 +1,4 @@
-# golangci-lint for every Go module in the monorepo, run by scripts/check (task check, tier 0). Protected path:
+# golangci-lint for every Go module in the monorepo, run by scripts/check (task check). Protected path:
 # verification runs it from the branch under review, and a weakened lint would still give a green attestation.
 #
 # Only what a reviewer should not have to find is here: a switch over a closed set (a sealed interface marked

@@ -2,8 +2,8 @@
 #
 # fabrikk-test: checks fabrikk itself, the factory and not what it builds.
 # The extensions' own tests, every factory definition with its saved
-# scenarios, and every workflow. It is no tier: a work item's verification
-# does not run it, since that loads the extensions from the main checkout
+# scenarios, and every workflow. A work item's verification does not run
+# it, since that loads the extensions from the main checkout
 # and not from the work item's worktree. Run it before a change to the
 # factory goes into a pull request.
 #

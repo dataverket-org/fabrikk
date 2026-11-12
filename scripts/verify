@@ -1,52 +1,15 @@
 #!/usr/bin/env bash
 #
-# verify: tier 2. Plays the default and verify fragments and every product's
-# own manifests, with images ko builds from this commit, into a stack private
-# to the commit; runs the system tests from outside; and tears the stack
-# down. The result is pinned to the commit, so the tree must
-# be clean.
+# verify: the system tests. Plays the default and verify fragments and every
+# product's own manifests, with images ko builds from this commit, into a
+# stack private to the commit; runs the system tests from outside; and
+# removes the stack. The result is pinned to the commit, so the tree must be
+# clean.
 #
 
 source "${0%/*}/functions.sh" || exit $?
 
 verify_suite="${VERIFY_SUITE:-}"
-
-#
-# Exports where a suite reaches what was just played: one variable per
-# published port, STACK_<NAME>_<CONTAINER PORT>=127.0.0.1:<host port>.
-#
-function export_ports()
-{
-	local name="$1"
-	local pod id line port
-
-	name="$(printf '%s' "$name" | tr '[:lower:]-' '[:upper:]_')"
-
-	for pod in "${played_pods[@]}"; do
-		for id in $(podman ps -q --filter "pod=$pod"); do
-			while IFS= read -r line; do
-				[[ -n "$line" ]] || continue
-
-				port="${line%%/*}"
-				export "STACK_${name}_${port}=${line##* }"
-			done <<< "$(podman port "$id" 2>/dev/null)"
-		done
-	done
-}
-
-#
-# Plays the fragments every verify stack has.
-#
-function play_fragments()
-{
-	local dir
-
-	for dir in $(fragments default verify); do
-		log "playing $dir ..."
-		play_fragment "$stack" "$root/$dir" random || return $?
-		export_ports "${dir##*/}"
-	done
-}
 
 #
 # Plays every product that has manifests: its deploy/base, with each ko://
@@ -70,7 +33,7 @@ function play_products()
 		) > "$manifests" || return $?
 
 		refuse_host_ports "$manifests"    || return $?
-		play "$stack" "$manifests" random || return $?
+		play "$stack" "$manifests"        || return $?
 		export_ports "$product"
 	done
 }
@@ -105,14 +68,9 @@ function run_suite()
 function teardown()
 {
 	local status=$?
-	local id image ref
+	local image ref
 
-	if (( status != 0 )); then
-		for id in $(stack_containers "$stack"); do
-			log "last lines of $(podman inspect --format '{{.Name}}' "$id"):"
-			podman logs --tail 40 "$id" 2>&1
-		done
-	fi
+	(( status == 0 )) || stack_logs "$stack"
 
 	stack_down "$stack"
 
@@ -143,8 +101,8 @@ clean_tree . || fail "verify needs a clean tree: the result is pinned to $commit
 stack_prepare "$stack" || fail "Could not prepare the verify stack!"
 trap teardown EXIT
 
-play_fragments        || fail "A fragment did not start!"
-play_products         || fail "Building or playing a product failed at $commit!"
+play_fragments "$stack" default verify || fail "A fragment did not start!"
+play_products || fail "Building or playing a product failed at $commit!"
 wait_healthy "$stack" || fail "The verify stack did not become healthy!"
 
 run_suite || fail "The verify suite failed at $commit!"

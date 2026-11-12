@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# check: tier 0. SPDX headers, gofmt, go vet, golangci-lint and go test over
+# check: SPDX headers, gofmt, go vet, golangci-lint and the unit tests of
 # every module in go.work. Rules a check can decide are decided here, not by
 # a reviewer (agent-constraints/implementation-conventions.md, "Source
 # standards").

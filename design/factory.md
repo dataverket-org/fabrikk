@@ -45,7 +45,7 @@ flowchart LR
 ## The workbench
 
 The first three actors share one machine: the **workbench**. It is a laptop, a VM, or an IncusOS container that holds
-the agent, the code, the session stack, and swamp with its run data. The loop never crosses a network: the only
+the agent, the code, the stacks, and swamp with its run data. The loop never crosses a network: the only
 things that leave the workbench are the branch, the signed attestation tag, and the pull request. A workbench never
 builds what ships.
 
@@ -56,10 +56,10 @@ One workbench serves many work items at once, and git worktrees are how:
 - **One worktree per work item**, `git worktree add ../fabrikk-<key> -b <key> main` from the main checkout. The agent
   implements there; `fabrikk-verify` and `fabrikk-attest` run there and refuse a dirty tree or a moved HEAD, so a
   green result is about exactly one commit. When the work item is merged, the worktree goes.
-- **One shared session stack** for every worktree: the pods of the `dataverket` stack, each port on the same host
-  port, for running the services by hand. No test uses it.
 - **One private verify stack per commit**: `task verify` plays every product's own manifests, with images built
-  from the commit, into the stack `verify-<commit>` and tears it down, so two work items can verify at the same time.
+  from the commit, into the stack `verify-<commit>` and removes it, so two work items can verify at the same time.
+- **A private stack to work in by hand**: `task stack` plays the same dependencies, without the products, and opens
+  a shell that knows where they are. It is removed when the shell ends, and no gate reads anything from it.
 
 `scripts/functions.sh` names both stacks and never derives a name from a worktree; the rule and what may never be shared are
 in the dev-environment skill. Every workbench is meant to be identical, defined as code, and
@@ -118,8 +118,8 @@ it ([release.md](release.md)); they join the factory when a UAT environment exis
 |---|---|---|---|
 | `plan` | agent | Turns the outcome into a plan: a summary, the steps with the files each touches, the testing strategy. | `agent-constraints/planning-conventions.md`, the architecture and dev-environment skills, `design/` |
 | `plan-review` | one reviewer | A reviewer with no shared context tries to refute the plan, grading by the rubric in its prompt. A critical or high finding sends the plan back. Then the human approves, or sends it back with feedback. | the stage's prompt in the definition, the architecture skill |
-| `implement` | agent | Implements the plan in a worktree, tier 0 green, commits signed. Records `change-summary`: the commit, its branch and worktree, the files. | `agent-constraints/implementation-conventions.md` |
-| `verify` | swamp workflow | In that worktree, refuses a dirty tree, a moved HEAD, or a commit message carrying AI attribution, then `task check` (tier 0) and `task verify` (tier 2). Results are pinned to the commit. No LLM. | `workflows/workflow-fabrikk-verify.yaml`, `extensions/models/dev_environment.ts`, `extensions/models/git_commit_messages.ts`, `extensions/models/source_standards.ts`, `Taskfile.yml`, `scripts/` |
+| `implement` | agent | Implements the plan in a worktree, `task check` green, commits signed. Records `change-summary`: the commit, its branch and worktree, the files. | `agent-constraints/implementation-conventions.md` |
+| `verify` | swamp workflow | In that worktree, refuses a dirty tree, a moved HEAD, or a commit message carrying AI attribution, then `task check` (the unit tests) and `task verify` (the system tests). Results are pinned to the commit. No LLM. | `workflows/workflow-fabrikk-verify.yaml`, `extensions/models/dev_environment.ts`, `extensions/models/git_commit_messages.ts`, `extensions/models/source_standards.ts`, `Taskfile.yml`, `scripts/` |
 | `code-review` | one reviewer | A reviewer reviews the commit against the plan, by the same rubric. A critical or high finding sends the change back; the rest go into the pull request's body. | the stage's prompt in the definition, the architecture skill |
 | `attest` | swamp workflow | Digests the protected paths, lists which the branch changed, checks that verification, the change summary, its code review and the approval of the current plan all concern the commit, and signs the annotated tag `attestation/<commit>`. | `workflows/workflow-fabrikk-attest.yaml`, `extensions/models/attestation.ts`, `extensions/models/git_paths_digest.ts` |
 | `pull-request` | agent + human | Pushes branch and tag, opens the PR through the `forgejo` model, records the PR head from the API. The human reviews and merges in Forgejo; the merge commit and the head that was merged are read back from the API, and a head that is not the attested commit keeps the work item from done. | `models/@dataverket/forgejo/forgejo.yaml`, `.forgejo/workflows/validate-attestation.yaml` |
@@ -200,7 +200,7 @@ a design page, a gate, or a workflow, not in the code by hand, and the factory r
   scales with the change. The factory's first two attempts are why: eight reviewers recorded 148 findings in six
   cycles without reaching code, and four reviewers spent all five plan-review rounds and 42 findings on a readiness
   skeleton.
-- **CI validates, it does not execute.** The loop runs where the agent, the code, and the session stack are on one
+- **CI validates, it does not execute.** The loop runs where the agent, the code, and the stacks are on one
   machine (dev-environment skill: never split one loop across a network). CI checks the record of that loop, the
   signed tag, and it builds the release, which a workbench must never do.
 - **Data over memory.** A reviewer shares no context with the implementer and reads what it reviews from run data.

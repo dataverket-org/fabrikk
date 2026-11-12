@@ -37,8 +37,9 @@ There are two kinds of test, and nothing in between.
   its real dependencies, from outside, in the verify stack: `task verify` runs it. There is one for each clause of
   the outcome. To show what happens when a dependency goes away it may stop and start the pods of its own stack,
   the one `STACK` names, and nothing else on the workbench.
-- **Nothing in between.** No stand-in or fake of a system we do not own, no embedded server, no test against the
-  session stack, no suite that keeps a fake honest.
+- **Nothing in between.** No stand-in or fake of a system we do not own, no embedded server, no suite that keeps a
+  fake honest. `task stack` is for working by hand, against the dependencies the system tests have: what is seen
+  there is shown by a test of one of the two kinds, or it is not shown.
 - A clause that only a long or contrived system test could show is not tested, and the plan says so with the
   reason. A product gets no timing knob or hook for a test's sake.
 - The plan's testing strategy is implemented with the code, in the same commits. `task check` is green in the

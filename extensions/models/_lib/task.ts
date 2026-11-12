@@ -97,7 +97,6 @@ export function resetSpawn(): void {
 /** Outcome of one task. */
 export interface TargetResult {
   target: string;
-  profile: string | null;
   worktree: string;
   headSha: string;
   exitCode: number;
@@ -115,7 +114,7 @@ export interface TargetResult {
 export const LOG_TAIL_LINES = 40;
 
 /**
- * Run `task -x <target> [PROFILE=<profile>]` in the worktree, pinned to the
+ * Run `task -x <target>` in the worktree, pinned to the
  * commit it ran against. `-x` makes task exit with the script's own exit
  * code instead of its generic 201. Never throws on a failing target; the
  * caller decides.
@@ -123,7 +122,6 @@ export const LOG_TAIL_LINES = 40;
 export async function runTarget(opts: {
   worktree: string;
   target: string;
-  profile?: string;
   timeoutSeconds: number;
   signal?: AbortSignal;
 }): Promise<TargetResult> {
@@ -138,10 +136,6 @@ export async function runTarget(opts: {
   }
 
   const argv = ["task", "-x", opts.target];
-  const profile = opts.profile && opts.profile !== "default"
-    ? opts.profile
-    : null;
-  if (profile) argv.push(`PROFILE=${profile}`);
 
   const timeout = AbortSignal.timeout(opts.timeoutSeconds * 1000);
   const signal = opts.signal
@@ -162,7 +156,6 @@ export async function runTarget(opts: {
 
   return {
     target: opts.target,
-    profile,
     worktree: opts.worktree,
     headSha: head.output.trim(),
     exitCode: result.exitCode,

@@ -24,8 +24,8 @@ filed: `swamp behavior run board create --input id=<key> --input 'title=<title>'
 - **`plan`.** The outcome is the ticket's body. The plan follows `agent-constraints/planning-conventions.md`.
 - **`plan-review`, `code-review`.** `dispatch` prints one reviewer's prompt. Send it, unchanged, to an agent that
   starts with no context, and record the file it writes. Record its usage from what the harness reports.
-- **`implement`.** `agent-constraints/implementation-conventions.md`: one worktree and branch per work item, tier 0
-  green, signed commits. Tell the person before each commit; it needs their touch.
+- **`implement`.** `agent-constraints/implementation-conventions.md`: one worktree and branch per work item,
+  `task check` green, signed commits. Tell the person before each commit; it needs their touch.
 - **`verify`.** Run the workflow the packet names, with the packet's inputs, and record its outcome with the real
   run id:
 

@@ -33,8 +33,8 @@ globalArguments:
       # renovate: datasource=git-tags depName=zitadel
       ref: v4.20.2
       purpose: >-
-        Zitadel source and docs (Identitet). Token claims and JWKS behavior Sentral's auth callout validates, and what
-        the fake JWKS issuer in tier 0 must match. Keep ref equal to the pinned Zitadel image once one is chosen.
+        Zitadel source and docs (Identitet). Token claims and JWKS behavior Sentral's auth callout validates. Keep
+        ref equal to the pinned Zitadel image once one is chosen.
     - name: swamp
       url: https://github.com/swamp-club/swamp
       ref: main

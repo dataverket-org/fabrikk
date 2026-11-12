@@ -1,10 +1,10 @@
 id: c848f6fc-46e7-4fd1-b122-7dd62009685b
 name: fabrikk-verify
 description: >-
-  fabrikk's verifying stage: tier 0 (task check) and tier 2 (task verify) in the implementer's worktree,
-  refusing to run unless the worktree is clean, HEAD is the commit under review, and no commit on the branch
-  carries AI attribution: the cheapest point to refuse a message, before the stack, the suites, and review.
-  Tier 0 is unit tests and needs no stack; tier 2 plays its own private stack and tears it down.
+  fabrikk's verifying stage: the unit tests (task check) and the system tests (task verify) in the
+  implementer's worktree, refusing to run unless the worktree is clean, HEAD is the commit under review, and no
+  commit on the branch carries AI attribution: the cheapest point to refuse a message, before the stack, the
+  suites, and review. The unit tests need no stack; the system tests play their own private stack and remove it.
 tags:
   factory: fabrikk
 version: 1
@@ -95,7 +95,7 @@ jobs:
           - step: messages
             condition: { type: succeeded }
 
-  - name: tier0
+  - name: unit-tests
     description: SPDX headers, gofmt, vet, lint and the unit tests. No stack.
     dependsOn:
       - job: preflight
@@ -119,10 +119,10 @@ jobs:
           - step: check
             condition: { type: succeeded }
 
-  - name: tier2
-    description: ko images under the verify profile, contract and black-box suites from outside.
+  - name: system-tests
+    description: ko images for the commit in a private stack, the system tests from outside.
     dependsOn:
-      - job: tier0
+      - job: unit-tests
         condition: { type: succeeded }
     steps:
       - name: verify

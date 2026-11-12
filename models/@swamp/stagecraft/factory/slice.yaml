@@ -165,7 +165,7 @@ globalArguments:
         tracker: { status: in_progress }
         description: >-
           Implement the plan in the work item's own worktree and commit it,
-          tier 0 green.
+          task check green.
         work:
           mode: interactive
           skills: [architecture, dev-environment]
@@ -201,8 +201,8 @@ globalArguments:
       - id: verify
         tracker: { status: in_progress }
         description: >-
-          Tier 0 (task check) and tier 2 (task verify) in the worktree, at the
-          change-summary commit. The fabrikk-verify workflow refuses a dirty
+          The unit tests (task check) and the system tests (task verify) in the
+          worktree, at the change-summary commit. The fabrikk-verify workflow refuses a dirty
           tree, a moved HEAD, and a commit message that carries AI attribution,
           and leaves its results under dev-env-<commit>. No LLM.
         work:

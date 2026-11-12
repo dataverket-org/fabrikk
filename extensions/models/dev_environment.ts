@@ -15,25 +15,16 @@ const GlobalArgsSchema = z.object({
 });
 type GlobalArgs = z.infer<typeof GlobalArgsSchema>;
 
-const ProfileSchema = z.enum(["default", "objekt", "maskin"]).default(
-  "default",
-).describe("Profile of fragments (verify is selected by task verify itself)");
-
-const timeoutSeconds = (fallback: number) =>
-  z.number().int().positive().default(fallback).describe(
-    "Kill task after this many seconds",
-  );
-
-const ProfileArgsSchema = z.object({
-  profile: ProfileSchema,
-  timeoutSeconds: timeoutSeconds(600),
-});
-const PlainArgsSchema = (fallback: number) =>
-  z.object({ timeoutSeconds: timeoutSeconds(fallback) });
+const ArgsSchema = (fallback: number) =>
+  z.object({
+    timeoutSeconds: z.number().int().positive().default(fallback).describe(
+      "Kill task after this many seconds",
+    ),
+  });
+type Args = z.infer<ReturnType<typeof ArgsSchema>>;
 
 const RunSchema = z.object({
   target: z.string(),
-  profile: z.string().nullable(),
   worktree: z.string(),
   headSha: z.string(),
   exitCode: z.number().int(),
@@ -68,7 +59,7 @@ interface Context {
  */
 async function record(
   target: string,
-  args: { profile?: string; timeoutSeconds: number },
+  args: Args,
   context: Context,
 ): Promise<{ dataHandles: Array<{ name: string }> }> {
   context.logger.info("task {target} in {worktree}", {
@@ -78,7 +69,6 @@ async function record(
   const result: TargetResult = await runTarget({
     worktree: context.globalArgs.worktree,
     target,
-    profile: args.profile,
     timeoutSeconds: args.timeoutSeconds,
     signal: context.signal,
   });
@@ -108,7 +98,7 @@ async function record(
 /** Model definition for the task-driven development environment. */
 export const model = {
   type: "@dataverket/dev-environment",
-  version: "2026.09.17.1",
+  version: "2026.11.12.1",
   globalArguments: GlobalArgsSchema,
   resources: {
     run: {
@@ -127,44 +117,18 @@ export const model = {
     },
   },
   methods: {
-    up: {
-      description:
-        "task dev.up: start the session stack and wait until healthy",
-      arguments: ProfileArgsSchema,
-      execute: (args: z.infer<typeof ProfileArgsSchema>, context: Context) =>
-        record("dev.up", args, context),
-    },
-    down: {
-      description: "task dev.down: stop the session stack, keep volumes",
-      arguments: PlainArgsSchema(300),
-      execute: (
-        args: z.infer<ReturnType<typeof PlainArgsSchema>>,
-        context: Context,
-      ) => record("dev.down", args, context),
-    },
-    reset: {
-      description: "task dev.reset: return every fragment to its seeded state",
-      arguments: ProfileArgsSchema,
-      execute: (args: z.infer<typeof ProfileArgsSchema>, context: Context) =>
-        record("dev.reset", args, context),
-    },
     check: {
       description:
-        "task check: SPDX headers, gofmt, go vet, golangci-lint, go test (tier 0)",
-      arguments: PlainArgsSchema(900),
-      execute: (
-        args: z.infer<ReturnType<typeof PlainArgsSchema>>,
-        context: Context,
-      ) => record("check", args, context),
+        "task check: SPDX headers, gofmt, go vet, golangci-lint and the unit tests",
+      arguments: ArgsSchema(900),
+      execute: (args: Args, context: Context) => record("check", args, context),
     },
     verify: {
       description:
-        "task verify: ko images, verify profile, contract and black-box suites (tier 2)",
-      arguments: PlainArgsSchema(3600),
-      execute: (
-        args: z.infer<ReturnType<typeof PlainArgsSchema>>,
-        context: Context,
-      ) => record("verify", args, context),
+        "task verify: ko images for the commit, a private stack, the system tests from outside",
+      arguments: ArgsSchema(3600),
+      execute: (args: Args, context: Context) =>
+        record("verify", args, context),
     },
   },
 };

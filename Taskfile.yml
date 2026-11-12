@@ -4,8 +4,8 @@
 # same thing. A NAME=value argument is a template variable to task, not an environment variable, so each task
 # passes the ones its script reads through `env`.
 #
-# Dev-environment tasks need the fragments under deploy/dev/ and the products' suites, which arrive with the first
-# product; the stack naming they enforce is decided in scripts/functions/stack.sh (dev-environment skill, "Stacks").
+# The stacks `task verify` and `task stack` make are named in scripts/functions/stack.sh (dev-environment skill,
+# "Stacks").
 version: '3'
 
 silent: true
@@ -20,34 +20,23 @@ tasks:
     cmds:
       - scripts/tools
 
-  dev.up:
-    desc: '[PROFILE=objekt|maskin] Start the shared session stack for this workbench and wait until healthy'
-    env:
-      PROFILE: '{{.PROFILE}}'
-    cmds:
-      - scripts/dev-up
-
-  dev.down:
-    desc: Stop the shared session stack, keep volumes
-    cmds:
-      - scripts/dev-down
-
-  dev.reset:
-    desc: "[WIPE=1] Run every fragment's reset script; WIPE=1 also removes volumes"
-    env:
-      WIPE: '{{.WIPE}}'
-    cmds:
-      - scripts/dev-reset
-
   check:
-    desc: 'Tier 0: SPDX headers, gofmt, go vet, golangci-lint, go test over every module in go.work'
+    desc: 'SPDX headers, gofmt, go vet, golangci-lint and the unit tests of every module in go.work'
     cmds:
       - scripts/check
 
   verify:
-    desc: 'Tier 2: ko images for this commit, private verify stack, the system tests from outside, teardown'
+    desc: 'System tests: ko images for this commit, private verify stack, the tests from outside, teardown'
     cmds:
       - scripts/verify
+
+  stack:
+    desc: "[PROFILE=verify|objekt] [-- command] A shell in a private stack of the system tests' dependencies"
+    interactive: true
+    env:
+      PROFILE: '{{.PROFILE}}'
+    cmds:
+      - scripts/stack {{.CLI_ARGS}}
 
   fabrikk.test:
     desc: 'fabrikk itself, not what it builds: the extension tests, the factory definitions and scenarios, the workflows'
