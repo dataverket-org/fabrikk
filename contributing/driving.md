@@ -7,12 +7,12 @@ commands run from the main checkout, never from a work item's worktree.
 
 ## Start
 
-The factory is `slice` and its tracker is `board`, stagecraft's built-in one. File a ticket with the outcome, claim
+The factory is `fabrikk` and its tracker is `board`, stagecraft's built-in one. File a ticket with the outcome, claim
 it, and run the `start` command that `claim` prints:
 
 ```sh
 swamp workflow run @swamp/stagecraft/create --input tracker=board --input 'title=<title>' --input 'body=<the outcome>' --input type=feature
-swamp workflow run @swamp/stagecraft/claim --input tracker=board --input issue=<ticket> --input factory=slice
+swamp workflow run @swamp/stagecraft/claim --input tracker=board --input issue=<ticket> --input factory=fabrikk
 swamp behavior run @swamp/stagecraft/work-item status <key>
 ```
 
@@ -79,7 +79,7 @@ swamp data query 'modelName == "dev-env-<commit>"' --select '{"target": attribut
 
 ## Changing the factory
 
-1. Edit `models/@swamp/stagecraft/factory/slice.yaml`, the one copy of the definition, and keep the diagram and the
+1. Edit `models/@swamp/stagecraft/factory/fabrikk.yaml`, the one copy of the definition, and keep the diagram and the
    stage table in [design/factory.md](../design/factory.md) in step. Add or change a saved scenario for the path the
    change is about.
 2. `task fabrikk:check` must pass, in the main checkout: the factory valid with every scenario passing, the

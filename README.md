@@ -39,8 +39,10 @@ where its code is. [design/README.md](design/README.md) indexes the rest and say
 
 - **Work item**: an outcome, taken through the factory under one key. Its state is swamp data, never the agent's
   memory.
+- **Slice**: the change one work item carries, cut small: one aggregate's commands, one port, or the wiring of one
+  crossing (`agent-constraints/planning-conventions.md`).
 - **Stage**: a step of the loop with a `work` block: the agent does it, a reviewer is dispatched, or a swamp workflow
-  runs. The definition is `models/@swamp/stagecraft/factory/slice.yaml`.
+  runs. The definition is `models/@swamp/stagecraft/factory/fabrikk.yaml`.
 - **Gate**: a fact the factory checks before a work item may advance: an artifact exists, a review has no blocking
   finding, evidence was recorded, a human approved.
 - **Skills**: what good looks like. The `architecture` skill is the tactical DDD pattern, and the one a reviewer
@@ -97,17 +99,16 @@ the skills are in `.agents/skills/`. Enrol another tool with `swamp repo upgrade
 
 ## Follow-up work
 
-The loop is built through `pull-request`: a work item is done when its pull request is merged. No product code has
-gone through it yet.
+The loop is built through `pull-request`: a work item is done when its pull request is merged. One slice has been
+through it, Sentral's skeleton.
 
-1. **Drive one small slice to a merge.** The first product code brings the module and its fragments, which makes
-   `verify` real, and is the first run of `validate-attestation` and `release.yaml` on the real runners. Nothing
-   else in the factory changes until this has happened.
+1. **Take the second slice through it**: Sentral's tests as unit tests and system tests (#45), the first slice
+   under that rule, and with it or after it the two findings about what Sentral logs (#34, #35).
 2. **Close the design questions the slice needs.** Each stack page lists its own under **Open**: the subject
    taxonomy ([messaging](design/messaging.md)), how a person's data is erased and multi-fact saves
    ([persistence](design/persistence.md)), and most of the machine path ([identity](design/identity.md)).
-3. **Make `validate-attestation` a required check** on `main` after its first run on a real pull request
-   ([contributing/forge.md](contributing/forge.md)).
+3. **Make `validate-attestation` a required check** on `main`, once a change to the repository itself can carry an
+   attestation too: the line `intern`, below ([contributing/forge.md](contributing/forge.md)).
 4. **The signing key, UAT and promotion** are designed and not built ([design/release.md](design/release.md)). UAT
    needs a real environment, and none exists. Before building them, compare with what the registry now holds:
    `@dataverket/signed-images` has workflows for a signed release, verifying one and promoting one, which may
@@ -117,13 +118,16 @@ Smaller, in no order:
 
 - Release, UAT and promotion as stages of the factory, once a UAT environment exists; `fabrikk-release` is written
   and no stage calls it.
-- A tracker for Forgejo issues, as its own extension behind stagecraft's publisher; work items are tickets on the
-  built-in tracker until then. It is planned in the swamp-extensions repository
-  (`forgejo-stagecraft-tracker/PLAN.md` there), and this repository's token already reaches its issues.
+- Forgejo issues as the factory's tickets, behind stagecraft's publisher; work items are tickets on the built-in
+  tracker until then. The tracker is a second type of `@dataverket/forgejo`, written and not yet published, and
+  this repository's token already reaches its issues.
 - Archive the old `domain-model` repository read-only: the model moved to `domain/` without its history, and that
   repository holds the history and the tag `v0.5.0-parked`.
-- A line of its own for model and steering changes, once `validate-attestation` is a required check on `main`:
-  until then a change to `domain/`, `design/` or a skill is a pull request a person reviews.
+- A second line, `intern`, for changes to the repository itself: the factory's definition, extensions, scripts and
+  workflows, the skills, `design/` and `domain/`. The factory `fabrikk` is the line for what is released, the
+  products. Until `intern` exists such a change is a pull request a person reviews, with no attestation. Parked: it
+  needs an attestation that knows a second kind of evidence, and a way for the factory to check a change to
+  itself.
 - A fast lane for a fix with a reproduction and no protected-path change. Every work item takes the full loop today.
 - Move the Zitadel reference to the pinned Zitadel image once one is chosen.
 - A timed-out task is killed, but the script it started and that script's children keep running.

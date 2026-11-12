@@ -68,7 +68,7 @@ More than one workbench is fine: they share the forge and nothing else.
 
 ## The loop
 
-The factory is `slice`, and its definition is `models/@swamp/stagecraft/factory/slice.yaml`: the one copy of the
+The factory is `fabrikk`, and its definition is `models/@swamp/stagecraft/factory/fabrikk.yaml`: the one copy of the
 stages, the prompts, the product schemas and the gates. It was written from stagecraft's `starter` example and keeps
 that example's review prompts, severity rubric and loop limits. `task fabrikk:check` checks it and plays its saved
 scenarios, the paths through it that must keep working, along with the workflows and the extensions' tests.

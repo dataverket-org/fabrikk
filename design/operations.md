@@ -46,7 +46,7 @@ push side live in fabrikk-infra's swamp.
 
 | Instance | Definition | Points at | Credential |
 |---|---|---|---|
-| `slice` | `models/@swamp/stagecraft/factory/slice.yaml` | the factory itself: its definition and saved scenarios | none |
+| `fabrikk` | `models/@swamp/stagecraft/factory/fabrikk.yaml` | the factory itself: its definition and saved scenarios | none |
 | `board` | `models/@swamp/stagecraft/tracker/board.yaml` | the built-in tracker: work items' tickets, kept in swamp data | none |
 | `forgejo` | `models/@dataverket/forgejo/forgejo.yaml` | `https://git.dataverket.org` | `forgejo/api_token` |
 | `references` | `models/@dataverket/reference-repos/references.yaml` | the reference-repository list | none |

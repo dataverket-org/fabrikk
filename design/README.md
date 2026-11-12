@@ -17,7 +17,7 @@ Everything that steers the work is one of five kinds. Each has one home, and not
 
 | Kind | Home | Test for a sentence |
 |---|---|---|
-| **Program**: what must always happen, and proof that it did | `models/@swamp/stagecraft/factory/slice.yaml`, `workflows/`, `extensions/`, `.forgejo/`, `Taskfile.yml`, `scripts/` | "Did the tests run" is never prose |
+| **Program**: what must always happen, and proof that it did | `models/@swamp/stagecraft/factory/fabrikk.yaml`, `workflows/`, `extensions/`, `.forgejo/`, `Taskfile.yml`, `scripts/` | "Did the tests run" is never prose |
 | **Pattern**: tactical DDD words and Go shapes | `.agents/skills/architecture/` | Still true for bike rental on another broker |
 | **Stack**: how the pattern lands on PostgreSQL, JetStream, CloudEvents, Zitadel and the STS | `design/messaging.md`, `design/persistence.md`, `design/identity.md`; the mechanism is Go code in `internal/platform` | Names a technology and no domain noun |
 | **Domain**: words, contexts, aggregates, invariants | The domain model, [`domain/`](../domain/README.md), nowhere else | Names an organisation, an agreement, the front desk |
