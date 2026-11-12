@@ -82,7 +82,7 @@ swamp data query 'modelName == "dev-env-<commit>"' --select '{"target": attribut
 1. Edit `models/@swamp/stagecraft/factory/slice.yaml`, the one copy of the definition, and keep the diagram and the
    stage table in [design/factory.md](../design/factory.md) in step. Add or change a saved scenario for the path the
    change is about.
-2. `task fabrikk.test` must pass, in the main checkout: the factory valid with every scenario passing, the
+2. `task fabrikk:check` must pass, in the main checkout: the factory valid with every scenario passing, the
    workflows valid, and the extensions' tests green. This applies to any change to the factory, an extension or a
    workflow, not only to the definition.
 3. The file is a protected path: the change goes through a pull request and a human.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# fabrikk-test: checks fabrikk itself, the factory and not what it builds.
+# fabrikk-check: checks fabrikk itself, the factory and not what it builds.
 # The extensions' own tests, every factory definition with its saved
 # scenarios, and every workflow. A work item's verification does not run
 # it, since that loads the extensions from the main checkout
@@ -21,7 +21,7 @@ function need_main_checkout()
 {
 	[[ "$(main_checkout)" == "$root" ]] && return
 
-	error "fabrikk.test runs in the main checkout, $(main_checkout): swamp's extensions and data are there"
+	error "fabrikk:check runs in the main checkout, $(main_checkout): swamp's extensions and data are there"
 	return 1
 }
 

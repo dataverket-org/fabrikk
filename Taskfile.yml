@@ -38,10 +38,10 @@ tasks:
     cmds:
       - scripts/stack {{.CLI_ARGS}}
 
-  fabrikk.test:
-    desc: 'fabrikk itself, not what it builds: the extension tests, the factory definitions and scenarios, the workflows'
+  fabrikk:check:
+    desc: "The factory's own unit tests: the extension tests, the factory definitions and scenarios, the workflows"
     cmds:
-      - scripts/fabrikk-test
+      - scripts/fabrikk-check
 
   release:
     desc: 'PRODUCT=<p>: build images, join with every miljo overlay for <p>, push, sign, and tag :candidate (CI only)'

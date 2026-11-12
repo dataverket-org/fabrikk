@@ -105,6 +105,6 @@ system pcscd.
 
 ```sh
 swamp model method run forgejo health                  # the forge answers with its version
-task fabrikk.test                                      # fabrikk is sound: extensions, factory, workflows
+task fabrikk:check                                     # fabrikk is sound: extensions, factory, workflows
 swamp run doctor                                       # no stale runs
 ```

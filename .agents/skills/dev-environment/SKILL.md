@@ -76,7 +76,7 @@ task check                     SPDX headers, gofmt, go vet, golangci-lint and th
 task verify                    the verify stack for this commit, the system tests from outside, teardown
 task stack [PROFILE=verify]    the default fragments, and the profile's, in a private stack; a shell in it; teardown
 task stack -- <command>        the same, with the command in place of the shell
-task fabrikk.test              fabrikk itself, not what it builds: extension tests, factory definitions, workflows
+task fabrikk:check             fabrikk itself, not what it builds: extension tests, factory definitions, workflows
 ```
 
 ## Fragment contract

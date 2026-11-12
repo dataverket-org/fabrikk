@@ -18,7 +18,7 @@ this repository, so one commit pins both the code and the steering it was built 
 
 ```sh
 swamp model search --json | jq '.results[].name'                       # the model instances
-task fabrikk.test                                                      # fabrikk itself: extensions, factory, workflows
+task fabrikk:check                                                     # fabrikk itself: extensions, factory, workflows
 swamp behavior run @swamp/stagecraft/work-item status <key>            # what a work item needs next
 ```
 
@@ -65,6 +65,9 @@ There are two kinds, and UAT after them. The factory's `verify` stage runs both 
 that knows where they are, to run a product from source against. It shows nothing to the factory.
 
 What belongs in which kind is in `agent-constraints/implementation-conventions.md`, "Tests are part of the change".
+
+`task fabrikk:check` is the same for the factory itself as `task check` is for a product: its unit tests. The factory
+has no system test of its own; a work item going through it is the nearest thing.
 
 ## Layout
 
@@ -124,6 +127,6 @@ Smaller, in no order:
 - A fast lane for a fix with a reproduction and no protected-path change. Every work item takes the full loop today.
 - Move the Zitadel reference to the pinned Zitadel image once one is chosen.
 - A timed-out task is killed, but the script it started and that script's children keep running.
-- Lint `scripts/` with shellcheck in `task fabrikk.test`; today it is run by hand.
+- Lint `scripts/` with shellcheck in `task fabrikk:check`; today it is run by hand.
 - Share fabrikk's swamp store with CI, so it can check the run records and not only the attestation's summary.
 - An LLM review of changes to protected steering files, like swamp's review-integrity check.
