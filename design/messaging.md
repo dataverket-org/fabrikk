@@ -61,7 +61,7 @@ An inbound adapter does three things in order, and only then calls the applicati
 A message that fails is rejected: logged once, `nak` or `term`, never processed.
 
 ```go
-func (a *Adapter) onEndRental(msg *nats.Msg) {
+func (a *Adapter) onEndRental(msg platform.Message) {
 	ctx, ce, err := a.envelope.Decode(msg) // steps 1 and 2
 	if err != nil {
 		a.reject(msg, err)
@@ -87,7 +87,10 @@ invariants").
 
 Steps 1 and 2 are one function in `internal/platform`, written once and used by every handler. A handler that
 reimplements them is a finding. A lint in `.golangci.yml` allows only that package to import `nats.go`, so no
-handler can subscribe around it.
+handler can subscribe around it. For the same reason the message a handler is given is that package's own type,
+with the acknowledgements a handler needs, and never the client's: an adapter cannot name the client's type without
+the import the lint denies it. The example calls it `platform.Message`; the slice that writes the first handler
+names it.
 
 ## Subjects
 
