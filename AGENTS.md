@@ -57,7 +57,7 @@ domain rule: they cite the model.
 
 ## Skills and agents
 
-Skills live in `.agents/skills/`, one directory per skill: fabrikk's eight and the pulled `stagecraft` skill,
+Skills live in `.agents/skills/`, one directory per skill: fabrikk's own and the pulled `stagecraft` skill,
 which says how to drive a work item. Codex, OpenCode, Copilot, Amp, Pi, and Antigravity read that directory; Claude Code
 reads `.claude/skills/`, whose entries are symlinks into it, so every enrolled agent loads the same skill by the same
 name. Enrolled tools are listed in `.swamp.yaml`; enrol another with `swamp repo upgrade --tool <tool>` (repeat the

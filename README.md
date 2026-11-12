@@ -62,8 +62,6 @@ Where a test runs. The factory's `verifying` stage runs tiers 0 and 2 and pins t
 | 2 | `task verify` | The images built from the commit in a private stack, tested from outside | Before the pull request |
 | UAT | Not built | The released artifact on a real environment | After the merge |
 
-The rules for what belongs in which tier are in the testing skill (`.agents/skills/adversary-testing/`).
-
 ## Layout
 
 | Path | Holds |
