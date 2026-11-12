@@ -141,6 +141,23 @@ func probe(t *testing.T, name string) []string {
 	return command
 }
 
+// given is the value the manifest gives Sentral for a variable of its
+// environment, which is written on the line after the variable's name.
+func given(t *testing.T, name string) string {
+	t.Helper()
+	manifest, err := os.ReadFile("../deploy/base/sentral.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, after, found := strings.Cut(string(manifest), "- name: "+name+"\n")
+	line, _, _ := strings.Cut(after, "\n")
+	value, isValue := strings.CutPrefix(strings.TrimSpace(line), "value: ")
+	if !found || !isValue || value == "" {
+		t.Fatalf("the manifest gives Sentral no %s", name)
+	}
+	return value
+}
+
 // asked runs a probe command in Sentral's container and hands back its exit
 // code, which is all a cluster reads of it.
 func asked(t *testing.T, command []string) int {
@@ -154,6 +171,7 @@ type entry struct {
 	Level  string `json:"level"`
 	Msg    string `json:"msg"`
 	Reason string `json:"reason"`
+	Tenant string `json:"tenant"`
 }
 
 // written is every line Sentral's container has written, oldest first: what

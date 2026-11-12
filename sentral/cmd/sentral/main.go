@@ -36,7 +36,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stderr 
 
 	switch {
 	case len(args) == 0:
-		return serve(ctx, getenv("NATS_URL"), health, log)
+		return serve(ctx, getenv("TENANT"), getenv("NATS_URL"), health, log)
 	case args[0] == "probe" && len(args) <= 2:
 		path := "/readyz"
 		if len(args) == 2 {
@@ -53,7 +53,20 @@ func run(ctx context.Context, args []string, getenv func(string) string, stderr 
 	}
 }
 
-func serve(ctx context.Context, address, health string, log *slog.Logger) int {
+// serve starts the one instance this process runs. An instance is pinned to
+// one tenant, fixed here and before anything else: with no tenant, or with
+// something that is not a tenant id, nothing is listened on and nothing is
+// connected. The refusals name the variable and never its value.
+func serve(ctx context.Context, tenant, address, health string, log *slog.Logger) int {
+	if tenant == "" {
+		log.Error("TENANT is not set")
+		return 2
+	}
+	pinned, err := platform.ParseTenantID(tenant)
+	if err != nil {
+		log.Error("TENANT is " + err.Error())
+		return 2
+	}
 	if address == "" {
 		log.Error("NATS_URL is not set")
 		return 2
@@ -69,6 +82,7 @@ func serve(ctx context.Context, address, health string, log *slog.Logger) int {
 		log.Error(err.Error())
 		return 2
 	}
+	log.Info("pinned", "tenant", pinned)
 	if err := platform.Run(ctx, conn, listener, log); err != nil {
 		log.Error("stopped", "reason", err.Error())
 		return 1
