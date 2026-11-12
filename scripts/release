@@ -3,7 +3,7 @@
 # release: builds a product's images, joins them with every miljo overlay
 # for it, and pushes, signs and tags one config artifact per environment as
 # :candidate. Run by CI on shared infrastructure after merge, never on a
-# workbench (delivery skill).
+# workbench (design/release.md).
 #
 
 source "${0%/*}/functions.sh" || exit $?

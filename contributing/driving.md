@@ -24,8 +24,8 @@ filed: `swamp behavior run board create --input id=<key> --input 'title=<title>'
 - **`plan`.** The outcome is the ticket's body. The plan follows `agent-constraints/planning-conventions.md`.
 - **`plan-review`, `code-review`.** `dispatch` prints one reviewer's prompt. Send it, unchanged, to an agent that
   starts with no context, and record the file it writes. Record its usage from what the harness reports.
-- **`implement`.** `agent-constraints/implementation-conventions.md`: one worktree and branch per work item, tier 0
-  green, signed commits. Tell the person before each commit; it needs their touch.
+- **`implement`.** `agent-constraints/implementation-conventions.md`: one worktree and branch per work item,
+  `task check` green, signed commits. Tell the person before each commit; it needs their touch.
 - **`verify`.** Run the workflow the packet names, with the packet's inputs, and record its outcome with the real
   run id:
 
@@ -82,7 +82,9 @@ swamp data query 'modelName == "dev-env-<commit>"' --select '{"target": attribut
 1. Edit `models/@swamp/stagecraft/factory/slice.yaml`, the one copy of the definition, and keep the diagram and the
    stage table in [design/factory.md](../design/factory.md) in step. Add or change a saved scenario for the path the
    change is about.
-2. `swamp behavior run slice validate` must report the factory valid, with every scenario passing.
+2. `task fabrikk.test` must pass, in the main checkout: the factory valid with every scenario passing, the
+   workflows valid, and the extensions' tests green. This applies to any change to the factory, an extension or a
+   workflow, not only to the definition.
 3. The file is a protected path: the change goes through a pull request and a human.
 
 A work item already running keeps the copy of the definition it started with. The authoring rules are in the

@@ -53,24 +53,19 @@ function container_ports()
 
 #
 # Plays manifests into a stack and loads the pods it made into played_pods.
-# Each container port is published on loopback: on the same host port
-# (fixed) or on one podman picks (random).
+# Each container port is published on loopback, on a host port podman picks.
 #
 function play()
 {
 	local stack="$1"
 	local manifests="$2"
-	local publishing="$3"
 	local port before pod
 	local publish=()
 
 	while IFS= read -r port; do
 		[[ -n "$port" ]] || continue
 
-		case "$publishing" in
-			fixed)	publish+=(--publish "127.0.0.1:$port:$port") ;;
-			random)	publish+=(--publish "127.0.0.1::$port") ;;
-		esac
+		publish+=(--publish "127.0.0.1::$port")
 	done <<< "$(container_ports "$manifests")"
 
 	before="$(podman pod ps -q --filter "network=$stack")" || return $?
@@ -84,17 +79,47 @@ function play()
 }
 
 #
-# Plays one fragment directory into a stack: rendered with the stack's
-# prefix, refused if it fixes a host port.
+# Exports where to reach what was just played: one variable per published
+# port, STACK_<NAME>_<CONTAINER PORT>=127.0.0.1:<host port>.
 #
-function play_fragment()
+function export_ports()
+{
+	local name="$1"
+	local pod id line port
+
+	name="$(printf '%s' "$name" | tr '[:lower:]-' '[:upper:]_')"
+
+	for pod in "${played_pods[@]}"; do
+		for id in $(podman ps -q --filter "pod=$pod"); do
+			while IFS= read -r line; do
+				[[ -n "$line" ]] || continue
+
+				port="${line%%/*}"
+				export "STACK_${name}_${port}=${line##* }"
+			done <<< "$(podman port "$id" 2>/dev/null)"
+		done
+	done
+}
+
+#
+# Plays the fragments of the given profiles into a stack and exports their
+# ports. Each is rendered with the stack's prefix and refused if it fixes a
+# host port.
+#
+function play_fragments()
 {
 	local stack="$1"
-	local dir="$2"
-	local publishing="$3"
-	local manifests="$stack_work/${dir##*/}.yaml"
+	local dir manifests
 
-	render "$stack" "$dir" > "$manifests"    || return $?
-	refuse_host_ports "$manifests"           || return $?
-	play "$stack" "$manifests" "$publishing" || return $?
+	shift
+
+	for dir in $(fragments "$@"); do
+		manifests="$stack_work/${dir##*/}.yaml"
+
+		log "playing $dir ..."
+		render "$stack" "$root/$dir" > "$manifests" || return $?
+		refuse_host_ports "$manifests"              || return $?
+		play "$stack" "$manifests"                  || return $?
+		export_ports "${dir##*/}"
+	done
 }

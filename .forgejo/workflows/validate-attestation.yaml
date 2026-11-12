@@ -120,7 +120,7 @@ jobs:
           BASE="base/$BASE_REF" HEAD="$HEAD_SHA"
           if hits=$(git log --format='%H%n%B' "$BASE..$HEAD" |
             awk '/^[0-9a-f]{40}$/ { sha = substr($0, 1, 12); next } { print sha " " $0 }' | grep -iE "$pattern"); then
-            fail "commit messages carry AI attribution; nothing published as the author does (source-standards skill)"; echo "$hits"
+            fail "commit messages carry AI attribution; nothing published as the author does (implementation conventions, Source standards)"; echo "$hits"
           else ok "no AI attribution in $(git rev-list --count "$BASE..$HEAD") commits"; fi
 
           # 6. Nor do the PR title and body (read from the event through env, never interpolated into this script).

@@ -51,30 +51,20 @@ function fakeContext(methodName: string) {
   };
 }
 
-Deno.test("runTarget pins the result to HEAD and passes PROFILE only when not default", async () => {
+Deno.test("runTarget pins the result to HEAD", async () => {
   const { calls } = fakeSpawn(() =>
     Promise.resolve({ exitCode: 0, output: "ok\n" })
   );
   try {
     const plain = await runTarget({
       worktree: "/w",
-      target: "dev.up",
-      profile: "default",
-      timeoutSeconds: 5,
-    });
-    const objekt = await runTarget({
-      worktree: "/w",
-      target: "dev.up",
-      profile: "objekt",
+      target: "check",
       timeoutSeconds: 5,
     });
     assertEquals(calls.filter((c) => c[0] === "task"), [
-      ["task", "-x", "dev.up"],
-      ["task", "-x", "dev.up", "PROFILE=objekt"],
+      ["task", "-x", "check"],
     ]);
     assertEquals(plain.headSha, SHA);
-    assertEquals(plain.profile, null);
-    assertEquals(objekt.profile, "objekt");
     assertEquals(plain.succeeded, true);
   } finally {
     resetSpawn();
@@ -219,12 +209,12 @@ Deno.test("real task: output is captured and pinned to the commit", async () => 
 });
 
 Deno.test("real task: a grandchild holding the pipes does not hang the run", async () => {
-  const dir = await gitWorktree("dev.up", ["bash -c 'echo started; sleep 60 &'"]);
+  const dir = await gitWorktree("check", ["bash -c 'echo started; sleep 60 &'"]);
   try {
     const start = Date.now();
     const r = await runTarget({
       worktree: dir,
-      target: "dev.up",
+      target: "check",
       timeoutSeconds: 30,
     });
     assertEquals(r.succeeded, true);

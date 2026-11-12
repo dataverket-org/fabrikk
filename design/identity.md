@@ -39,9 +39,8 @@ carries both.
 
 ## In tests
 
-Tier 0 and 1 tokens come from an `httptest` JWKS issuer that stands in for every issuer. Real Zitadel appears at
-tier 2 and in UAT (testing and dev-environment skills). The fake's behaviour is checked against `_reference/zitadel`
-at the pinned ref.
+Nothing stands in for an issuer. A system test gets its tokens from the real Zitadel in its stack, and UAT from the
+environment's (dev-environment skill). A unit test pins a decision about claims it is given, and starts no issuer.
 
 **Why.** A control plane that holds standing credentials to what it manages is the breach that matters. Tokens that
 expire, issued for one audience from an identity the platform already proves, leave nothing to steal at rest.

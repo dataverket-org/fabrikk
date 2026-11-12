@@ -18,7 +18,7 @@ this repository, so one commit pins both the code and the steering it was built 
 
 ```sh
 swamp model search --json | jq '.results[].name'                       # the model instances
-swamp behavior run slice validate                                      # the factory and its saved scenarios
+task fabrikk.test                                                      # fabrikk itself: extensions, factory, workflows
 swamp behavior run @swamp/stagecraft/work-item status <key>            # what a work item needs next
 ```
 
@@ -49,20 +49,22 @@ where its code is. [design/README.md](design/README.md) indexes the rest and say
 - **The domain model**: what is being built, in the domain's own words. It lives in `domain/` and is the only home
   of domain rules.
 - **Attestation**: a signed tag on the verified commit. CI validates it; CI never runs the loop.
-- **Workbench**: the one machine that holds the agent, the code, the session stack and swamp.
+- **Workbench**: the one machine that holds the agent, the code, the stacks and swamp.
 
-## Test tiers
+## Tests
 
-Where a test runs. The factory's `verifying` stage runs tiers 0 and 2 and pins the result to the commit.
+There are two kinds, and UAT after them. The factory's `verify` stage runs both and pins the result to the commit.
 
-| Tier | Run with | What runs | When |
+| Kind | Run with | What runs | When |
 |---|---|---|---|
-| 0 | `task check` | SPDX headers, gofmt, `go vet`, the linter, and `go test` in every module, against the shared session stack | Every edit |
-| 1 | `task run`, with the first product | The services as plain processes on the same stack | By hand |
-| 2 | `task verify` | The images built from the commit in a private stack, tested from outside | Before the pull request |
+| Unit tests | `task check` | SPDX headers, gofmt, `go vet`, the linter, and the unit tests of every module: in-process, no stack | Every edit |
+| System tests | `task verify` | The images built from the commit, with their real dependencies in a private stack, driven from outside | Before the pull request |
 | UAT | Not built | The released artifact on a real environment | After the merge |
 
-The rules for what belongs in which tier are in the testing skill (`.agents/skills/adversary-testing/`).
+`task stack` is the system tests' stack to work in by hand: the same dependencies in a private stack, and a shell
+that knows where they are, to run a product from source against. It shows nothing to the factory.
+
+What belongs in which kind is in `agent-constraints/implementation-conventions.md`, "Tests are part of the change".
 
 ## Layout
 
@@ -122,6 +124,6 @@ Smaller, in no order:
 - A fast lane for a fix with a reproduction and no protected-path change. Every work item takes the full loop today.
 - Move the Zitadel reference to the pinned Zitadel image once one is chosen.
 - A timed-out task is killed, but the script it started and that script's children keep running.
-- Lint `scripts/` with shellcheck in `task check`; today it is run by hand.
+- Lint `scripts/` with shellcheck in `task fabrikk.test`; today it is run by hand.
 - Share fabrikk's swamp store with CI, so it can check the run records and not only the attestation's summary.
 - An LLM review of changes to protected steering files, like swamp's review-integrity check.

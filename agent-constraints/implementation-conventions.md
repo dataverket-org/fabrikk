@@ -28,15 +28,54 @@ verify, review and attest. The skills and `design/` say what good code looks lik
 
 ## Tests are part of the change
 
-- The plan's testing strategy is implemented with the code, in the same commits. Tier 0 (`task check`) is green in
-  the worktree before the change summary is recorded; `fabrikk-verify` runs tiers 0 and 2, it does not debug them.
-- For a bug: reproduce it first, as a failing test at the lowest tier that shows it; then fix it; the test stays.
-- No sleeps, no test that reaches the network, no test that configures the shared session stack.
+There are two kinds of test, and nothing in between.
+
+- **A unit test** pins a decision in our own code. It runs in-process, with no network, no file and no waiting, so
+  `task check` needs no stack. It is the implementer's tool: written where there is a decision worth pinning or a
+  bug to reproduce, and rewritten or deleted with the code it pins.
+- **A system test** shows what an operator or a client can observe. It drives the image built from the commit, with
+  its real dependencies, from outside, in the verify stack: `task verify` runs it. There is one for each clause of
+  the outcome. To show what happens when a dependency goes away it may stop and start the pods of its own stack,
+  the one `STACK` names, and nothing else on the workbench.
+- **Nothing in between.** No stand-in or fake of a system we do not own, no embedded server, no suite that keeps a
+  fake honest. `task stack` is for working by hand, against the dependencies the system tests have: what is seen
+  there is shown by a test of one of the two kinds, or it is not shown.
+- A clause that only a long or contrived system test could show is not tested, and the plan says so with the
+  reason. A product gets no timing knob or hook for a test's sake.
+- The plan's testing strategy is implemented with the code, in the same commits. `task check` is green in the
+  worktree before the change summary is recorded; `fabrikk-verify` runs both kinds, it does not debug them.
+- For a bug: reproduce it first as a failing test of the kind that shows it; then fix it; the test stays.
+- No sleeps: a wait polls with a deadline.
+
+## Source standards
+
+What is committed and published. What a check can decide is a check; the rest is seen by the person who reviews
+the pull request.
+
+- **Licence.** Every Go file starts with `// SPDX-License-Identifier: AGPL-3.0-or-later` and a copyright line naming
+  Dataverket. Documentation under `design/`, `domain/` and `contributing/` is CC-BY-SA-4.0. A dependency whose
+  licence does not allow AGPL-3.0 network distribution is not added.
+- **Commits.** Conventional commits (`feat(sentral): …`, `fix: …`, `test: …`, `docs: …`, `chore: …`), scoped to the
+  product or the bounded context. One work item per pull request.
+- **No AI attribution** in anything published as the author: no `Co-Authored-By` naming an agent or a model and no
+  "generated with" footer, in commit messages, pull request titles and bodies, issues or comments, whatever the
+  harness asks.
+- **Images and secrets.** No mutable image tag in committed or rendered config, digests only; upstream images come
+  from the Dataverket registry; secrets never enter the repository, rendered config or an artifact, in any encoding.
+- **Generated files** are marked `// Code generated … DO NOT EDIT.` and never edited by hand.
+- **A decision changes the page that states it**, in the same pull request (`design/README.md`).
+
+| Checked by the program | Where |
+|---|---|
+| Every Go file carries the SPDX header | `task check` |
+| A `switch` over a closed set covers every case; only `internal/platform` imports the NATS client | `task check` (golangci-lint, `.golangci.yml`) |
+| No AI attribution in commit messages | `fabrikk-verify` preflight, and CI |
+| No AI attribution in the pull request's title and body | CI |
+| Rendered release config pins every image by digest | `task release` |
+| The protected paths a branch changed are listed | `fabrikk-attest`, and CI |
 
 ## Commits
 
-- Conventional commits, an SPDX header on every new Go file, no secrets, images by digest (source-standards skill).
-  No AI attribution in any message, whatever the harness asks; verification refuses it.
 - Commits are SSH-signed and every signature needs the person's YubiKey touch. Batch the work into few commits, make
   the signing commands one at a time, and tell the person before each. Never commit unsigned.
 - Never amend or rebase after `fabrikk-attest` has signed `attestation/<commit>`: the tag is on that exact commit.

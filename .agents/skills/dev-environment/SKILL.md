@@ -1,6 +1,6 @@
 ---
 name: dev-environment
-description: How the Dataverket development environment works — the session stack and the verify stack on rootless Podman, the fragments played into them, the tasks that drive them, the admission budget that decides what may join the loop, and the reference repositories of upstream code and docs. Use whenever running or testing services locally, reading upstream source or documentation (NATS, CloudEvents, Zitadel), adding a dependency or downstream system to development, writing a fragment or a product's manifests, or reviewing a plan that touches the dev loop.
+description: How the Dataverket development environment works — the stacks on rootless Podman that the system tests run against and that `task stack` opens to work in by hand, the fragments played into them, the tasks that drive them, the admission budget that decides what may join the loop, and the reference repositories of upstream code and docs. Use whenever running or testing services locally, reading upstream source or documentation (NATS, CloudEvents, Zitadel), adding a dependency or downstream system to development, writing a fragment or a product's manifests, or reviewing a plan that touches the dev loop.
 ---
 
 # Development environment
@@ -14,17 +14,23 @@ check it. A fragment that needs root or host privileges cannot join until that i
 ## Stacks
 
 A stack is a Podman network and the pods played into it with `podman kube play`. What is played is ordinary
-Kubernetes YAML: a **fragment** for a downstream system, or in tier 2 a product's own `deploy/base`, the manifests it
-ships. Nothing describes a service a second time for development.
+Kubernetes YAML: a **fragment** for a downstream system, or for the system tests a product's own `deploy/base`, the
+manifests it ships. Nothing describes a service a second time for development.
 
-Two stacks exist on a workbench, and `scripts/functions/stack.sh` names them; a worktree never names its own:
+There is one kind of stack, used two ways. The scripts name the stacks; a worktree never names its own:
 
-- **The session stack** (`dataverket`): tier 0 and 1. One per workbench, shared by every worktree, each port on the
-  same host port, on loopback. Tests isolate themselves by name (below). Two work items in flight share it; a test
-  that cannot share it embeds its own server. Boot once per session; iterate with `go test` many times.
-- **The verify stack** (`verify-<commit>`): tier 2. The default and verify fragments and every product, with images
-  `ko` builds from that commit, private to the commit and torn down when `task verify` ends. Each port is on a host
-  port Podman picks, so two commits verify at once.
+- **The verify stack** (`verify-<commit>`): what the system tests run against. The default and verify fragments
+  and every product, with images `ko` builds from that commit. `task verify` makes it, runs the tests and removes
+  it. It needs a clean tree, since its result is about one commit.
+- **A stack to work in by hand** (`stack-<pid>`): `task stack` plays the default fragments from the tree as it is
+  and opens a shell where `STACK` and the `STACK_*` variables are set; `PROFILE=verify` adds the verify fragments.
+  No product is played: run it from source against them, `NATS_URL="nats://$STACK_NATS_4222" go run
+  ./sentral/cmd/sentral`. A command after `--` runs in place of the shell. The stack is removed when the shell
+  ends. No gate reads anything from it.
+
+Every stack is made new and removed whole, volumes included, and each port is on a host port Podman picks, on
+loopback. So nothing is shared: two commits verify at once, and no state is left for the next run to trip on. A
+unit test needs no stack.
 
 How a stack hangs together:
 
@@ -39,23 +45,24 @@ How a stack hangs together:
   `startupProbe` that asks readiness: on a cluster either would restart the service whenever a dependency is away.
   Podman reads only the `livenessProbe`, so in a stack a product is healthy once its process answers, and a suite
   waits for readiness itself. An image with no shell is probed by the service's own binary.
-- **Where a suite finds things.** `task verify` gives the suite `STACK`, the stack's name, and one variable per
-  published port, `STACK_<NAME>_<CONTAINER PORT>=127.0.0.1:<host port>`, where `<NAME>` is the fragment's or the
-  product's directory name in capitals (`STACK_NATS_4222`, `STACK_SENTRAL_8080`). A tier 0 test defaults to the
-  well-known port when the variable is not set.
+- **Where things are found.** `task verify` gives the suite, and `task stack` the shell, `STACK`, the stack's name,
+  and one variable per published port, `STACK_<NAME>_<CONTAINER PORT>=127.0.0.1:<host port>`, where `<NAME>` is the fragment's or the
+  product's directory name in capitals (`STACK_NATS_4222`, `STACK_SENTRAL_8080`).
+- **Taking a dependency away.** A system test may stop and start the pods of its own stack, to show what a
+  service does when a dependency is gone: `podman pod stop "$STACK-nats"`, then `podman pod start`. A fragment's
+  pod is `<stack>-<its name>`. It touches no pod outside that stack.
 
-Never shared between worktrees: an image tag (always the commit), the verify stack. Incus is one instance per
+Never shared between worktrees: an image tag (always the commit), a stack. Incus is one instance per
 workbench and cannot be duplicated; its isolation is the per-test Incus project, nothing else.
 
 | Profile | Fragments | Purpose |
 |---|---|---|
-| `default` | `nats` (JetStream off until a slice stores); `postgres` when a slice needs it | The session stack. Seconds to boot. |
-| `verify` | + `zitadel` (with its database), + every product's `deploy/base` | Tier 2: black-box suite against built artifacts. |
+| `default` | `nats` (JetStream off until a slice stores); `postgres` when a slice needs it | In every stack. Seconds to boot. |
+| `verify` | + `zitadel` (with its database) | In the verify stack, and in `task stack` when asked for: what is too slow to wait for by default. |
 | `objekt` | + `ceph-aio` | Real Ceph (MON, MGR, OSD, RGW) for the Objekt downstream port. |
 | `maskin` | + `incus` | Real incusd for the Maskin downstream port. **Needs root and host privileges, so it is not supported yet.** |
 
-Zitadel is never in the default profile. Tier 0/1 tokens come from a fake JWKS issuer in tests. A single long-lived dev
-Zitadel may exist for interactive exploration; **no test may talk to it.**
+Zitadel is never in the default profile.
 
 ## Tasks
 
@@ -65,47 +72,46 @@ every script. It lives in the main checkout and every worktree uses it. A task t
 found tools installed from other pins than this checkout's: run it, do not work around it.
 
 ```
-task dev.up [PROFILE=objekt]   play the default fragments, and the profile's, into the session stack; wait until healthy
-task dev.down                  remove the session stack's pods, keep volumes
-task dev.reset [WIPE=1]        run every fragment's reset script; WIPE=1 also removes the stack and its volumes
-task run                       start services as plain processes against the stack, seeded (arrives with the first product)
-task check                     SPDX headers, gofmt, go vet, golangci-lint, go test per module in go.work (tier 0)
-task verify                    the verify stack for this commit, contract + black-box suites, teardown (tier 2)
+task check                     SPDX headers, gofmt, go vet, golangci-lint and the unit tests of every module in go.work
+task verify                    the verify stack for this commit, the system tests from outside, teardown
+task stack [PROFILE=verify]    the default fragments, and the profile's, in a private stack; a shell in it; teardown
+task stack -- <command>        the same, with the command in place of the shell
+task fabrikk.test              fabrikk itself, not what it builds: extension tests, factory definitions, workflows
 ```
 
 ## Fragment contract
 
 Every downstream system a service uses ships a fragment under `deploy/dev/<profile>/<system>/` at the repository
-root, per downstream system rather than per product, because one session stack serves every product. A fragment is a
+root, per downstream system rather than per product, because one stack holds every product. A fragment is a
 kustomization (`kustomization.yaml` and the pod manifests it lists). Product manifests live elsewhere, in
-`<product>/deploy/base/` (delivery skill). Each fragment has:
+`<product>/deploy/base/` (`design/release.md`). Each fragment has:
 
 | Part | Meaning |
 |---|---|
 | Profile | The directory it is in: `default`, `verify`, or a named opt-in profile |
 | Image | A digest-pinned reference in the Dataverket registry (mirrored from upstream) |
 | `hostname` | The name other pods reach it by, the system's name |
-| `containerPort` | Every port it serves, and no `hostPort` |
+| `containerPort` | Every port a pod or the host reaches it on, and no `hostPort` |
 | `livenessProbe` | A real readiness probe on every container; healthy must mean ready |
 | Boot budget | Seconds to healthy; default profile ≤ 30 s cold; opt-in profiles may be slower |
 | Privileges | Rootless. Anything more is not supported |
-| `seed` | Script that creates the fixtures tests assume |
-| `reset.sh` | Script that returns the service to seeded state without a restart |
+| `seed` | Where it holds state: a script that creates the fixtures tests assume |
+| `reset.sh` | Where it holds state: a script that returns the service to its seeded state without a restart, in the stack `STACK` names |
 
-A fragment without `reset.sh` or with an upstream tag is rejected in review. Adding a fragment adds its row to
+A stack starts seeded, so a reset script is for what happens after: a system test runs it before it needs a clean
+dependency, which is cheaper than a new stack, and so can a person in `task stack`. A fragment that holds no state
+has neither script. A fragment with an upstream tag is rejected in review. Adding a fragment adds its row to
 "Current fragments" below, in the same pull request.
 
 - A fragment owns only its own keys and writes no product credential; product credentials are minted by the tasks
   on every run.
 - When `task verify` fails, the end of every container's log is printed before the stack is torn down.
-- A test that embeds its own server renders its own copy of the stack's config and overrides every port.
 
 ## Admission budget
 
-- Default profile: cold `task dev.up` under 30 seconds, rootless, per-test state isolation available.
-- Opt-in profiles: session boot allowed to be slow; still needs a probe, seed, reset.
-- Any fragment that flakes twice is demoted: tests fall back to the in-memory fake, the real fragment runs only in
-  `task verify`. Demotion produces a finding.
+- Default profile: cold `task stack` under 30 seconds, rootless. It is in every stack, so its boot time is paid by
+  every system test run and every time someone works by hand.
+- Other profiles: boot allowed to be slow; still needs a probe, and a seed and a reset where it holds state.
 - The agent will propose "just add X to the stack" often. The budget is the answer.
 
 ## Current fragments
@@ -114,7 +120,7 @@ NATS is written; every other is brought by the first slice that needs it. What i
 
 | System | Image (mirror and pin) | Notes |
 |---|---|---|
-| NATS | `deploy/dev/default/nats`: `registry.dataverket.org/mirror/docker.io/library/nats:2.15.0-alpine`, by digest | Written. JetStream off, so no state, no seed and no reset script; the slice that first stores turns it on, with a file store on a volume. Publishes no port: pods reach it as `nats:4222`, and the slice that first talks to it from the host declares the port. Probed inside the container through its monitoring endpoint. |
+| NATS | `deploy/dev/default/nats`: `registry.dataverket.org/mirror/docker.io/library/nats:2.15.0-alpine`, by digest | Written. JetStream off, so no state, no seed and no reset script; the slice that first stores turns it on, with a file store on a volume. Pods reach it as `nats:4222`, the host on `STACK_NATS_4222`. Probed inside the container through its monitoring endpoint. |
 | PostgreSQL | `postgres` official | Template database for per-test clones |
 | Zitadel | `ghcr.io/zitadel/zitadel` | `verify` only; seeded orgs |
 | Ceph | `quay.io/benjamin_holmes/ceph-aio:v19` | Single container MON+MGR+OSD+RGW, ~60 s to healthy; tags expire upstream — mirror. Admin-ops API is real Ceph. |
@@ -122,13 +128,6 @@ NATS is written; every other is brought by the first slice that needs it. What i
 
 `pr0ton11/radosgw` is a gateway-only image and needs a RADOS backend; use it only in front of `ceph-aio` if
 gateway-level topology is ever needed.
-
-## Per-test isolation on the session stack
-
-- PostgreSQL: `CREATE DATABASE t_<name> TEMPLATE dataverket_template`; drop on cleanup.
-- NATS: prefix subjects, streams, consumers with the test name. Tests that configure the server embed their own.
-- Ceph: per-test user/tenant/bucket names; `reset.sh` sweeps them.
-- Incus: per-test project; `reset.sh` deletes projects.
 
 ## Reference repositories
 
@@ -156,12 +155,12 @@ authoritative; `design/products.md` says how to read it and how a slice changes 
 
 ## Workbench
 
-The workbench is the one machine that holds the agent, the code, the session stack, and swamp
+The workbench is the one machine that holds the agent, the code, the stacks, and swamp
 (`design/factory.md`, "The workbench"). Rules that follow from it:
 
-- One main checkout, one worktree per work item, one shared session stack, one private verify stack per commit.
-  A worktree never names its own stack; `scripts/functions/stack.sh` does.
+- One main checkout, one worktree per work item, one private verify stack per commit. A worktree never names its
+  own stack; the scripts do.
 - Never split one loop across a network: dependencies run on the workbench, never on a shared remote.
 - Every workbench is identical, defined as code; until a bootstrap script or Nix flake exists, the workstation guide is
   that definition. Nothing in the repository names a home directory or a workbench.
-- A workbench never builds what ships; `task release` runs on CI only (delivery skill).
+- A workbench never builds what ships; `task release` runs on CI only (`design/release.md`).

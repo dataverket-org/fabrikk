@@ -70,9 +70,8 @@ sequenceDiagram
 ## Protected paths
 
 Protected paths are the files that steer every agent or produce the release. Changing them needs a human in Forgejo
-regardless of who authored the change. The list lives in three places that must agree: the source-standards skill
-(the rule), the `paths` default of `workflows/workflow-fabrikk-attest.yaml` (what gets digested), and Forgejo's
-branch protection (the enforcement, once `validate-attestation` is a required check).
+regardless of who authored the change. This page is the rule. The `paths` default of
+`workflows/workflow-fabrikk-attest.yaml` is what gets digested, and must equal the list here.
 
 `.agents/`, `.claude/`, `agent-constraints/`, `AGENTS.md`, `CLAUDE.md`, `design/`, `domain/`, `models/` (the factory
 definition and model instances, the reference list among them), `workflows/`, `extensions/`, `Taskfile.yml`,
@@ -94,5 +93,7 @@ changes one pin is hard to tell from one that was steered to a wrong source.
 - Forgejo runs the **PR head's copy of the workflow**, so a pull request that edits `.forgejo/` can weaken the check
   for itself. `.forgejo/` is protected: check 4 reports the change, and a human reviews it. Swamp adds an LLM
   review-integrity check on such trust-root changes; fabrikk does not have one.
-- The check is not required on `main` until it has run once on a real pull request; then it is made required with
-  `branch_protection_ensure` ([contributing/forge.md](../contributing/forge.md)).
+- The check is **not a required check** on `main`: a change to the factory itself is not a work item and carries
+  no attestation, so a required check would refuse it. Until that is settled, a pull request can merge with the
+  check red, and the person who merges is what stands between a missing attestation and `main`
+  ([contributing/forge.md](../contributing/forge.md)).

@@ -21,7 +21,7 @@ Everything that steers the work is one of five kinds. Each has one home, and not
 | **Pattern**: tactical DDD words and Go shapes | `.agents/skills/architecture/` | Still true for bike rental on another broker |
 | **Stack**: how the pattern lands on PostgreSQL, JetStream, CloudEvents, Zitadel and the STS | `design/messaging.md`, `design/persistence.md`, `design/identity.md`; the mechanism is Go code in `internal/platform` | Names a technology and no domain noun |
 | **Domain**: words, contexts, aggregates, invariants | The domain model, [`domain/`](../domain/README.md), nowhere else | Names an organisation, an agreement, the front desk |
-| **Stage conventions and review technique** | `agent-constraints/`, the `adversary-*` skills | Says what a plan, a change or a finding must look like |
+| **Stage conventions and review technique** | `agent-constraints/`, the review prompts in the factory definition | Says what a plan, a change or a finding must look like |
 
 Three rules follow.
 
@@ -31,6 +31,24 @@ Three rules follow.
   is clean when it would work unchanged for the next product.
 - **The stack is mostly code.** A rule every handler must follow is one function in `internal/platform` that no
   handler can bypass, extracted when a second slice needs it. The page here says what is decided; the code does it.
+
+## A decision changes the page that states it
+
+There is no decision log. A change to how the system is built changes the page that owns it, in the same pull
+request, and a change of this kind without its page is not approved.
+
+| Change | Page it changes |
+|---|---|
+| A new subject namespace, a change to the taxonomy, a new `type` family, a change to the envelope | [messaging](messaging.md) |
+| Where state lives, a bucket or mirror layout, what the second copy holds | [persistence](persistence.md) |
+| An issuer, a token, an audience, what admission accepts | [identity](identity.md) |
+| A new service, or which context a service holds | [products](products.md) |
+| How an image is built, a layer of config, a tunable field in an environment overlay | [release](release.md) |
+| A word, a rule or a boundary of the domain | `domain/`, in the page that owns it |
+| A new downstream system or dev fragment | The dev-environment skill's fragment table |
+
+A new Go module dependency carries a one-line reason where it is declared. The domain model's decisions stay in the
+model and are cited, never copied here ([products](products.md)).
 
 ## Layout
 
@@ -82,7 +100,7 @@ describes bumps it. The stack pages carry none until the code they describe exis
 | Page | Notes |
 |---|---|
 | [factory](factory.md) | Start here |
-| [trust](trust.md) | The protected-path list lives here and in two other places that must agree |
+| [trust](trust.md) | The protected-path list lives here; the attest workflow's default must equal it |
 | [release](release.md) | `uat` and `promoting` are not built; the signing key design is not built |
 | [operations](operations.md) | Extensions, model instances, the vault, CI files |
 

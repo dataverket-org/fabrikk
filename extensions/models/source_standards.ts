@@ -1,5 +1,6 @@
 /**
- * The program's counterpart of the source-standards skill: the rules a commit
+ * The program's counterpart of the source standards in
+ * agent-constraints/implementation-conventions.md: the rules a commit
  * message must meet before it is published as the author's. Today one rule,
  * AI attribution. Pure policy over data another model produced (commit
  * messages from `@swamp/git`); the check is recorded before it fails, and CI
@@ -90,7 +91,7 @@ async function record(name: string, check: Check, context: Ctx): Promise<{ dataH
   });
   if (!check.clean) {
     throw new Error(
-      `AI attribution in the ${check.subject}; nothing published as the author carries it (source-standards skill):\n${
+      `AI attribution in the ${check.subject}; nothing published as the author carries it (implementation conventions, "Source standards"):\n${
         check.offending.map((o) => `  ${o.where}\n    ${o.line}`).join("\n")
       }`,
     );
