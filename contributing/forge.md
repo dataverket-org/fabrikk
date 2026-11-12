@@ -44,6 +44,9 @@ The attestation is a signed tag on one commit, so that commit is the one that ha
 
 - Merge with a **merge commit**. It leaves the branch's commits as they are. Rebasing or squashing at merge makes
   new commits: the attested one is then not on `main`, and what is there carries neither its signature nor its tag.
+- A **fast-forward** would land the commit unchanged too, and is off all the same. Only a branch on top of `main`
+  can be fast-forwarded, so with several work items open every one after the first would have to be rebased or
+  updated first, which is what the points here forbid. A merge commit works for any number of them.
 - Never use **Update branch**, by rebase or by merge. Either moves the pull request's head off the attested commit.
   A branch that is behind `main` merges as it is; one that conflicts goes back through the factory, which takes
   `head-moved` to `implement` and attests the new commit.
@@ -54,12 +57,12 @@ The attestation is a signed tag on one commit, so that commit is the one that ha
 - A work item's branch starts from `main`. A branch stacked on another unmerged branch is behind `main` the moment
   that one merges, which is how the first slice's commit came to be rewritten.
 
-The repository's settings can enforce the first two. In Forgejo they are under the repository's pull request
-settings, and by the API's names: `allow_merge_commits` on, `default_merge_style` `merge`, and `allow_rebase`,
-`allow_rebase_explicit`, `allow_squash_merge` and `allow_rebase_update` off. They are set from fabrikk-infra,
-whose token reaches a repository's settings; this repository's does not, and is not meant to
-([the loop boundary](../design/factory.md#the-loop-boundary)). Until the forge model there has a method for them,
-a repository administrator sets them by hand.
+The repository's settings enforce this, all but one. By the API's names: `allow_merge_commits` on,
+`default_merge_style` `merge`, and `allow_fast_forward_only_merge`, `allow_rebase`, `allow_rebase_explicit`,
+`allow_squash_merge` and `allow_rebase_update` off. They are set and asserted from fabrikk-infra, by the workflow
+`@dataverket/forgejo-stagecraft-merge-settings`: its token reaches a repository's settings; this repository's does
+not, and is not meant to ([the loop boundary](../design/factory.md#the-loop-boundary)). The one thing no setting
+removes is Update branch by merge: Forgejo still offers the button.
 
 The factory checks afterwards: it reads the head that was merged back from the forge, and a head that is not the
 attested commit keeps the work item from `done`. The ways on are then the person's: `changes-requested`, which

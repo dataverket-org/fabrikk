@@ -52,6 +52,7 @@ push side live in fabrikk-infra's swamp.
 | `forgejo` | `models/@dataverket/forgejo/forgejo.yaml` | `https://git.dataverket.org` | `forgejo/api_token` |
 | `references` | `models/@dataverket/reference-repos/references.yaml` | the reference-repository list | none |
 | `source-standards` | `models/@dataverket/source-standards/source-standards.yaml` | nothing external: checks over data | none |
+| `studio` | `models/@swamp/stagecraft/studio/studio.yaml` | stagecraft's read-only page over this repository: the factory drawn, its scenarios played, the work items by stage. It runs only while someone runs `serve` | none |
 
 Workflows create their own per-commit instances (`git-<sha>`, `dev-env-<sha>`, `attest-<sha>`, `release-<sha>`); they
 are not in `models/`.

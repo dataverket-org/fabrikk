@@ -5,6 +5,9 @@ dispatch the stage's work, record what it produced, advance, and stop for the pe
 only what is particular to fabrikk. The person's part is the outcome, two approvals, the YubiKey and the merge. All
 commands run from the main checkout, never from a work item's worktree.
 
+To watch: `swamp behavior run studio serve` prints the address of a page that draws the factory and shows every
+work item by stage. It reads and changes nothing, and runs until it is stopped.
+
 ## Start
 
 The factory is `fabrikk` and its tickets are the issues of `dataverket/fabrikk` on the forge. An issue's text is the
