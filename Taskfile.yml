@@ -49,6 +49,11 @@ tasks:
     cmds:
       - scripts/verify
 
+  fabrikk.test:
+    desc: 'fabrikk itself, not what it builds: the extension tests, the factory definitions and scenarios, the workflows'
+    cmds:
+      - scripts/fabrikk-test
+
   release:
     desc: 'PRODUCT=<p>: build images, join with every miljo overlay for <p>, push, sign, and tag :candidate (CI only)'
     env:

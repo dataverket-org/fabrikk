@@ -71,6 +71,7 @@ task dev.reset [WIPE=1]        run every fragment's reset script; WIPE=1 also re
 task run                       start services as plain processes against the stack, seeded (arrives with the first product)
 task check                     SPDX headers, gofmt, go vet, golangci-lint, go test per module in go.work (tier 0)
 task verify                    the verify stack for this commit, contract + black-box suites, teardown (tier 2)
+task fabrikk.test              fabrikk itself, not a tier: extension tests, factory definitions, workflows
 ```
 
 ## Fragment contract

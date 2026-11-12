@@ -18,7 +18,7 @@ this repository, so one commit pins both the code and the steering it was built 
 
 ```sh
 swamp model search --json | jq '.results[].name'                       # the model instances
-swamp behavior run slice validate                                      # the factory and its saved scenarios
+task fabrikk.test                                                      # fabrikk itself: extensions, factory, workflows
 swamp behavior run @swamp/stagecraft/work-item status <key>            # what a work item needs next
 ```
 
@@ -122,6 +122,6 @@ Smaller, in no order:
 - A fast lane for a fix with a reproduction and no protected-path change. Every work item takes the full loop today.
 - Move the Zitadel reference to the pinned Zitadel image once one is chosen.
 - A timed-out task is killed, but the script it started and that script's children keep running.
-- Lint `scripts/` with shellcheck in `task check`; today it is run by hand.
+- Lint `scripts/` with shellcheck in `task fabrikk.test`; today it is run by hand.
 - Share fabrikk's swamp store with CI, so it can check the run records and not only the attestation's summary.
 - An LLM review of changes to protected steering files, like swamp's review-integrity check.
