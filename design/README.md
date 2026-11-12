@@ -4,7 +4,8 @@ What fabrikk is and how Dataverket code is built, in the present tense. A page b
 two questions:
 
 - **How does this part of the factory work?** The loop, the attestation, the release.
-- **What is decided about how product code lands on the stack?** Messaging, persistence, identity, the products.
+- **What is decided about how product code lands on the stack?** Messaging, persistence, identity, observability,
+  the products.
 
 Anything else is a line in [operations.md](operations.md), a how-to in [`contributing/`](../contributing/), or needs
 no page. There are no `decisions/`, `proposals/` or `archive/` folders: a page states the current design with a short
@@ -19,7 +20,7 @@ Everything that steers the work is one of five kinds. Each has one home, and not
 |---|---|---|
 | **Program**: what must always happen, and proof that it did | `models/@swamp/stagecraft/factory/fabrikk.yaml`, `workflows/`, `extensions/`, `.forgejo/`, `Taskfile.yml`, `scripts/` | "Did the tests run" is never prose |
 | **Pattern**: tactical DDD words and Go shapes | `.agents/skills/architecture/` | Still true for bike rental on another broker |
-| **Stack**: how the pattern lands on PostgreSQL, JetStream, CloudEvents, Zitadel and the STS | `design/messaging.md`, `design/persistence.md`, `design/identity.md`; the mechanism is Go code in `internal/platform` | Names a technology and no domain noun |
+| **Stack**: how the pattern lands on PostgreSQL, JetStream, CloudEvents, Zitadel and the STS | `design/messaging.md`, `design/persistence.md`, `design/identity.md`, `design/observability.md`; the mechanism is Go code in `internal/platform` | Names a technology and no domain noun |
 | **Domain**: words, contexts, aggregates, invariants | The domain model, [`domain/`](../domain/README.md), nowhere else | Names an organisation, an agreement, the front desk |
 | **Stage conventions and review technique** | `agent-constraints/`, the review prompts in the factory definition | Says what a plan, a change or a finding must look like |
 
@@ -42,6 +43,7 @@ request, and a change of this kind without its page is not approved.
 | A new subject namespace, a change to the taxonomy, a new `type` family, a change to the envelope | [messaging](messaging.md) |
 | Where state lives, a bucket or mirror layout, what the second copy holds | [persistence](persistence.md) |
 | An issuer, a token, an audience, what admission accepts | [identity](identity.md) |
+| What a service writes to its log and in what form, a trace, a metric | [observability](observability.md) |
 | A new service, or which context a service holds | [products](products.md) |
 | How an image is built, a layer of config, a tunable field in an environment overlay | [release](release.md) |
 | A word, a rule or a boundary of the domain | `domain/`, in the page that owns it |
@@ -62,6 +64,7 @@ design/
   messaging.md     CloudEvents, commands and replies, subjects, the handler shape
   persistence.md   a key-value bucket as the working record, its mirror, PostgreSQL as the second copy
   identity.md      Zitadel for humans, workload identity for machines, admission
+  observability.md what a service writes to its log, and in what form
   operations.md    one entry each for parts that get no design page
 contributing/      how a person sets up a workbench, drives a work item, operates the forge
 domain/            the domain model: what is being built, in the domain's own words
@@ -112,3 +115,4 @@ describes bumps it. The stack pages carry none until the code they describe exis
 | [messaging](messaging.md) | Subject taxonomy is open |
 | [persistence](persistence.md) | A slice builds the bucket only. The mirror, the second copy and the operating rules are planned, each with its trigger |
 | [identity](identity.md) | The machine path is decided in outline only; most of it is open |
+| [observability](observability.md) | The log only. Traces, metrics and the fields of a handled message's line are planned, each with its trigger |

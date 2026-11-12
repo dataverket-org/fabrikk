@@ -7,7 +7,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -49,7 +48,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stderr 
 		}
 		return 0
 	default:
-		fmt.Fprintln(stderr, "usage: sentral [probe [path]]")
+		log.Error("not a command Sentral knows", "usage", "sentral [probe [path]]")
 		return 2
 	}
 }

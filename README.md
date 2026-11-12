@@ -99,17 +99,15 @@ the skills are in `.agents/skills/`. Enrol another tool with `swamp repo upgrade
 
 ## Follow-up work
 
-The loop is built through `pull-request`: a work item is done when its pull request is merged. One slice has been
-through it, Sentral's skeleton.
+The loop is built through `pull-request`: a work item is done when its pull request is merged. Three slices have
+been through it, all of Sentral: its skeleton, its tests as unit tests and system tests, and its log.
 
-1. **Take the second slice through it**: Sentral's tests as unit tests and system tests (#45), the first slice
-   under that rule, and with it or after it the two findings about what Sentral logs (#34, #35).
-2. **Close the design questions the slice needs.** Each stack page lists its own under **Open**: the subject
+1. **Close the design questions the next slice needs.** Each stack page lists its own under **Open**: the subject
    taxonomy ([messaging](design/messaging.md)), how a person's data is erased and multi-fact saves
    ([persistence](design/persistence.md)), and most of the machine path ([identity](design/identity.md)).
-3. **Make `validate-attestation` a required check** on `main`, once a change to the repository itself can carry an
+2. **Make `validate-attestation` a required check** on `main`, once a change to the repository itself can carry an
    attestation too: the line `intern`, below ([contributing/forge.md](contributing/forge.md)).
-4. **The signing key, UAT and promotion** are designed and not built ([design/release.md](design/release.md)). UAT
+3. **The signing key, UAT and promotion** are designed and not built ([design/release.md](design/release.md)). UAT
    needs a real environment, and none exists. Before building them, compare with what the registry now holds:
    `@dataverket/signed-images` has workflows for a signed release, verifying one and promoting one, which may
    replace `extensions/models/release_artifact.ts` and the unwritten `fabrikk-promote`.

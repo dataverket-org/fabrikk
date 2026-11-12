@@ -19,7 +19,7 @@ import (
 // What the suite does to its stack, and nothing else: it asks Sentral's
 // health port from outside, and it does to the stack's pods what a cluster's
 // runtime does to a pod. It stops and starts one, runs the probe commands the
-// manifest declares, and reads a container's state.
+// manifest declares, and reads a container's state and its log.
 
 // setting is a variable task verify gives the suite.
 func setting(t *testing.T, name string) string {
@@ -147,4 +147,74 @@ func asked(t *testing.T, command []string) int {
 	t.Helper()
 	_, code := podman(t, append([]string{"exec", sentral(t)}, command...)...)
 	return code
+}
+
+// entry is one line of Sentral's log.
+type entry struct {
+	Level  string `json:"level"`
+	Msg    string `json:"msg"`
+	Reason string `json:"reason"`
+}
+
+// written is every line Sentral's container has written, oldest first: what
+// an operator reads, and what a cluster collects. The log outlives a stop and
+// a start, so a test that looks for a line notes how many there were before
+// it acted and looks only at those after. Every line has to be one JSON
+// object with a time, a level and a message, and any that is not fails the
+// test that read it.
+func written(t *testing.T) []entry {
+	t.Helper()
+	printed, code := podman(t, "logs", sentral(t))
+	if code != 0 {
+		t.Fatalf("the log of %s could not be read: %s", sentral(t), printed)
+	}
+	var entries []entry
+	for _, line := range strings.Split(printed, "\n") {
+		if line == "" {
+			continue
+		}
+		var fields map[string]any
+		if err := json.Unmarshal([]byte(line), &fields); err != nil {
+			t.Fatalf("a line of Sentral's log is not one JSON object: %q", line)
+		}
+		for _, field := range []string{"time", "level", "msg"} {
+			if text, _ := fields[field].(string); text == "" {
+				t.Fatalf("a line of Sentral's log has no %s: %q", field, line)
+			}
+		}
+		var one entry
+		if err := json.Unmarshal([]byte(line), &one); err != nil {
+			t.Fatalf("a line of Sentral's log does not read as a log line: %q", line)
+		}
+		entries = append(entries, one)
+	}
+	return entries
+}
+
+// says waits until Sentral's log, past its first lines, has one at level
+// with msg.
+func says(t *testing.T, past int, level, msg string) {
+	t.Helper()
+	eventually(t, "the log has a "+level+" line saying "+msg, func() bool {
+		for _, one := range written(t)[past:] {
+			if one.Level == level && one.Msg == msg {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+// saysWhy is says for a line that also carries a reason. What the reason says
+// is the client's or the system's to word, and is not asserted.
+func saysWhy(t *testing.T, past int, level, msg string) {
+	t.Helper()
+	eventually(t, "the log has a "+level+" line saying "+msg+", with a reason", func() bool {
+		for _, one := range written(t)[past:] {
+			if one.Level == level && one.Msg == msg && one.Reason != "" {
+				return true
+			}
+		}
+		return false
+	})
 }

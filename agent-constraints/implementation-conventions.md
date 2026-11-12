@@ -37,8 +37,8 @@ There are two kinds of test, and nothing in between.
   the image built from the commit, with its real dependencies, in the verify stack: `task verify` runs it. There is
   one for each clause of the outcome. The suite runs outside the stack and asks the product what a client would.
   To the pods of its own stack, the one `STACK` names, it may do what a cluster's runtime does to a pod: stop and
-  start one, run the probe commands its manifest declares in its container, and read a container's state and exit
-  code. It does nothing else to them, and touches nothing else on the workbench.
+  start one, run the probe commands its manifest declares in its container, and read a container's state, its exit
+  code and what it has written, its log. It does nothing else to them, and touches nothing else on the workbench.
 - **Nothing in between.** No stand-in or fake of a system we do not own, no embedded server, no suite that keeps a
   fake honest. `task stack` is for working by hand, against the dependencies the system tests have: what is seen
   there is shown by a test of one of the two kinds, or it is not shown.

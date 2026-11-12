@@ -37,17 +37,36 @@ type Connection struct {
 // without limit.
 func Connect(address string, log *slog.Logger) (*Connection, error) {
 	c := &Connection{closed: make(chan struct{})}
+	nc, err := nats.Connect(address, c.options(log)...)
+	if err != nil {
+		// The client's error quotes the address it was given.
+		return nil, ErrAddress
+	}
+	c.nc = nc
+	return c, nil
+}
 
-	// The state is kept from the client's own callbacks, which it runs in
-	// order. Asking the client instead would wait on its lock for as long as
-	// an attempt to reach the server takes.
+// options is everything the client is told: how patiently it waits, and where
+// it reports. Every report goes through log, so nothing the client has to say
+// reaches stderr around it.
+//
+// The state is kept from the client's own callbacks, which it runs in order,
+// one at a time. Asking the client instead would wait on its lock for as long
+// as an attempt to reach the server takes.
+func (c *Connection) options(log *slog.Logger) []nats.Option {
+	// The reason last logged for an attempt that failed. The client tries
+	// again every reconnectWait, and an outage is one line for as long as its
+	// reason stays the same. A connection forgets it, so the next outage is
+	// logged from its first attempt.
+	var lastReason string
 	up := func(event string) nats.ConnHandler {
 		return func(nc *nats.Conn) {
 			c.connected.Store(true)
+			lastReason = ""
 			log.Info(event, "server", nc.ConnectedAddr())
 		}
 	}
-	nc, err := nats.Connect(address,
+	return []nats.Option{
 		nats.Name("sentral"),
 		nats.RetryOnFailedConnect(true),
 		nats.MaxReconnects(-1),
@@ -62,18 +81,26 @@ func Connect(address string, log *slog.Logger) (*Connection, error) {
 			c.connected.Store(false)
 			log.Warn("disconnected", "reason", reason(err))
 		}),
+		// The client calls this for every attempt that fails, the first
+		// connection's too. Without it a Sentral that has never reached the
+		// server says nothing about why.
+		nats.ReconnectErrHandler(func(_ *nats.Conn, err error) {
+			if why := reason(err); why != lastReason {
+				lastReason = why
+				log.Warn("cannot reach the server", "reason", why)
+			}
+		}),
+		// Without a handler of its own the client writes its errors to
+		// stderr itself, as plain text.
+		nats.ErrorHandler(func(_ *nats.Conn, _ *nats.Subscription, err error) {
+			log.Warn("client error", "reason", reason(err))
+		}),
 		nats.ClosedHandler(func(nc *nats.Conn) {
 			c.connected.Store(false)
 			log.Info("closed", "reason", reason(nc.LastError()))
 			close(c.closed)
 		}),
-	)
-	if err != nil {
-		// The client's error quotes the address it was given.
-		return nil, ErrAddress
 	}
-	c.nc = nc
-	return c, nil
 }
 
 // Connected reports whether the connection is connected right now.
