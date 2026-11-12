@@ -17,13 +17,12 @@ import (
 // the variable and never the value, which may carry a credential.
 var ErrAddress = errors.New("NATS_URL is not an address Sentral can use")
 
-// timing is how patiently the client waits. Production values are set in
-// Connect; tests shorten them.
-type timing struct {
-	ping          time.Duration // between pings; three unanswered intervals mean the connection is stale
-	reconnectWait time.Duration // between attempts to reach the server
-	dial          time.Duration // one attempt: the dial and the server's greeting
-}
+// How patiently the client waits.
+const (
+	pingInterval  = 5 * time.Second // between pings; three unanswered intervals mean the connection is stale
+	reconnectWait = 2 * time.Second // between attempts to reach the server
+	dialTimeout   = 2 * time.Second // one attempt: the dial and the server's greeting
+)
 
 // Connection is Sentral's connection to the server. It keeps trying for as
 // long as the server cannot be reached, and says whether it is connected now.
@@ -37,14 +36,6 @@ type Connection struct {
 // connected or not: the first connection and every later one are retried
 // without limit.
 func Connect(address string, log *slog.Logger) (*Connection, error) {
-	return connect(address, log, timing{
-		ping:          5 * time.Second,
-		reconnectWait: 2 * time.Second,
-		dial:          2 * time.Second,
-	})
-}
-
-func connect(address string, log *slog.Logger, t timing) (*Connection, error) {
 	c := &Connection{closed: make(chan struct{})}
 
 	// The state is kept from the client's own callbacks, which it runs in
@@ -60,11 +51,11 @@ func connect(address string, log *slog.Logger, t timing) (*Connection, error) {
 		nats.Name("sentral"),
 		nats.RetryOnFailedConnect(true),
 		nats.MaxReconnects(-1),
-		nats.ReconnectWait(t.reconnectWait),
-		nats.ReconnectJitter(t.reconnectWait/10, t.reconnectWait/10),
-		nats.PingInterval(t.ping),
+		nats.ReconnectWait(reconnectWait),
+		nats.ReconnectJitter(reconnectWait/10, reconnectWait/10),
+		nats.PingInterval(pingInterval),
 		nats.MaxPingsOutstanding(2),
-		nats.Timeout(t.dial),
+		nats.Timeout(dialTimeout),
 		nats.ConnectHandler(up("connected")),
 		nats.ReconnectHandler(up("reconnected")),
 		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
