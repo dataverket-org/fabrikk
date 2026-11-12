@@ -8,8 +8,8 @@ description: The one architecture pattern for Dataverket Go code — tactical DD
 One pattern and one vocabulary, so anyone can find their way through any service from these words. This skill names
 no technology and no domain noun:
 
-- what the stack is (messages, state, identity) is decided in `design/messaging.md`, `design/persistence.md` and
-  `design/identity.md`;
+- what the stack is (messages, state, identity, the log) is decided in `design/messaging.md`,
+  `design/persistence.md`, `design/identity.md` and `design/observability.md`;
 - the domain's nouns and rules are the Dataverket domain model in `domain/`, which is authoritative. Go identifiers
   use its words and no others; a word or rule it lacks is proposed in the plan, never chosen silently in code.
 
