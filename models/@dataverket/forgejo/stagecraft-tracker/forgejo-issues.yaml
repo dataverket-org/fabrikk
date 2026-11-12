@@ -1,0 +1,12 @@
+type: '@dataverket/forgejo/stagecraft-tracker'
+typeVersion: 2026.11.12.1
+id: 1a056872-c8d6-4032-a733-58de20f3b9cc
+name: forgejo-issues
+version: 1
+tags: {}
+globalArguments:
+  apiUrl: 'https://git.dataverket.org'
+  token: '${{ vault.get(fabrikk, forgejo/api_token) }}'
+  owner: dataverket
+  repo: fabrikk
+methods: {}

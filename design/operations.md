@@ -21,7 +21,6 @@ runs the tests, on the Deno swamp ships (`~/.swamp/deno/deno`).
 | `source_standards.ts` | `@dataverket/source-standards` | `commits`: no AI attribution in commit messages. Holds the pattern and the shell recipe CI copies literally; records the check before failing. | `fabrikk-verify`, `validate-attestation.yaml` |
 | `release_artifact.ts` | `@dataverket/release-artifact` | `verify`: signature (cosign), provenance, `release.json`, digest-pinned images, `:candidate` equals this digest. | `fabrikk-release` |
 | `reference_repos.ts` | `@dataverket/reference-repos` | `sync`: clones or refreshes each listed repository into `_reference/`, records the commit. | humans and agents |
-| `forgejo_actions.ts` | extends `@dataverket/forgejo` | `tag_protection_ensure` (who may push `attestation/*`). Everything else on the forge model, `pr_ensure` and `pr_merge_state` among it, is upstream's. | attester setup |
 | `_lib/task.ts` | shared | Runs `task -x <name>` with a timeout and captures the result. An aborted task gets SIGTERM, then SIGKILL after two seconds, because task does not exit on SIGTERM while a command runs. | `dev_environment.ts` |
 | `upstream_extensions.json` | manifest | The pulled extensions and their pinned versions (swamp-managed). | swamp |
 
@@ -47,7 +46,9 @@ push side live in fabrikk-infra's swamp.
 | Instance | Definition | Points at | Credential |
 |---|---|---|---|
 | `fabrikk` | `models/@swamp/stagecraft/factory/fabrikk.yaml` | the factory itself: its definition and saved scenarios | none |
-| `board` | `models/@swamp/stagecraft/tracker/board.yaml` | the built-in tracker: work items' tickets, kept in swamp data | none |
+| `issues` | `models/@swamp/stagecraft/publisher/issues.yaml` | the factory's tracker: stagecraft's publisher in front of `forgejo-issues`; keeps the ledger and maps the factory's status keys to the tracker's statuses | none |
+| `forgejo-issues` | `models/@dataverket/forgejo/stagecraft-tracker/forgejo-issues.yaml` | the issues of `dataverket/fabrikk` as tickets | `forgejo/api_token` |
+| `board` | `models/@swamp/stagecraft/tracker/board.yaml` | the built-in tracker: holds the first work item's ticket and takes no new ones | none |
 | `forgejo` | `models/@dataverket/forgejo/forgejo.yaml` | `https://git.dataverket.org` | `forgejo/api_token` |
 | `references` | `models/@dataverket/reference-repos/references.yaml` | the reference-repository list | none |
 | `source-standards` | `models/@dataverket/source-standards/source-standards.yaml` | nothing external: checks over data | none |
@@ -66,7 +67,7 @@ key for the same host. `.sops.yaml` carries the same recipients for the `sops` C
 
 | Key | Used by |
 |---|---|
-| `forgejo/api_token` | the `forgejo` model; scoped to `dataverket/fabrikk` |
+| `forgejo/api_token` | the `forgejo` and `forgejo-issues` models; scoped to `dataverket/fabrikk` |
 
 ## CI
 

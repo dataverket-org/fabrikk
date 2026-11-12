@@ -37,8 +37,8 @@
     "publishedChannel": "stable"
   },
   "@dataverket/forgejo": {
-    "version": "2026.11.09.1",
-    "pulledAt": "2026-11-11T12:19:42.061Z",
+    "version": "2026.11.12.1",
+    "pulledAt": "2026-11-12T15:18:12.355Z",
     "files": [
       ".swamp/pulled-extensions/@dataverket/forgejo/files/LICENSE.md",
       ".swamp/pulled-extensions/@dataverket/forgejo/files/README.md",
@@ -49,6 +49,7 @@
       ".swamp/pulled-extensions/@dataverket/forgejo/models/forgejo.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/issues.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/labels.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/merge_settings.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/names.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/org_delete.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/pr_assign.ts",
@@ -57,12 +58,15 @@
       ".swamp/pulled-extensions/@dataverket/forgejo/models/pull_mirror.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/push_mirror.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/repo_delete.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/stagecraft_tracker.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/tag_protection.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/topics.ts",
       ".swamp/pulled-extensions/@dataverket/forgejo/models/units.ts",
-      ".swamp/pulled-extensions/@dataverket/forgejo/models/work_item_sync.ts"
+      ".swamp/pulled-extensions/@dataverket/forgejo/models/work_item_sync.ts",
+      ".swamp/pulled-extensions/@dataverket/forgejo/workflows/workflow-5a8da8d5-7458-4310-bf2d-66e1dbf4c394.yaml"
     ],
-    "checksum": "25a56033b6869e5864aa45b581fc63ab88bf1a331bd1bd6b9cf868b2a2e4ab6a",
-    "filesChecksum": "b42f6471a4547d824103a7ee64d13552f8cdd88f152b6888324aa10429234506",
+    "checksum": "3463001dc656518f90c93aeca2450c1d23e0679d6517e99e93e84db1d5c0d47a",
+    "filesChecksum": "a786f76ece079ca5bddf4f0c4179886fb9f357c2797a2258d3f84e8a8c66fbc0",
     "serverUrl": "https://swamp-club.com",
     "publishedChannel": "stable"
   },

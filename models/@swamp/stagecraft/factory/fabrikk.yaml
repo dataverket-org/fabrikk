@@ -5,9 +5,10 @@ name: fabrikk
 version: 1
 tags: {}
 globalArguments:
-  tracker: board
+  tracker: issues
   definition:
     schemaVersion: 5
+    tracker: { kind: forgejo }
     description: |-
       One slice of a Dataverket product, from plan to a merged pull request:
       plan, review the plan, implement, verify, review the change, attest,

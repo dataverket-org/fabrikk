@@ -1,0 +1,15 @@
+type: '@swamp/stagecraft/publisher'
+typeVersion: 2026.10.12.1
+id: 3a171453-aacc-49bc-ada9-69905819bdc8
+name: issues
+version: 1
+tags: {}
+globalArguments:
+  tracker: forgejo-issues
+  prefix: fabrikk
+  statuses:
+    open: new
+    in_progress: in-progress
+    shipped: shipped
+    closed: closed
+methods: {}

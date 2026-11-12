@@ -7,17 +7,28 @@ commands run from the main checkout, never from a work item's worktree.
 
 ## Start
 
-The factory is `fabrikk` and its tracker is `board`, stagecraft's built-in one. File a ticket with the outcome, claim
-it, and run the `start` command that `claim` prints:
+The factory is `fabrikk` and its tickets are the issues of `dataverket/fabrikk` on the forge. An issue's text is the
+outcome. Claim the issue by its number, and run the `start` command that `claim` prints:
 
 ```sh
-swamp workflow run @swamp/stagecraft/create --input tracker=board --input 'title=<title>' --input 'body=<the outcome>' --input type=feature
-swamp workflow run @swamp/stagecraft/claim --input tracker=board --input issue=<ticket> --input factory=fabrikk
+swamp workflow run @swamp/stagecraft/claim --input tracker=issues --input issue=<number> --input factory=fabrikk
 swamp behavior run @swamp/stagecraft/work-item status <key>
 ```
 
-The key is the ticket's id (`slice-12`). For a key that says what the work is, give the ticket that id when it is
-filed: `swamp behavior run board create --input id=<key> --input 'title=<title>' --input 'body=<the outcome>' --input type=feature`.
+The key is `fabrikk-<number>`. Nothing watches the forge: an issue becomes work when it is claimed, and claiming it
+again hands back the same work item. Add `--input dryRun=true` to only look. Where there is no issue yet, file one,
+on the forge or with:
+
+```sh
+swamp workflow run @swamp/stagecraft/create --input tracker=issues --input 'title=<title>' --input 'body=<the outcome>' --input type=feature
+```
+
+`issues` is stagecraft's publisher; behind it `forgejo-issues` is the tracker, of the type
+`@dataverket/forgejo/stagecraft-tracker`. A status is a label `status/<name>` and the issue's state, and a type a
+label `type/<name>` (`feature`, `bug`, `security`, `finding`). The labels are converged with
+`swamp workflow run @dataverket/forgejo-stagecraft-labels --input tracker=forgejo-issues --input forgejo=forgejo`,
+which deletes nothing. The built-in tracker `board` holds the ticket of the first work item, `sentral-skeleton`, and
+takes no new ones.
 
 ## What each stage needs here
 
@@ -55,8 +66,12 @@ pull request) is theirs too.
 `status` says when the ticket is behind. Publish the work item's journal to it:
 
 ```sh
-swamp workflow run @swamp/stagecraft/publish --input tracker=board --input workItem=<key>
+swamp workflow run @swamp/stagecraft/publish --input tracker=issues --input workItem=<key>
 ```
+
+On the issue that is a comment for each event a person needs, the `status/` label moved when the stage's status
+changes, and the issue closed when the work item is shipped or closed. What people write on the issue reaches the
+driver only when it is read: `swamp workflow run @swamp/stagecraft/fetch-issue --input tracker=issues --input issue=<number>`.
 
 ## Reading run data
 

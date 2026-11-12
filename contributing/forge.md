@@ -1,6 +1,6 @@
 # Operate the forge
 
-Forge tasks go through the `forgejo` model (`@dataverket/forgejo` plus `extensions/models/forgejo_actions.ts`), never
+Forge tasks go through the `forgejo` model (`@dataverket/forgejo`), never
 through the web UI or `curl`, so that what was done is recorded. The token is `forgejo/api_token` in the vault.
 Methods are find-or-create and report `created`, `updated`, or `unchanged`; nothing here deletes.
 
@@ -25,7 +25,9 @@ swamp model method run forgejo tag_protection_ensure --input owner=dataverket --
   --input 'namePattern=attestation/*' --input 'whitelistUsernames=["beddari","<login>"]'
 ```
 
-Keep the two lists equal: CI verifies against the file, Forgejo enforces the push.
+Keep the two lists equal: CI verifies against the file, Forgejo enforces the push. The login needs write access to
+the repository first: Forgejo drops one without it from the rule and says nothing, so the method refuses and names
+the login.
 
 ## `validate-attestation` is not a required check
 

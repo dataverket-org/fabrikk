@@ -118,9 +118,10 @@ Smaller, in no order:
 
 - Release, UAT and promotion as stages of the factory, once a UAT environment exists; `fabrikk-release` is written
   and no stage calls it.
-- Forgejo issues as the factory's tickets, behind stagecraft's publisher; work items are tickets on the built-in
-  tracker until then. The tracker is a second type of `@dataverket/forgejo`, written and not yet published, and
-  this repository's token already reaches its issues.
+- File a review's open findings as issues when a work item ends, with their severity as the label. The labels
+  exist; today the findings are filed by hand.
+- A `duplicate` ending for a ticket found to duplicate another while it is worked on, and a first stage that stops
+  on a ticket that is blocked. Upstream's examples have both; neither has been needed yet.
 - Archive the old `domain-model` repository read-only: the model moved to `domain/` without its history, and that
   repository holds the history and the tag `v0.5.0-parked`.
 - A second line, `intern`, for changes to the repository itself: the factory's definition, extensions, scripts and
