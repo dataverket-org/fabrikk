@@ -4,7 +4,7 @@ description: >-
   fabrikk's verifying stage: tier 0 (task check) and tier 2 (task verify) in the implementer's worktree,
   refusing to run unless the worktree is clean, HEAD is the commit under review, and no commit on the branch
   carries AI attribution: the cheapest point to refuse a message, before the stack, the suites, and review.
-  The session stack is brought up if needed and left running; it belongs to the implementer's session.
+  Tier 0 is unit tests and needs no stack; tier 2 plays its own private stack and tears it down.
 tags:
   factory: fabrikk
 version: 1
@@ -96,20 +96,11 @@ jobs:
             condition: { type: succeeded }
 
   - name: tier0
-    description: Session stack (default profile) up, then gofmt, vet, lint, go test.
+    description: SPDX headers, gofmt, vet, lint and the unit tests. No stack.
     dependsOn:
       - job: preflight
         condition: { type: succeeded }
     steps:
-      - name: up
-        task:
-          type: model_method
-          modelType: '@dataverket/dev-environment'
-          modelName: dev-env-${{ inputs.headSha }}
-          methodName: up
-          inputs:
-            worktree: ${{ inputs.worktree }}
-            profile: default
       - name: check
         task:
           type: model_method
@@ -118,9 +109,6 @@ jobs:
           methodName: check
           inputs:
             worktree: ${{ inputs.worktree }}
-        dependsOn:
-          - step: up
-            condition: { type: succeeded }
       - name: check-pinned
         task:
           type: assert
