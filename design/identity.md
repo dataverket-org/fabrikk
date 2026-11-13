@@ -67,10 +67,12 @@ is not, and the first slice that admits a machine needs it decided first:
   organisation takes an id from the caller (`zitadel@dce17d591309`, `proto/zitadel/org/v2/org_service.proto`,
   `AddOrganizationRequest.organization_id`), so the id Tenancy mints could be the identity provider's id for the
   organisation too, with no mapping between the two. This was not checked for a project.
-- **How an instance learns its tenant.** Sentral is told by the variable `TENANT`. The model has Tenancy give an
-  instance an identity that names its tenant, which is what admission places it by
-  (`domain/control-plane/language/system-words.md`, *Instance*). What becomes of the variable then is not decided:
-  it goes, or it stays as a claim the placement has to agree with. Until then the value in `sentral/deploy/base` is
-  the stacks' own, and it must not reach a real environment.
+- **How an instance learns its tenant.** What is built is in [products.md](products.md), "Which tenant an instance
+  is given". The model has Tenancy give an instance an identity that names its tenant, which is what admission
+  places it by (`domain/control-plane/language/system-words.md`, *Instance*). Three things are not decided. How
+  Tenancy tells an instance it brings up which tenant it is for. Whether `TENANT` then goes, or stays as a claim the
+  placement has to agree with. And how an environment gives its installation organisation's tenant id: where that
+  id comes from when an installation is first made, and whether `TENANT` is a field the base declares tunable
+  ([release.md](release.md)).
 - **Authorisation.** Where a handler reads what decides a command. The model fixes that the role, the policy and
   the login's validation are read at each command and never stored as a state of the user.

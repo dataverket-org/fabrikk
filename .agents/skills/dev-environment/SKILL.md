@@ -24,9 +24,10 @@ There is one kind of stack, used two ways. The scripts name the stacks; a worktr
   it. It needs a clean tree, since its result is about one commit.
 - **A stack to work in by hand** (`stack-<pid>`): `task stack` plays the default fragments from the tree as it is
   and opens a shell where `STACK` and the `STACK_*` variables are set; `PROFILE=verify` adds the verify fragments.
-  No product is played: run it from source against them, with a tenant of your own making,
-  `TENANT="$(uuidgen | tr A-F a-f)" NATS_URL="nats://$STACK_NATS_4222" go run ./sentral/cmd/sentral`. A command
-  after `--` runs in place of the shell. The stack is removed when the shell ends. No gate reads anything from it.
+  No product is played: run it from source against them, with a made-up tenant,
+  `TENANT=123e4567-e89b-42d3-a456-426614174000 NATS_URL="nats://$STACK_NATS_4222" go run ./sentral/cmd/sentral`. A
+  command after `--` runs in place of the shell. The stack is removed when the shell ends. No gate reads anything
+  from it.
 
 Every stack is made new and removed whole, volumes included, and each port is on a host port Podman picks, on
 loopback. So nothing is shared: two commits verify at once, and no state is left for the next run to trip on. A

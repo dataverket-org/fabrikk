@@ -67,6 +67,14 @@ Rules for reading it:
   `sentral` module. An instance pinned to one tenant need not be one process: several may share a process, each
   with its own connection to its own account, if the pin is fixed when the instance starts. The expected scale
   decides, and it is not decided.
+- **Which tenant an instance is given.** A service has no tenant. An instance is pinned to one, or, for admission
+  and Tenancy, to none (`domain/control-plane/language/system-words.md`, *Pinned*). A pinned instance reads its
+  tenant from the variable `TENANT` when it starts, and does not start without one. The manifests a product ships
+  are played before Tenancy has made any tenant, so the only tenant they can name is the installation
+  organisation's, which is given before any other exists (`domain/control-plane/language/who.md`, *The
+  installation's organisation*); every other instance is given its tenant by Tenancy, which brings it up
+  (*Instance*, in the system words). The value in `sentral/deploy/base` is the stacks' own, names no organisation,
+  and must not reach an environment.
 - **The stack:** how messages are shaped ([messaging.md](messaging.md)), where state lives
   ([persistence.md](persistence.md)), and how a connection is identified ([identity.md](identity.md)).
 

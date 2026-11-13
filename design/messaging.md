@@ -17,10 +17,9 @@ are the architecture skill's. Who sends what to whom is the domain model's integ
 - Required extensions: `tenant`, the one tenant the message concerns, and `traceparent`.
 - `tenant` carries the tenant id: a UUID in its canonical lowercase spelling, and never the nil UUID. Nothing else is
   a tenant id, so a tenant is written one way wherever two ids are compared. That spelling is legal as one part of a
-  NATS subject, needs no escaping in a resource ID or in a claim, and is unique across installations by itself. The
-  model makes the tenant id the organisation id, which also names the account
-  (`domain/control-plane/design/tenancy/first-message.md`, "*create organisation* goes to Tenancy, not
-  Organisation"), so this is their spelling too.
+  NATS subject and needs no escaping in a resource ID or in a claim. The model makes the tenant id the organisation
+  id, which also names the account (`domain/control-plane/design/tenancy/first-message.md`, "*create organisation*
+  goes to Tenancy, not Organisation"), so this is their spelling too.
 - A fact that concerns several tenants is published once per tenant, each copy naming that one alone. NATS filters an
   import by subject and never by content, so one copy cannot be shown to some and hidden from others.
 - The sender writes neither the actor nor a tenant to be believed. The actor is what admission bound to the
@@ -112,8 +111,11 @@ names it.
   plan that needs a subject proposes one and marks it as the proposal it is.
 - **The global resource ID's grammar.** What `source` and `subject` carry beyond naming the aggregate: its segments,
   their order and what separates them. If installations federate (`domain/open.md`, "Federation"), the ID has to
-  name the installation, and a tenant id that is unique by itself does not stand in the way. Recommended: the grammar
-  names the installation from the start.
+  name the installation. An installation is known by its organisation (`domain/control-plane/language/who.md`,
+  *Installation*), which is a tenant like any other, so that organisation's tenant id is one candidate for the name.
+  Recommended: the grammar names the installation from the start.
+- **The UUID version Tenancy mints.** The spelling pins none. A tenant id has to be unique across installations
+  without one asking another, which a UUID minted at random gives. Decided by the slice that builds minting.
 - **The asking account.** How a handler learns which account sent a request that crossed an import, so that "the
   import tells who sent it" is checked and not assumed.
 - **`subject` on a creating command.** The aggregate has no resource ID yet; the model leaves
