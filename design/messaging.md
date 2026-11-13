@@ -15,6 +15,12 @@ are the architecture skill's. Who sends what to whom is the domain model's integ
 - `id` is unique per message. `source` and `subject` carry the global resource ID of the aggregate. The CloudEvents
   `subject` attribute is not the NATS subject.
 - Required extensions: `tenant`, the one tenant the message concerns, and `traceparent`.
+- `tenant` carries the tenant id: a UUID in its canonical lowercase spelling, and never the nil UUID. Nothing else is
+  a tenant id, so a tenant is written one way wherever two ids are compared. That spelling is legal as one part of a
+  NATS subject, needs no escaping in a resource ID or in a claim, and is unique across installations by itself. The
+  model makes the tenant id the organisation id, which also names the account
+  (`domain/control-plane/design/tenancy/first-message.md`, "*create organisation* goes to Tenancy, not
+  Organisation"), so this is their spelling too.
 - A fact that concerns several tenants is published once per tenant, each copy naming that one alone. NATS filters an
   import by subject and never by content, so one copy cannot be shown to some and hidden from others.
 - The sender writes neither the actor nor a tenant to be believed. The actor is what admission bound to the
@@ -104,6 +110,10 @@ names it.
 - **The subject taxonomy.** Where the tenant id, the actor, the context and the aggregate sit in a subject. It is
   written into this page by the slice that first needs a subject, and decided by the human in that plan. Until then a
   plan that needs a subject proposes one and marks it as the proposal it is.
+- **The global resource ID's grammar.** What `source` and `subject` carry beyond naming the aggregate: its segments,
+  their order and what separates them. If installations federate (`domain/open.md`, "Federation"), the ID has to
+  name the installation, and a tenant id that is unique by itself does not stand in the way. Recommended: the grammar
+  names the installation from the start.
 - **The asking account.** How a handler learns which account sent a request that crossed an import, so that "the
   import tells who sent it" is checked and not assumed.
 - **`subject` on a creating command.** The aggregate has no resource ID yet; the model leaves

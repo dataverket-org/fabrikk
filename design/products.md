@@ -23,8 +23,8 @@ Each service has one Norwegian noun as its authoritative name. The name is also 
 - The names are the stable identifiers across documentation, CLI tooling, subjects and code. The lower-cased name is
   the `<service>` value wherever a subject, an identity-provider project, or a policy names a service.
 - Each service is its own Go module in its own directory, joined by the root `go.work`, and is released as its own
-  artifacts. Sentral is the first with code: a process that connects and says whether it is ready, holding no
-  context yet.
+  artifacts. Sentral is the first with code: a process that pins the one tenant it is given, connects and says
+  whether it is ready, holding no context yet.
 - A new service follows the pattern and is added by changing this table.
 
 **Why.** Norwegian institutional naming, in the tradition of "Vegvesenet" and "Jernbaneverket", was chosen for the

@@ -18,6 +18,10 @@ spec:
         - name: sentral
           image: ko://git.dataverket.org/dataverket/fabrikk/sentral/cmd/sentral
           env:
+            # The tenant this instance is pinned to. The value is the stacks' own and names no organisation that
+            # exists.
+            - name: TENANT
+              value: 88d81e5e-b671-4963-97bc-a3da3ecdbebd
             - name: NATS_URL
               value: nats://nats:4222
           ports:
