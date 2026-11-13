@@ -10,7 +10,7 @@
 
 ### One kind of tenant
 
-Every organisation is one, and a tenant has no kind: whether an organisation provides is a fact of its agreements. An organisation that provides runs the instances of its products and its Audit in its account; the installation's organisation runs Person, Catalogue and the installation's Audit in its, beside the two instances pinned to no tenant.
+Every organisation is one, and a tenant has no kind: whether an organisation provides is a fact of its agreements. An organisation that provides runs the instances of its products in its account. Its Audit is there too, and in this story the provider runs it; that another organisation may one day keep a provider's record for it is [seen and left](../../../open.md#a-providers-record-kept-by-another). The installation's organisation runs Person, Catalogue and the installation's Audit in its, beside the two instances pinned to no tenant.
 
 ### Wired per agreement and per product taken
 

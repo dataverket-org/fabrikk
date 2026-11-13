@@ -88,6 +88,9 @@ The domain owner intends a cooperative of several providers, with an organisatio
 ### Federation
 
 The shared audit stream across installations is a federation question, as the catalogue across installations is. A custodian of a provider's full audit record is unnecessary for the record's integrity, since the installation enforces append-only above the provider; a custodian would be about keeping the content available, and needs a legal role and an agreement of a kind the model does not have.
+### A provider's record kept by another
+
+A provider keeps its own record and runs what keeps it: what an organisation does with a provider's products is recorded by that provider. Keeping a record could one day be something another organisation offers a provider, the installation's among them. The rule that a party's acts are recorded by the party it is accountable to would stand; who runs what keeps the record would then be for that offer to say. Nothing in the model depends on which it is.
 ### An outside witness for the installation's record
 
 The installation's Audit records its own acts, as the provider of the control plane and of anything else it provides, and inside the installation no one checks that record: the party that runs the platform is the party it would be checked against. An organisation outside the installation holding the installation's record, by agreement, is the answer, under federation. An organisation holding a record for another is a relationship between two organisations that is not customer and provider, the first sign that the agreement may one day have kinds; named here and left.
