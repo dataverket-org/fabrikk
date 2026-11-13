@@ -12,7 +12,7 @@ The terms of the control plane, for use in conversation, events, documentation a
 
 ## Contents
 
-- [Who's who](who.md): person, login, user, validated, visitor, provider, the installation's organisation, organisation, agreement, offboarding, the roles, organisation policy, the operator duty
+- [Who's who](who.md): person, login, user, validated, visitor, provider, the installation, the installation's organisation, organisation, agreement, offboarding, the roles, organisation policy, the operator duty
 - [Products and the catalogue](products.md): product, the example product, the control plane, terms, the installation terms, effective date, catalogue, listing, announcement, catalogue item, resource, reservation, quota
 - [Record](record.md): the audit record
 - [Outside parties](outside-parties.md)
