@@ -7,6 +7,8 @@
   "extends": ["config:recommended", "docker:pinDigests"],
   "schedule": ["* * * * 1"],
   "automerge": false,
+  "minimumReleaseAge": "7 days",
+  "osvVulnerabilityAlerts": true,
   "semanticCommits": "enabled",
   "semanticCommitScope": "deps",
   "customManagers": [
@@ -55,6 +57,19 @@
     }
   ],
   "packageRules": [
+    {
+      "description": "ghcr.io may give no release time; then the seven days cannot be counted and the update is proposed at once",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/**"],
+      "minimumReleaseAgeBehaviour": "timestamp-optional"
+    },
+    {
+      "description": "A workflow's actions resolve on this forge's own actions org (DEFAULT_ACTIONS_URL=self), so their versions are read there",
+      "matchManagers": ["github-actions"],
+      "matchDatasources": ["github-tags"],
+      "overrideDatasource": "forgejo-tags",
+      "registryUrls": ["https://git.dataverket.org"]
+    },
     {
       "description": "Every update is a chore, whatever kind of dependency it is",
       "matchPackageNames": ["*"],

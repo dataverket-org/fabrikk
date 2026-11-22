@@ -108,6 +108,8 @@ checkout they run in, so a branch that moves a pin is never judged by tools anot
 Three things move the versions this repository pins. Renovate runs on the forge from its own repository
 (`dataverket/renovate`), once an hour, and acts here because `renovate.json` exists. It opens pull requests in one
 weekly window, as `chore(deps): …`, and never merges: every file it touches is a protected path, so a person does.
+A release is proposed when it is seven days old; a fix for a known vulnerability in a Go module is proposed at once.
+The versions of the actions a workflow uses are read from the forge's own `actions` org, where the workflow gets them.
 
 | Moved by | What | Where the pin is |
 |---|---|---|
